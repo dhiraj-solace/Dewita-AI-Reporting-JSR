@@ -1,4 +1,5 @@
 import logging
+import re
 from app.core.config import get_settings
 from app.db import fetch_rows
 from app.models import GeneratedReport, ReportRequest, RetryAttempt
@@ -51,7 +52,13 @@ async def build_report(request: ReportRequest) -> GeneratedReport:
     else:
         logger.info(f"AI SQL generation successful for question: '{request.question}'")
 
-    sql = _prepare_sql(generated["sql"], min(request.limit, get_settings().max_rows), warnings)
+    sql = _prepare_sql(
+        generated["sql"],
+        min(request.limit, get_settings().max_rows),
+        warnings,
+        resolved_dates.start_date,
+        resolved_dates.end_date,
+    )
     params = {"start_date": resolved_dates.start_date, "end_date": resolved_dates.end_date}
 
     columns: list[str] = []
@@ -77,11 +84,28 @@ async def build_report(request: ReportRequest) -> GeneratedReport:
     )
 
 
-def _prepare_sql(sql: str, limit: int, warnings: list[str]) -> str:
+def _prepare_sql(
+    sql: str,
+    limit: int,
+    warnings: list[str],
+    start_date: str | None,
+    end_date: str | None,
+) -> str:
     sql, normalization_warnings = normalize_live_schema_sql(sql)
     warnings.extend(normalization_warnings)
+    sql = _render_terminal_sql(sql, {"start_date": start_date, "end_date": end_date})
     sql = validate_select_sql(sql)
     return apply_limit(sql, limit)
+
+
+def _render_terminal_sql(sql: str, params: dict[str, str | None]) -> str:
+    """Render named SQLAlchemy placeholders as MySQL literals for copy/paste use."""
+    rendered = sql
+    for name, value in params.items():
+        escaped = value.replace("'", "''") if value is not None else None
+        literal = "NULL" if escaped is None else f"'{escaped}'"
+        rendered = re.sub(rf":{re.escape(name)}\b", literal, rendered)
+    return rendered
 
 
 def _validate_with_current_schema(
@@ -131,19 +155,18 @@ def _execute_with_schema_retries(
             break
         except Exception as exc:
             diagnosis = diagnose_database_error(exc, _safe_schema())
+            retry_message = diagnosis or SchemaDiagnosis(message=str(exc))
             retry_attempts.append(
                 _failed_attempt(
                     attempt,
                     "Database rejected the generated SQL.",
                     sql,
-                    diagnosis or SchemaDiagnosis(message=str(exc)),
+                    retry_message,
                 )
             )
-            if attempt == 1 and diagnosis:
-                warnings.append("Refreshing schema metadata and retrying because the database reported a schema mismatch.")
+            if attempt == 1:
+                warnings.append("Refreshing schema metadata and retrying because the database rejected the generated SQL.")
                 continue
-            if not diagnosis:
-                raise
             break
 
     fallback_sql = _fallback_sql(request, max_rows, warnings)
@@ -179,7 +202,8 @@ def _execute_with_schema_retries(
 def _fallback_sql(request: ReportRequest, max_rows: int, warnings: list[str]) -> str:
     template = find_template(request.question) or find_template("project summary")
     warnings.append("Generated SQL did not match the live schema, so a safe built-in template was retried.")
-    return _prepare_sql(template.sql, max_rows, warnings)
+    resolved_dates = resolve_date_range(request.question, request.start_date, request.end_date)
+    return _prepare_sql(template.sql, max_rows, warnings, resolved_dates.start_date, resolved_dates.end_date)
 
 
 def _safe_schema() -> dict:

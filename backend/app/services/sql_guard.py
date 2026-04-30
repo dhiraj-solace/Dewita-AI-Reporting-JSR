@@ -41,6 +41,22 @@ def normalize_live_schema_sql(sql: str) -> tuple[str, list[str]]:
                 "Rewrote timelog_records.time_spent to the live hours/minutes duration expression."
             )
 
+    before_team_leader_json = normalized
+    normalized = re.sub(
+        r"JSON_CONTAINS\s*\(\s*"
+        r"(?P<team_leader>(?:`?[A-Za-z_][\w]*`?\.)?`?team_leader`?)\s*,\s*"
+        r"CAST\s*\(\s*(?P<user_id>`?[A-Za-z_][\w]*`?\.`?id`?)\s+AS\s+JSON\s*\)\s*"
+        r"\)",
+        lambda match: (
+            f"FIND_IN_SET(CAST({match.group('user_id')} AS CHAR), "
+            f"REPLACE(REPLACE(REPLACE(COALESCE({match.group('team_leader')}, ''), '[', ''), ']', ''), '\"', '')) > 0"
+        ),
+        normalized,
+        flags=re.IGNORECASE,
+    )
+    if normalized != before_team_leader_json:
+        warnings.append("Rewrote JSON_CONTAINS team_leader matching to MariaDB-compatible FIND_IN_SET logic.")
+
     return normalized, warnings
 
 

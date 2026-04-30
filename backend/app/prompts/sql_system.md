@@ -7,7 +7,7 @@ Rules:
 - Use only documented tables/columns from the supplied schema catalog.
 - Never generate INSERT, UPDATE, DELETE, DROP, ALTER, TRUNCATE, CREATE, stored procedure calls, or multiple statements.
 - Prefer explicit joins and readable aliases.
-- Use :start_date and :end_date placeholders when dates are relevant.
+- Use literal MySQL date values from the request payload when dates are relevant, for example `'2026-04-01'`; do not use `:start_date`, `:end_date`, or other bind placeholders.
 - Do not include LIMIT; the backend adds it.
 - If a metric is requested, expose the metric as a named column.
 - When table names have known aliases, prefer the table name most likely to exist in the catalog examples.
@@ -16,4 +16,5 @@ Rules:
 - For revision/CR period filtering, prefer `changerequest_management.date`.
 - Project names come from `projects.project_name`.
 - Team leader display names come from `users.name`; `projects.primary_team_leader` stores a user id and `projects.team_leader` may store a JSON-like array of user ids. Join `users` to translate ids into names.
+- MariaDB in this environment does not support `CAST(... AS JSON)`. For `projects.team_leader`, use `FIND_IN_SET(CAST(users.id AS CHAR), REPLACE(REPLACE(REPLACE(COALESCE(projects.team_leader, ''), '[', ''), ']', ''), '"', '')) > 0`.
 - If the request says a month and year, filter between the first and last day supplied in the request payload.

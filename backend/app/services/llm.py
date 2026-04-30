@@ -22,7 +22,7 @@ async def generate_sql_with_ai(question: str, start_date: str | None, end_date: 
             "end_date": end_date,
             "requirements": [
                 "Return one MySQL SELECT query only.",
-                "Use :start_date and :end_date parameters when date filtering is needed.",
+                "Use literal MySQL date values from start_date and end_date when date filtering is needed, not placeholders.",
                 "Prefer documented tables and columns.",
             ],
         }
