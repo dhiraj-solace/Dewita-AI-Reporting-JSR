@@ -610,6 +610,121 @@ tr:nth-child(even) td {
   line-height: 1.45;
 }
 
+.feedback-panel {
+  border-top: 1px solid #e3ebf6;
+  margin-top: 8px;
+  padding-top: 18px;
+}
+
+.feedback-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 14px;
+}
+
+.feedback-header h3 {
+  margin: 0 0 4px;
+  color: #142a46;
+  font-size: 20px;
+}
+
+.feedback-header p {
+  color: #6c7895;
+  font-size: 15px;
+}
+
+.feedback-rating {
+  display: inline-flex;
+  gap: 8px;
+}
+
+.feedback-rating button,
+.feedback-footer button {
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid #cfdced;
+  border-radius: 5px;
+  background: #fff;
+  color: #334866;
+  padding: 0 13px;
+  font-weight: 800;
+}
+
+.feedback-rating button.active {
+  border-color: #4f73dc;
+  color: #1e59df;
+  background: #e8f0ff;
+}
+
+.feedback-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.feedback-grid label span {
+  display: block;
+  color: #53647d;
+  font-size: 14px;
+  font-weight: 800;
+  margin-bottom: 6px;
+}
+
+.feedback-grid select,
+.feedback-grid textarea {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid #cfdced;
+  border-radius: 5px;
+  background: #fff;
+  color: #132236;
+  padding: 10px 12px;
+  font-size: 15px;
+}
+
+.feedback-grid textarea {
+  min-height: 92px;
+  resize: vertical;
+}
+
+.feedback-footer {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 13px;
+}
+
+.feedback-footer button {
+  border: 0;
+  color: #fff;
+  background: #4f73dc;
+}
+
+.feedback-footer button:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
+}
+
+.feedback-success,
+.feedback-error {
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.feedback-success {
+  color: #176044;
+}
+
+.feedback-error {
+  color: #9b1c1c;
+}
+
 .empty-state {
   min-height: 260px;
   display: grid;
@@ -738,7 +853,8 @@ tr:nth-child(even) td {
 @media (max-width: 720px) {
   .topbar,
   .report-actions,
-  .report-header {
+  .report-header,
+  .feedback-header {
     align-items: flex-start;
     flex-direction: column;
   }
@@ -746,8 +862,17 @@ tr:nth-child(even) td {
   .filter-grid,
   .searchbar,
   .retry-panel,
-  .summary-grid {
+  .summary-grid,
+  .feedback-grid {
     grid-template-columns: 1fr;
+  }
+
+  .feedback-rating {
+    width: 100%;
+  }
+
+  .feedback-rating button {
+    flex: 1;
   }
 
   .filter-button,

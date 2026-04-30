@@ -3,8 +3,9 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import get_settings
 from app.db import get_engine
-from app.models import GeneratedReport, ReportRequest
+from app.models import GeneratedReport, ReportFeedbackRequest, ReportFeedbackResponse, ReportRequest
 from app.services.catalog import load_report_catalog, load_schema_catalog
+from app.services.feedback_store import save_report_feedback
 from app.services.report_runner import ReportBuildError, build_report
 
 settings = get_settings()
@@ -81,3 +82,11 @@ async def query_report(request: ReportRequest) -> GeneratedReport:
         ) from exc
     except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.post("/api/reports/feedback", response_model=ReportFeedbackResponse)
+def report_feedback(feedback: ReportFeedbackRequest) -> ReportFeedbackResponse:
+    try:
+        return save_report_feedback(feedback)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail="Unable to save report feedback.") from exc

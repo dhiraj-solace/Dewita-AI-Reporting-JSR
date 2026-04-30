@@ -2,6 +2,7 @@
 .venv/
 backend/.deps/
 backend/.venv/
+backend/app/data/report_feedback.jsonl
 .venv_py/
 .python_packages/
 __pycache__/

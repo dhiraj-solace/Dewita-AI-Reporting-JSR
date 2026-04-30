@@ -35,6 +35,26 @@ export type Health = {
   ai_enabled: boolean;
 };
 
+export type ReportFeedbackRequest = {
+  question: string;
+  report_title?: string | null;
+  generated_sql?: string | null;
+  rating: "up" | "down";
+  reason?: string | null;
+  comment?: string | null;
+  expected_result?: string | null;
+  corrected_sql?: string | null;
+  retry_attempts: RetryAttempt[];
+  warnings: string[];
+  row_count?: number | null;
+};
+
+export type ReportFeedbackResponse = {
+  id: string;
+  status: string;
+  message: string;
+};
+
 export class ApiError extends Error {
   title: string;
   solution?: string | null;
@@ -89,5 +109,19 @@ export async function getHealth(): Promise<Health> {
   if (!response.ok) {
     throw new Error("Backend health check failed");
   }
+  return response.json();
+}
+
+export async function submitReportFeedback(payload: ReportFeedbackRequest): Promise<ReportFeedbackResponse> {
+  const response = await fetch(`${API_URL}/api/reports/feedback`, {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify(payload)
+  });
+
+  if (!response.ok) {
+    throw new ApiError("Unable to save report feedback");
+  }
+
   return response.json();
 }
