@@ -388,29 +388,93 @@ p {
   border-radius: 6px;
   padding: 10px 13px;
   font-size: 18px;
+  font-weight: 800;
 }
 
-.assumptions {
+.report-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 16px 0 18px;
+}
+
+.report-meta span {
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid #d7e2f2;
+  border-radius: 5px;
+  background: #f8fbff;
+  color: #53647d;
+  padding: 0 10px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0 0 18px;
+}
+
+.summary-item {
+  min-height: 92px;
+  border: 1px solid #dbe5f3;
+  border-radius: 6px;
+  background: #fbfdff;
+  padding: 14px;
+}
+
+.summary-item span {
+  display: block;
+  color: #6c7895;
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+.summary-item strong {
+  display: block;
+  color: #142a46;
+  font-size: 24px;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+
+.report-section {
+  border: 1px solid #dbe5f3;
+  border-radius: 6px;
+  background: #f8fbff;
+  padding: 15px 16px;
+  margin-bottom: 16px;
+}
+
+.report-section h3 {
+  margin: 0 0 7px;
+  color: #142a46;
+  font-size: 18px;
+}
+
+.report-section p {
+  color: #53647d;
+  font-size: 16px;
+  line-height: 1.45;
+}
+
+.notice-list {
   display: grid;
   justify-items: start;
   gap: 12px;
   margin: 18px 0;
 }
 
-.assumptions span,
-.warnings span {
+.notice-list span {
   color: #1e59df;
   background: #e7efff;
   border-radius: 5px;
   padding: 8px 13px;
   font-size: 16px;
-}
-
-.warnings {
-  display: grid;
-  justify-items: start;
-  gap: 10px;
-  margin: 16px 0;
 }
 
 .warnings span {
@@ -480,8 +544,10 @@ p {
 }
 
 .table-wrap {
+  max-height: 560px;
   overflow: auto;
   border: 1px solid var(--line);
+  border-radius: 6px;
 }
 
 table {
@@ -499,12 +565,25 @@ td {
 }
 
 th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
   background: #f0f4fb;
   font-weight: 800;
+  white-space: nowrap;
 }
 
 tr:nth-child(even) td {
   background: #fbfcff;
+}
+
+.numeric-cell {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.status-cell {
+  font-weight: 700;
 }
 
 .sql-toggle {
@@ -513,6 +592,9 @@ tr:nth-child(even) td {
   color: #4369ef;
   font-size: 17px;
   padding: 16px 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .sql-box {
@@ -626,6 +708,10 @@ tr:nth-child(even) td {
     grid-template-columns: repeat(3, minmax(170px, 1fr));
   }
 
+  .summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .content {
     padding-top: 34px;
   }
@@ -659,7 +745,8 @@ tr:nth-child(even) td {
 
   .filter-grid,
   .searchbar,
-  .retry-panel {
+  .retry-panel,
+  .summary-grid {
     grid-template-columns: 1fr;
   }
 

@@ -6,6 +6,8 @@ import {
   Bot,
   Boxes,
   CalendarCheck,
+  ChevronDown,
+  ChevronRight,
   CheckSquare,
   ClipboardList,
   Database,
@@ -66,10 +68,107 @@ const stats = [
   ["View All Member", "77"]
 ];
 
-function formatCell(value: unknown) {
-  if (value === null || value === undefined) return "";
+const numberFormatter = new Intl.NumberFormat("en-IN", {maximumFractionDigits: 2});
+const dateFormatter = new Intl.DateTimeFormat("en-GB", {day: "2-digit", month: "short", year: "numeric"});
+
+function humanizeColumn(column: string) {
+  const knownLabels: Record<string, string> = {
+    id: "ID",
+    project_no: "Project No",
+    project_name: "Project Name",
+    employee_id: "Employee ID",
+    team_leader: "Team Leader",
+    team_leader_name: "Team Leader",
+    revision_count: "Revision Count",
+    total_revisions: "Total Revisions",
+    avg_effective_percentage: "Avg Effective %",
+    effective_percentage: "Effective %",
+    actual_man_hrs_utilized: "Actual Man Hours",
+    total_budgeted_man_hrs: "Budgeted Man Hours"
+  };
+  if (knownLabels[column]) return knownLabels[column];
+  return column
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase())
+    .replace(/\bId\b/g, "ID")
+    .replace(/\bCr\b/g, "CR")
+    .replace(/\bAvg\b/g, "Avg");
+}
+
+function isNumericValue(value: unknown) {
+  return typeof value === "number" || (typeof value === "string" && value.trim() !== "" && !Number.isNaN(Number(value)));
+}
+
+function isDateValue(column: string, value: unknown) {
+  return /(^|_)date$|_at$/.test(column) && typeof value === "string" && /^\d{4}-\d{2}-\d{2}/.test(value);
+}
+
+function formatCell(column: string, value: unknown) {
+  if (value === null || value === undefined || value === "") return "-";
+  if (isDateValue(column, value)) {
+    const date = new Date(String(value));
+    return Number.isNaN(date.getTime()) ? String(value) : dateFormatter.format(date);
+  }
+  if (isNumericValue(value)) {
+    const numericValue = Number(value);
+    const normalizedColumn = column.toLowerCase();
+    if (/percentage|percent|pct/.test(normalizedColumn)) return `${numberFormatter.format(numericValue)}%`;
+    if (/hours|hrs|_hr$|_hrs$/.test(normalizedColumn)) return `${numberFormatter.format(numericValue)} hrs`;
+    return numberFormatter.format(numericValue);
+  }
   if (typeof value === "object") return JSON.stringify(value);
   return String(value);
+}
+
+function cellClassName(column: string, value: unknown) {
+  const classes = [];
+  if (isNumericValue(value)) classes.push("numeric-cell");
+  if (/status|state/.test(column.toLowerCase())) classes.push("status-cell");
+  return classes.join(" ");
+}
+
+function reportStatusLabel(report: GeneratedReport) {
+  const hasFailedAttempt = report.retry_attempts.some((attempt) => attempt.status === "failed");
+  const usedFallback = report.retry_attempts.some((attempt) => attempt.attempt >= 3 && attempt.status === "success");
+  if (usedFallback) return "Template Fallback";
+  if (hasFailedAttempt) return "AI Repaired";
+  return report.dry_run ? "Dry Run" : "AI Generated";
+}
+
+function friendlyRetryMessage(attempt: RetryAttempt) {
+  if (attempt.status === "success" && attempt.attempt >= 3) {
+    return "A safe built-in report was used after generated SQL could not be repaired.";
+  }
+  if (attempt.status === "success") {
+    return attempt.attempt > 1 ? "The regenerated SQL passed validation and returned data." : "The generated SQL passed validation and returned data.";
+  }
+  const issue = attempt.schema_issue || attempt.message;
+  if (issue.toLowerCase().includes("does not exist")) {
+    return `The query referenced a schema field that is not available. ${issue}`;
+  }
+  return issue;
+}
+
+function buildSummaryItems(report: GeneratedReport) {
+  const items = [
+    {label: "Rows returned", value: numberFormatter.format(report.row_count)},
+    {label: "Columns", value: numberFormatter.format(report.columns.length)},
+    {label: "Report status", value: reportStatusLabel(report)}
+  ];
+  const numericColumns = report.columns.filter((column) => report.rows.some((row) => isNumericValue(row[column])));
+  const priorityColumn = numericColumns.find((column) => /total|count|revision|hours|hrs|percentage|amount|budget/i.test(column));
+  if (priorityColumn) {
+    const values = report.rows.map((row) => Number(row[priorityColumn])).filter((value) => !Number.isNaN(value));
+    const useAverage = /avg|average|percentage|percent|pct/i.test(priorityColumn);
+    const calculated = useAverage
+      ? values.reduce((total, value) => total + value, 0) / Math.max(values.length, 1)
+      : values.reduce((total, value) => total + value, 0);
+    items.push({
+      label: `${useAverage ? "Average" : "Total"} ${humanizeColumn(priorityColumn)}`,
+      value: formatCell(priorityColumn, calculated)
+    });
+  }
+  return items.slice(0, 4);
 }
 
 export default function Home() {
@@ -84,13 +183,15 @@ export default function Home() {
   const [errorStatusCode, setErrorStatusCode] = useState<number | null>(null);
   const [retryAttempts, setRetryAttempts] = useState<RetryAttempt[]>([]);
   const [loading, setLoading] = useState(false);
-  const [showSql, setShowSql] = useState(true);
+  const [showSql, setShowSql] = useState(false);
+  const [generatedAt, setGeneratedAt] = useState<string | null>(null);
 
   useEffect(() => {
     getHealth().then(setStatus).catch(() => setStatus(null));
   }, []);
 
   const visibleRows = useMemo(() => report?.rows.slice(0, 100) ?? [], [report]);
+  const summaryItems = useMemo(() => report ? buildSummaryItems(report) : [], [report]);
 
   async function submit(nextQuestion = question) {
     setQuestion(nextQuestion);
@@ -100,6 +201,7 @@ export default function Home() {
     setErrorSolution("");
     setErrorStatusCode(null);
     setRetryAttempts([]);
+    setGeneratedAt(null);
     try {
       const result = await runReport({
         question: nextQuestion,
@@ -108,6 +210,8 @@ export default function Home() {
       });
       setReport(result);
       setRetryAttempts(result.retry_attempts ?? []);
+      setGeneratedAt(dateFormatter.format(new Date()));
+      setShowSql(false);
     } catch (err) {
       setReport(null);
       if (err instanceof ApiError) {
@@ -260,7 +364,7 @@ export default function Home() {
                       <strong>Retry {attempt.attempt}</strong>
                       <span>{attempt.status}</span>
                     </div>
-                    <p>{attempt.schema_issue || attempt.message}</p>
+                    <p>{friendlyRetryMessage(attempt)}</p>
                   </div>
                 ))}
               </div>
@@ -278,19 +382,40 @@ export default function Home() {
                 <div className="report-header">
                   <div>
                     <h2>{report.title}</h2>
-                    <p>{report.explanation}</p>
+                    <p>{report.question}</p>
                   </div>
-                  <span className="row-count">{report.row_count} rows</span>
+                  <span className="row-count">{reportStatusLabel(report)}</span>
+                </div>
+
+                <div className="report-meta">
+                  <span><CalendarCheck size={16} /> Generated {generatedAt || "just now"}</span>
+                  <span><Database size={16} /> Live DB</span>
+                  <span>{numberFormatter.format(report.row_count)} rows</span>
+                  <span>{numberFormatter.format(report.retry_attempts.length)} attempts</span>
+                </div>
+
+                <div className="summary-grid">
+                  {summaryItems.map((item) => (
+                    <div className="summary-item" key={item.label}>
+                      <span>{item.label}</span>
+                      <strong>{item.value}</strong>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="report-section">
+                  <h3>Report Summary</h3>
+                  <p>{report.explanation}</p>
                 </div>
 
                 {report.assumptions.length > 0 && (
-                  <div className="assumptions">
+                  <div className="notice-list assumptions">
                     {report.assumptions.map((item) => <span key={item}>Assumption: {item}</span>)}
                   </div>
                 )}
 
                 {report.warnings.length > 0 && (
-                  <div className="warnings">
+                  <div className="notice-list warnings">
                     {report.warnings.map((item) => <span key={item}>Warning: {item}</span>)}
                   </div>
                 )}
@@ -299,12 +424,16 @@ export default function Home() {
                   <div className="table-wrap">
                     <table>
                       <thead>
-                        <tr>{report.columns.map((column) => <th key={column}>{column}</th>)}</tr>
+                        <tr>{report.columns.map((column) => <th key={column}>{humanizeColumn(column)}</th>)}</tr>
                       </thead>
                       <tbody>
                         {visibleRows.map((row, rowIndex) => (
                           <tr key={rowIndex}>
-                            {report.columns.map((column) => <td key={column}>{formatCell(row[column])}</td>)}
+                            {report.columns.map((column) => (
+                              <td className={cellClassName(column, row[column])} key={column}>
+                                {formatCell(column, row[column])}
+                              </td>
+                            ))}
                           </tr>
                         ))}
                       </tbody>
@@ -313,7 +442,7 @@ export default function Home() {
                 )}
 
                 <button className="sql-toggle" onClick={() => setShowSql((value) => !value)}>
-                  {showSql ? "▼" : "▶"} Generated SQL
+                  {showSql ? <ChevronDown size={18} /> : <ChevronRight size={18} />} Generated SQL
                 </button>
                 {showSql && <pre className="sql-box">{report.sql}</pre>}
               </>
