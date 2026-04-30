@@ -11,6 +11,14 @@ class ReportRequest(BaseModel):
     dry_run: bool = False
 
 
+class RetryAttempt(BaseModel):
+    attempt: int
+    status: str
+    message: str
+    sql: str | None = None
+    schema_issue: str | None = None
+
+
 class GeneratedReport(BaseModel):
     title: str
     question: str
@@ -22,3 +30,4 @@ class GeneratedReport(BaseModel):
     row_count: int
     dry_run: bool = False
     warnings: list[str] = []
+    retry_attempts: list[RetryAttempt] = []

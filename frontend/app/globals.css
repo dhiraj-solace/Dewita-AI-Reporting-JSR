@@ -397,12 +397,86 @@ p {
   margin: 18px 0;
 }
 
-.assumptions span {
+.assumptions span,
+.warnings span {
   color: #1e59df;
   background: #e7efff;
   border-radius: 5px;
   padding: 8px 13px;
   font-size: 16px;
+}
+
+.warnings {
+  display: grid;
+  justify-items: start;
+  gap: 10px;
+  margin: 16px 0;
+}
+
+.warnings span {
+  color: #835200;
+  background: #fff6dc;
+}
+
+.retry-panel {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0 0 18px;
+}
+
+.retry-step {
+  min-height: 94px;
+  border: 1px solid #dbe5f3;
+  border-radius: 6px;
+  background: #f8fbff;
+  padding: 12px 13px;
+}
+
+.retry-step div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.retry-step strong {
+  font-size: 16px;
+}
+
+.retry-step span {
+  border-radius: 999px;
+  padding: 4px 9px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.retry-step p {
+  color: #53647d;
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.retry-step.success {
+  border-color: #b7dfce;
+  background: #f0fbf6;
+}
+
+.retry-step.success span {
+  color: #176044;
+  background: #d9f3e7;
+}
+
+.retry-step.failed {
+  border-color: #ffc9c9;
+  background: #fff6f6;
+}
+
+.retry-step.failed span {
+  color: #9b1c1c;
+  background: #ffe0e0;
 }
 
 .table-wrap {
@@ -543,7 +617,8 @@ tr:nth-child(even) td {
   }
 
   .filter-grid,
-  .searchbar {
+  .searchbar,
+  .retry-panel {
     grid-template-columns: 1fr;
   }
 

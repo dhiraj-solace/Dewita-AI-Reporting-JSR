@@ -1,13 +1,26 @@
 import logging
 from app.core.config import get_settings
 from app.db import fetch_rows
-from app.models import GeneratedReport, ReportRequest
+from app.models import GeneratedReport, ReportRequest, RetryAttempt
 from app.services.date_resolver import resolve_date_range
 from app.services.llm import generate_sql_with_ai
+from app.services.schema_service import schema_service
+from app.services.schema_validator import (
+    SchemaDiagnosis,
+    SchemaValidationError,
+    diagnose_database_error,
+    validate_sql_against_schema,
+)
 from app.services.sql_guard import apply_limit, normalize_live_schema_sql, validate_select_sql
 from app.services.templates import find_template
 
 logger = logging.getLogger(__name__)
+
+
+class ReportBuildError(Exception):
+    def __init__(self, message: str, attempts: list[RetryAttempt]):
+        super().__init__(message)
+        self.attempts = attempts
 
 
 async def build_report(request: ReportRequest) -> GeneratedReport:
@@ -38,16 +51,16 @@ async def build_report(request: ReportRequest) -> GeneratedReport:
     else:
         logger.info(f"AI SQL generation successful for question: '{request.question}'")
 
-    sql, normalization_warnings = normalize_live_schema_sql(generated["sql"])
-    warnings.extend(normalization_warnings)
-    sql = validate_select_sql(sql)
-    sql = apply_limit(sql, min(request.limit, get_settings().max_rows))
+    sql = _prepare_sql(generated["sql"], min(request.limit, get_settings().max_rows), warnings)
     params = {"start_date": resolved_dates.start_date, "end_date": resolved_dates.end_date}
 
     columns: list[str] = []
     rows: list[dict] = []
+    retry_attempts: list[RetryAttempt] = []
     if not request.dry_run:
-        columns, rows = fetch_rows(sql, params)
+        columns, rows, sql = _execute_with_schema_retries(sql, params, request, retry_attempts, warnings)
+    else:
+        _validate_with_current_schema(sql, retry_attempts, warnings)
 
     return GeneratedReport(
         title=generated["title"],
@@ -60,4 +73,132 @@ async def build_report(request: ReportRequest) -> GeneratedReport:
         row_count=len(rows),
         dry_run=request.dry_run,
         warnings=warnings,
+        retry_attempts=retry_attempts,
+    )
+
+
+def _prepare_sql(sql: str, limit: int, warnings: list[str]) -> str:
+    sql, normalization_warnings = normalize_live_schema_sql(sql)
+    warnings.extend(normalization_warnings)
+    sql = validate_select_sql(sql)
+    return apply_limit(sql, limit)
+
+
+def _validate_with_current_schema(
+    sql: str,
+    retry_attempts: list[RetryAttempt],
+    warnings: list[str],
+) -> None:
+    try:
+        schema = schema_service.get_schema()
+        warnings.extend(validate_sql_against_schema(sql, schema))
+        retry_attempts.append(
+            RetryAttempt(attempt=1, status="success", message="Schema validation passed.", sql=sql)
+        )
+    except SchemaValidationError as exc:
+        retry_attempts.append(_failed_attempt(1, "Schema validation failed.", sql, exc.diagnosis))
+        raise ReportBuildError(exc.diagnosis.message, retry_attempts) from exc
+
+
+def _execute_with_schema_retries(
+    sql: str,
+    params: dict[str, str | None],
+    request: ReportRequest,
+    retry_attempts: list[RetryAttempt],
+    warnings: list[str],
+) -> tuple[list[str], list[dict], str]:
+    max_rows = min(request.limit, get_settings().max_rows)
+
+    for attempt in (1, 2):
+        try:
+            schema = schema_service.get_schema(force_refresh=attempt > 1)
+            warnings.extend(validate_sql_against_schema(sql, schema))
+            columns, rows = fetch_rows(sql, params)
+            retry_attempts.append(
+                RetryAttempt(
+                    attempt=attempt,
+                    status="success",
+                    message="Report query executed successfully.",
+                    sql=sql,
+                )
+            )
+            return columns, rows, sql
+        except SchemaValidationError as exc:
+            retry_attempts.append(_failed_attempt(attempt, "Schema validation failed.", sql, exc.diagnosis))
+            if attempt == 1:
+                warnings.append("Refreshing schema metadata and retrying because validation failed.")
+                continue
+            break
+        except Exception as exc:
+            diagnosis = diagnose_database_error(exc, _safe_schema())
+            retry_attempts.append(
+                _failed_attempt(
+                    attempt,
+                    "Database rejected the generated SQL.",
+                    sql,
+                    diagnosis or SchemaDiagnosis(message=str(exc)),
+                )
+            )
+            if attempt == 1 and diagnosis:
+                warnings.append("Refreshing schema metadata and retrying because the database reported a schema mismatch.")
+                continue
+            if not diagnosis:
+                raise
+            break
+
+    fallback_sql = _fallback_sql(request, max_rows, warnings)
+    try:
+        schema = schema_service.get_schema(force_refresh=True)
+        warnings.extend(validate_sql_against_schema(fallback_sql, schema))
+        columns, rows = fetch_rows(fallback_sql, params)
+        retry_attempts.append(
+            RetryAttempt(
+                attempt=3,
+                status="success",
+                message="Used a safe built-in template after generated SQL did not match the schema.",
+                sql=fallback_sql,
+            )
+        )
+        return columns, rows, fallback_sql
+    except SchemaValidationError as exc:
+        retry_attempts.append(_failed_attempt(3, "Fallback template failed schema validation.", fallback_sql, exc.diagnosis))
+        raise ReportBuildError(exc.diagnosis.message, retry_attempts) from exc
+    except Exception as exc:
+        diagnosis = diagnose_database_error(exc, _safe_schema())
+        retry_attempts.append(
+            _failed_attempt(
+                3,
+                "Fallback template was rejected by the database.",
+                fallback_sql,
+                diagnosis or SchemaDiagnosis(message=str(exc)),
+            )
+        )
+        raise ReportBuildError(str(exc), retry_attempts) from exc
+
+
+def _fallback_sql(request: ReportRequest, max_rows: int, warnings: list[str]) -> str:
+    template = find_template(request.question) or find_template("project summary")
+    warnings.append("Generated SQL did not match the live schema, so a safe built-in template was retried.")
+    return _prepare_sql(template.sql, max_rows, warnings)
+
+
+def _safe_schema() -> dict:
+    try:
+        return schema_service.get_schema(force_refresh=False)
+    except Exception:
+        return {}
+
+
+def _failed_attempt(
+    attempt: int,
+    message: str,
+    sql: str,
+    diagnosis: SchemaDiagnosis,
+) -> RetryAttempt:
+    return RetryAttempt(
+        attempt=attempt,
+        status="failed",
+        message=message,
+        sql=sql,
+        schema_issue=diagnosis.message,
     )

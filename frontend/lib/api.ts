@@ -17,6 +17,15 @@ export type GeneratedReport = {
   row_count: number;
   dry_run: boolean;
   warnings: string[];
+  retry_attempts: RetryAttempt[];
+};
+
+export type RetryAttempt = {
+  attempt: number;
+  status: string;
+  message: string;
+  sql?: string | null;
+  schema_issue?: string | null;
 };
 
 export type Health = {
@@ -25,6 +34,16 @@ export type Health = {
   database_connected: boolean;
   ai_enabled: boolean;
 };
+
+export class ApiError extends Error {
+  retryAttempts: RetryAttempt[];
+
+  constructor(message: string, retryAttempts: RetryAttempt[] = []) {
+    super(message);
+    this.name = "ApiError";
+    this.retryAttempts = retryAttempts;
+  }
+}
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:7000";
 
@@ -37,7 +56,11 @@ export async function runReport(payload: ReportRequest): Promise<GeneratedReport
 
   if (!response.ok) {
     const detail = await response.json().catch(() => ({}));
-    throw new Error(detail.detail || "Unable to run report");
+    const payload = detail.detail;
+    if (payload && typeof payload === "object") {
+      throw new ApiError(payload.message || "Unable to run report", payload.retry_attempts || []);
+    }
+    throw new ApiError(payload || "Unable to run report");
   }
 
   return response.json();

@@ -5,7 +5,7 @@ from app.core.config import get_settings
 from app.db import get_engine
 from app.models import GeneratedReport, ReportRequest
 from app.services.catalog import load_report_catalog, load_schema_catalog
-from app.services.report_runner import build_report
+from app.services.report_runner import ReportBuildError, build_report
 
 settings = get_settings()
 
@@ -68,5 +68,13 @@ def report_catalog() -> dict:
 async def query_report(request: ReportRequest) -> GeneratedReport:
     try:
         return await build_report(request)
+    except ReportBuildError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "message": str(exc),
+                "retry_attempts": [attempt.model_dump() for attempt in exc.attempts],
+            },
+        ) from exc
     except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc

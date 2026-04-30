@@ -22,7 +22,7 @@ import {
   User,
   Users
 } from "lucide-react";
-import {GeneratedReport, Health, getHealth, runReport} from "@/lib/api";
+import {ApiError, GeneratedReport, Health, RetryAttempt, getHealth, runReport} from "@/lib/api";
 
 const monthOptions = ["January", "February", "March", "April", "May", "June"];
 const examples = [
@@ -79,6 +79,7 @@ export default function Home() {
   const [report, setReport] = useState<GeneratedReport | null>(null);
   const [status, setStatus] = useState<Health | null>(null);
   const [error, setError] = useState("");
+  const [retryAttempts, setRetryAttempts] = useState<RetryAttempt[]>([]);
   const [loading, setLoading] = useState(false);
   const [showSql, setShowSql] = useState(true);
 
@@ -92,6 +93,7 @@ export default function Home() {
     setQuestion(nextQuestion);
     setLoading(true);
     setError("");
+    setRetryAttempts([]);
     try {
       const result = await runReport({
         question: nextQuestion,
@@ -99,8 +101,15 @@ export default function Home() {
         dry_run: false
       });
       setReport(result);
+      setRetryAttempts(result.retry_attempts ?? []);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
+      setReport(null);
+      if (err instanceof ApiError) {
+        setError(err.message);
+        setRetryAttempts(err.retryAttempts);
+      } else {
+        setError(err instanceof Error ? err.message : "Something went wrong");
+      }
     } finally {
       setLoading(false);
     }
@@ -219,6 +228,19 @@ export default function Home() {
 
           <section className="result-card">
             {error && <div className="error">{error}</div>}
+            {retryAttempts.length > 0 && (
+              <div className="retry-panel">
+                {retryAttempts.map((attempt) => (
+                  <div className={`retry-step ${attempt.status}`} key={`${attempt.attempt}-${attempt.status}`}>
+                    <div>
+                      <strong>Retry {attempt.attempt}</strong>
+                      <span>{attempt.status}</span>
+                    </div>
+                    <p>{attempt.schema_issue || attempt.message}</p>
+                  </div>
+                ))}
+              </div>
+            )}
 
             {!report && !error && (
               <div className="empty-state">
@@ -240,6 +262,12 @@ export default function Home() {
                 {report.assumptions.length > 0 && (
                   <div className="assumptions">
                     {report.assumptions.map((item) => <span key={item}>Assumption: {item}</span>)}
+                  </div>
+                )}
+
+                {report.warnings.length > 0 && (
+                  <div className="warnings">
+                    {report.warnings.map((item) => <span key={item}>Warning: {item}</span>)}
                   </div>
                 )}
 
