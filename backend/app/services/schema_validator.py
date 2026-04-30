@@ -119,7 +119,7 @@ def validate_sql_against_schema(sql: str, schema: dict[str, Any]) -> list[str]:
             continue
         entry = index.get(table_name.lower())
         if entry and column.lower() not in entry["columns"]:
-            raise SchemaValidationError(_diagnose_missing_column(column, table_name, entry))
+            raise SchemaValidationError(_diagnose_missing_column(column, table_name, entry, index))
 
     return warnings
 
@@ -139,7 +139,7 @@ def diagnose_database_error(error: Exception, schema: dict[str, Any]) -> SchemaD
         if table_or_alias:
             table_entry = index.get(table_or_alias.lower())
             if table_entry:
-                return _diagnose_missing_column(column, table_entry["name"], table_entry)
+                return _diagnose_missing_column(column, table_entry["name"], table_entry, index)
         return SchemaDiagnosis(
             message=f"Column `{raw}` was rejected by the database and could not be matched in schema metadata.",
             column=raw,
@@ -161,15 +161,42 @@ def _diagnose_missing_table(table: str, index: dict[str, dict[str, Any]]) -> Sch
     return SchemaDiagnosis(message=message, table=table, suggestion=suggestion)
 
 
-def _diagnose_missing_column(column: str, table: str, entry: dict[str, Any]) -> SchemaDiagnosis:
+def _diagnose_missing_column(
+    column: str,
+    table: str,
+    entry: dict[str, Any],
+    index: dict[str, dict[str, Any]],
+) -> SchemaDiagnosis:
     known_columns = sorted(entry["columns"].values())
     suggestion = _best_match(column, known_columns)
     message = f"Column `{column}` does not exist on table `{table}`."
     if suggestion:
         message += f" Did you mean `{table}.{suggestion}`?"
+    else:
+        column_locations = _find_column_locations(column, index, exclude_table=table)
+        if column_locations:
+            suggestion = column_locations[0]
+            locations = ", ".join(column_locations[:5])
+            message += f" Column `{column}` exists on: {locations}."
     return SchemaDiagnosis(message=message, table=table, column=column, suggestion=suggestion)
 
 
 def _best_match(value: str, candidates: list[str]) -> str | None:
     matches = get_close_matches(value, candidates, n=1, cutoff=0.6)
     return matches[0] if matches else None
+
+
+def _find_column_locations(
+    column: str,
+    index: dict[str, dict[str, Any]],
+    exclude_table: str | None = None,
+) -> list[str]:
+    locations: set[str] = set()
+    for entry in index.values():
+        table_name = entry["name"]
+        if exclude_table and table_name.lower() == exclude_table.lower():
+            continue
+        actual_column = entry["columns"].get(column.lower())
+        if actual_column:
+            locations.add(f"{table_name}.{actual_column}")
+    return sorted(locations)

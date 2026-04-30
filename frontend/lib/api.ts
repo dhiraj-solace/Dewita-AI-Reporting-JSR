@@ -36,11 +36,23 @@ export type Health = {
 };
 
 export class ApiError extends Error {
+  title: string;
+  solution?: string | null;
+  statusCode?: number | null;
   retryAttempts: RetryAttempt[];
 
-  constructor(message: string, retryAttempts: RetryAttempt[] = []) {
+  constructor(
+    message: string,
+    retryAttempts: RetryAttempt[] = [],
+    title = "Unable to run report",
+    solution?: string | null,
+    statusCode?: number | null
+  ) {
     super(message);
     this.name = "ApiError";
+    this.title = title;
+    this.solution = solution;
+    this.statusCode = statusCode;
     this.retryAttempts = retryAttempts;
   }
 }
@@ -58,7 +70,13 @@ export async function runReport(payload: ReportRequest): Promise<GeneratedReport
     const detail = await response.json().catch(() => ({}));
     const payload = detail.detail;
     if (payload && typeof payload === "object") {
-      throw new ApiError(payload.message || "Unable to run report", payload.retry_attempts || []);
+      throw new ApiError(
+        payload.message || "Unable to run report",
+        payload.retry_attempts || [],
+        payload.title || "Unable to run report",
+        payload.solution,
+        payload.status_code
+      );
     }
     throw new ApiError(payload || "Unable to run report");
   }

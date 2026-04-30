@@ -72,7 +72,10 @@ async def query_report(request: ReportRequest) -> GeneratedReport:
         raise HTTPException(
             status_code=400,
             detail={
+                "title": exc.title,
                 "message": str(exc),
+                "solution": exc.solution,
+                "status_code": exc.status_code,
                 "retry_attempts": [attempt.model_dump() for attempt in exc.attempts],
             },
         ) from exc

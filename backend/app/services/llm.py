@@ -8,32 +8,93 @@ from app.services.catalog import catalog_context
 
 logger = logging.getLogger(__name__)
 
+
+class AiSqlGenerationError(Exception):
+    def __init__(
+        self,
+        message: str,
+        title: str = "AI SQL generation failed",
+        solution: str | None = None,
+        status_code: int | None = None,
+    ):
+        super().__init__(message)
+        self.title = title
+        self.solution = solution
+        self.status_code = status_code
+
+
 async def generate_sql_with_ai(question: str, start_date: str | None, end_date: str | None) -> dict[str, Any] | None:
+    payload = _build_sql_payload(question, start_date, end_date)
+    return await _generate_sql_payload(payload)
+
+
+async def generate_sql_repair_with_ai(
+    question: str,
+    start_date: str | None,
+    end_date: str | None,
+    failed_sql: str,
+    error_message: str,
+) -> dict[str, Any] | None:
+    payload = _build_sql_payload(
+        question,
+        start_date,
+        end_date,
+        {
+            "repair_mode": True,
+            "failed_sql": failed_sql,
+            "error_message": error_message,
+            "requirements": [
+                "Generate a corrected replacement query.",
+                "Do not repeat the same invalid table or column reference.",
+                "Use the supplied schema catalog and error_message to choose valid tables, columns, aliases, and joins.",
+                "If error_message names a missing column, find the correct column/table in the schema catalog before rewriting.",
+            ],
+        },
+    )
+    return await _generate_sql_payload(payload)
+
+
+def _build_sql_payload(
+    question: str,
+    start_date: str | None,
+    end_date: str | None,
+    extra: dict[str, Any] | None = None,
+) -> str:
+    payload: dict[str, Any] = {
+        "question": question,
+        "start_date": start_date,
+        "end_date": end_date,
+        "requirements": [
+            "Return one MySQL SELECT query only.",
+            "Use literal MySQL date values from start_date and end_date when date filtering is needed, not placeholders.",
+            "Prefer documented tables and columns.",
+        ],
+    }
+    if extra:
+        extra_requirements = extra.pop("requirements", None)
+        payload.update(extra)
+        if isinstance(extra_requirements, list):
+            payload["requirements"].extend(extra_requirements)
+    return json.dumps(payload)
+
+
+async def _generate_sql_payload(payload: str) -> dict[str, Any] | None:
     settings = get_settings()
     if not settings.ai_sql_enabled:
         logger.warning("AI SQL generation is disabled in settings")
         return None
     
     prompt = (Path(__file__).resolve().parents[1] / "prompts" / "sql_system.md").read_text(encoding="utf-8")
-    payload = json.dumps(
-        {
-            "question": question,
-            "start_date": start_date,
-            "end_date": end_date,
-            "requirements": [
-                "Return one MySQL SELECT query only.",
-                "Use literal MySQL date values from start_date and end_date when date filtering is needed, not placeholders.",
-                "Prefer documented tables and columns.",
-            ],
-        }
-    )
 
     provider = settings.ai_provider.lower()
 
     if provider == "openrouter":
         if not settings.openrouter_api_key:
-            logger.error("OpenRouter API key not configured")
-            return None
+            raise AiSqlGenerationError(
+                "OpenRouter API key is not configured.",
+                title="AI provider is not configured",
+                solution="Add OPENROUTER_API_KEY in the backend .env file, or disable AI SQL generation to use built-in templates only.",
+            )
         logger.info(f"Using OpenRouter provider with model: {settings.openrouter_model}")
         return await _generate_sql_with_openrouter(
             prompt,
@@ -46,14 +107,20 @@ async def generate_sql_with_ai(question: str, start_date: str | None, end_date: 
 
     if provider == "gemini":
         if not settings.gemini_api_key:
-            logger.error("Gemini API key not configured")
-            return None
+            raise AiSqlGenerationError(
+                "Gemini API key is not configured.",
+                title="AI provider is not configured",
+                solution="Add GEMINI_API_KEY in the backend .env file, or switch AI_PROVIDER to a configured provider.",
+            )
         logger.info(f"Using Gemini AI provider with model: {settings.gemini_model}")
         return await _generate_sql_with_gemini(prompt, payload, settings.gemini_api_key, settings.gemini_model)
 
     if not settings.openai_api_key:
-        logger.error("OpenAI API key not configured")
-        return None
+        raise AiSqlGenerationError(
+            "OpenAI API key is not configured.",
+            title="AI provider is not configured",
+            solution="Add OPENAI_API_KEY in the backend .env file, or switch AI_PROVIDER to a configured provider.",
+        )
     logger.info(f"Using OpenAI AI provider with model: {settings.openai_model}")
     return await _generate_sql_with_openai(prompt, payload, settings.openai_api_key, settings.openai_model)
 
@@ -94,9 +161,15 @@ async def _generate_sql_with_openrouter(
         content = response.json()["choices"][0]["message"]["content"] or "{}"
         logger.info("OpenRouter API call successful")
         return _parse_ai_json(content)
+    except httpx.HTTPStatusError as e:
+        raise _provider_http_error("OpenRouter", e) from e
     except Exception as e:
         logger.error(f"OpenRouter API call failed: {str(e)}")
-        return None
+        raise AiSqlGenerationError(
+            f"OpenRouter API call failed: {str(e)}",
+            title="OpenRouter request failed",
+            solution="Check the OpenRouter API key, model name, provider status, and backend network access.",
+        ) from e
 
 async def _generate_sql_with_openai(prompt: str, payload: str, api_key: str, model: str) -> dict[str, Any] | None:
     from openai import AsyncOpenAI
@@ -119,7 +192,20 @@ async def _generate_sql_with_openai(prompt: str, payload: str, api_key: str, mod
         return _parse_ai_json(content)
     except Exception as e:
         logger.error(f"OpenAI API call failed: {str(e)}")
-        return None
+        status_code = getattr(e, "status_code", None)
+        if status_code == 429:
+            raise AiSqlGenerationError(
+                "OpenAI rate limit was reached.",
+                title="AI provider rate limit reached",
+                solution="Wait a moment and retry, reduce report generation frequency, or use a provider/model with more available quota.",
+                status_code=status_code,
+            ) from e
+        raise AiSqlGenerationError(
+            f"OpenAI API call failed: {str(e)}",
+            title="OpenAI request failed",
+            solution="Check the OpenAI API key, model name, provider status, and backend network access.",
+            status_code=status_code,
+        ) from e
 
 
 async def _generate_sql_with_gemini(prompt: str, payload: str, api_key: str, model: str) -> dict[str, Any] | None:
@@ -150,9 +236,15 @@ async def _generate_sql_with_gemini(prompt: str, payload: str, api_key: str, mod
         content = data["candidates"][0]["content"]["parts"][0]["text"]
         logger.info("Gemini API call successful")
         return _parse_ai_json(content)
+    except httpx.HTTPStatusError as e:
+        raise _provider_http_error("Gemini", e) from e
     except Exception as e:
         logger.error(f"Gemini API call failed: {str(e)}")
-        return None
+        raise AiSqlGenerationError(
+            f"Gemini API call failed: {str(e)}",
+            title="Gemini request failed",
+            solution="Check the Gemini API key, model name, provider status, and backend network access.",
+        ) from e
 
 
 def _parse_ai_json(content: str) -> dict[str, Any]:
@@ -163,3 +255,21 @@ def _parse_ai_json(content: str) -> dict[str, Any]:
         "explanation": parsed.get("explanation") or "Generated from the semantic catalog.",
         "assumptions": parsed.get("assumptions") or [],
     }
+
+
+def _provider_http_error(provider: str, error: httpx.HTTPStatusError) -> AiSqlGenerationError:
+    status_code = error.response.status_code
+    logger.error(f"{provider} API call failed: {str(error)}")
+    if status_code == 429:
+        return AiSqlGenerationError(
+            f"{provider} rate limit was reached.",
+            title="AI provider rate limit reached",
+            solution="Wait a moment and retry, reduce report generation frequency, or switch to a provider/model with more available quota.",
+            status_code=status_code,
+        )
+    return AiSqlGenerationError(
+        f"{provider} API returned HTTP {status_code}.",
+        title=f"{provider} request failed",
+        solution="Check provider quota, API key permissions, selected model availability, and provider status.",
+        status_code=status_code,
+    )

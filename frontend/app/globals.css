@@ -537,13 +537,54 @@ tr:nth-child(even) td {
   color: #687894;
 }
 
-.error {
+.error-card {
   border: 1px solid #ffb8b8;
   background: #fff1f1;
   color: #9b1c1c;
   border-radius: 6px;
-  padding: 13px 15px;
+  padding: 15px 16px;
   font-size: 18px;
+  margin-bottom: 18px;
+}
+
+.error-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 9px;
+}
+
+.error-card-header strong {
+  font-size: 20px;
+}
+
+.error-card-header span {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: #ffe0e0;
+  padding: 5px 10px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.error-card p {
+  line-height: 1.45;
+}
+
+.error-solution {
+  margin-top: 13px;
+  border-top: 1px solid #ffd0d0;
+  padding-top: 12px;
+}
+
+.error-solution span {
+  display: block;
+  color: #6e1515;
+  font-size: 13px;
+  font-weight: 800;
+  margin-bottom: 4px;
+  text-transform: uppercase;
 }
 
 .spin {

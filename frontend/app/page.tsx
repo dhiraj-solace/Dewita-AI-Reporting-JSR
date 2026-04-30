@@ -79,6 +79,9 @@ export default function Home() {
   const [report, setReport] = useState<GeneratedReport | null>(null);
   const [status, setStatus] = useState<Health | null>(null);
   const [error, setError] = useState("");
+  const [errorTitle, setErrorTitle] = useState("");
+  const [errorSolution, setErrorSolution] = useState("");
+  const [errorStatusCode, setErrorStatusCode] = useState<number | null>(null);
   const [retryAttempts, setRetryAttempts] = useState<RetryAttempt[]>([]);
   const [loading, setLoading] = useState(false);
   const [showSql, setShowSql] = useState(true);
@@ -93,6 +96,9 @@ export default function Home() {
     setQuestion(nextQuestion);
     setLoading(true);
     setError("");
+    setErrorTitle("");
+    setErrorSolution("");
+    setErrorStatusCode(null);
     setRetryAttempts([]);
     try {
       const result = await runReport({
@@ -106,9 +112,13 @@ export default function Home() {
       setReport(null);
       if (err instanceof ApiError) {
         setError(err.message);
+        setErrorTitle(err.title);
+        setErrorSolution(err.solution ?? "");
+        setErrorStatusCode(err.statusCode ?? null);
         setRetryAttempts(err.retryAttempts);
       } else {
         setError(err instanceof Error ? err.message : "Something went wrong");
+        setErrorTitle("Unable to run report");
       }
     } finally {
       setLoading(false);
@@ -227,7 +237,21 @@ export default function Home() {
           </div>
 
           <section className="result-card">
-            {error && <div className="error">{error}</div>}
+            {error && (
+              <div className="error-card">
+                <div className="error-card-header">
+                  <strong>{errorTitle || "Unable to run report"}</strong>
+                  {errorStatusCode && <span>HTTP {errorStatusCode}</span>}
+                </div>
+                <p>{error}</p>
+                {errorSolution && (
+                  <div className="error-solution">
+                    <span>Suggested fix</span>
+                    <p>{errorSolution}</p>
+                  </div>
+                )}
+              </div>
+            )}
             {retryAttempts.length > 0 && (
               <div className="retry-panel">
                 {retryAttempts.map((attempt) => (
