@@ -1,0 +1,65 @@
+from functools import lru_cache
+from pathlib import Path
+from urllib.parse import quote_plus
+
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+ROOT_ENV = Path(__file__).resolve().parents[3] / ".env"
+
+
+class Settings(BaseSettings):
+    app_name: str = "Devita AI Reporting"
+    environment: str = "local"
+    cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
+
+    database_url: str | None = None
+    db_host: str | None = None
+    db_port: int = 3306
+    db_name: str | None = None
+    db_user: str | None = None
+    db_password: str | None = None
+
+    username: str | None = None
+    password: str | None = None
+
+    ai_provider: str = "openrouter"
+    openrouter_api_key: str | None = None
+    openrouter_model: str = "openai/gpt-4.1-mini"
+    openrouter_site_url: str | None = None
+    openrouter_app_name: str = "Devita AI Reporting"
+    gemini_api_key: str | None = None
+    gemini_model: str = "gemini-1.5-flash"
+    openai_api_key: str | None = None
+    openai_model: str = "gpt-4.1-mini"
+    ai_sql_enabled: bool = True
+    max_rows: int = 500
+
+    model_config = SettingsConfigDict(
+        env_file=ROOT_ENV,
+        env_file_encoding="utf-8",
+        extra="ignore",
+        case_sensitive=False,
+    )
+
+    @property
+    def allowed_origins(self) -> list[str]:
+        return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
+
+    @property
+    def resolved_database_url(self) -> str | None:
+        if self.database_url and "YOUR_" not in self.database_url:
+            return self.database_url
+        user = self.db_user or self.username
+        password = self.db_password or self.password
+        if not all([self.db_host, self.db_name, user, password]):
+            return None
+        return (
+            f"mysql+pymysql://{quote_plus(user)}:{quote_plus(password)}"
+            f"@{self.db_host}:{self.db_port}/{self.db_name}"
+            "?charset=utf8mb4"
+        )
+
+
+@lru_cache
+def get_settings() -> Settings:
+    return Settings()
