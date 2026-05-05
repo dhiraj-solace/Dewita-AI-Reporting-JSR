@@ -1,0 +1,62 @@
+{
+  "batch_id": "eval_batch_20260504T112532Z_08d5af94",
+  "created_at": "2026-05-04T11:25:32.191664+00:00",
+  "record_count": 1,
+  "records": [
+    {
+      "id": "fd74a13b-85b5-4c61-b85f-bbc7f369f665",
+      "created_at": "2026-05-04T11:17:36.703748+00:00",
+      "question": "Top team leaders by equivalent new tickets this year",
+      "report": {
+        "title": "Top team leaders by equivalent new tickets this year",
+        "sql": "SELECT u.name AS team_leader_name, COUNT(pt.id) AS new_ticket_count FROM product_task pt JOIN users u ON pt.assign_team_leader = u.id WHERE pt.created_at >= '2026-01-01' AND pt.created_at <= '2026-12-31' AND pt.is_deleted = 0 GROUP BY u.id, u.name ORDER BY new_ticket_count DESC\nLIMIT 500",
+        "explanation": "This query counts new tickets (product_task records) assigned to each team leader during the year 2026. It joins the product_task table with the users table to translate team leader IDs into their display names. The query filters for non-deleted tasks created within the specified date range and groups results by team leader to show the count of new tickets per leader, ordered from highest to lowest.",
+        "assumptions": [
+          "Interpreted 'this year' as calendar year 2026.",
+          "New tickets are defined as product_task records created within the date range",
+          "The assign_team_leader field in product_task contains the user ID of the team leader",
+          "Only non-deleted tasks (is_deleted = 0) should be counted",
+          "Team leader names are stored in the users table"
+        ],
+        "columns": [
+          "team_leader_name",
+          "new_ticket_count"
+        ],
+        "sample_rows": [
+          {
+            "team_leader_name": "Shiju Joseph",
+            "new_ticket_count": 1310
+          },
+          {
+            "team_leader_name": "Deepti Deshpande",
+            "new_ticket_count": 733
+          },
+          {
+            "team_leader_name": "Rupali Patil",
+            "new_ticket_count": 474
+          }
+        ],
+        "row_count": 4,
+        "dry_run": false,
+        "warnings": []
+      },
+      "backend_validation": {
+        "schema_available": true,
+        "schema_source": "live_database",
+        "schema_fetched_at": "2026-05-04T16:12:39.701743",
+        "table_count": 69,
+        "column_count": 749,
+        "sql_executed": true,
+        "retry_attempts": [
+          {
+            "attempt": 1,
+            "status": "success",
+            "message": "Report query executed successfully.",
+            "sql": "SELECT u.name AS team_leader_name, COUNT(pt.id) AS new_ticket_count FROM product_task pt JOIN users u ON pt.assign_team_leader = u.id WHERE pt.created_at >= '2026-01-01' AND pt.created_at <= '2026-12-31' AND pt.is_deleted = 0 GROUP BY u.id, u.name ORDER BY new_ticket_count DESC\nLIMIT 500",
+            "schema_issue": null
+          }
+        ]
+      }
+    }
+  ]
+}

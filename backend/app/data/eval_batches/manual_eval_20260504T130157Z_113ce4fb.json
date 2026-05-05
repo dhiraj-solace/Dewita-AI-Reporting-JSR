@@ -1,0 +1,146 @@
+{
+  "batch_id": "manual_eval_20260504T130157Z_113ce4fb",
+  "created_at": "2026-05-04T13:01:57.998888+00:00",
+  "record_count": 1,
+  "records": [
+    {
+      "id": "5f467439-6283-48c7-9746-fbd4758ca5df",
+      "question": "Top team leaders by equivalent new tickets this year",
+      "report": {
+        "title": "Top team leaders by equivalent new tickets this year",
+        "sql": "SELECT u.name AS team_leader_name, COUNT(pt.id) AS new_ticket_count FROM product_task pt JOIN users u ON pt.assign_team_leader = u.id WHERE pt.created_at >= '2026-01-01' AND pt.created_at <= '2026-12-31' AND pt.is_deleted = 0 AND pt.assign_team_leader IS NOT NULL GROUP BY pt.assign_team_leader, u.name ORDER BY new_ticket_count DESC\nLIMIT 500",
+        "explanation": "This query counts new tickets (product_task records) created in 2026 for each team leader. It joins product_task with users to translate team leader IDs into names, filters for non-deleted tasks within the specified date range, groups by team leader, and orders by ticket count descending to show top performers.",
+        "assumptions": [
+          "Interpreted 'this year' as calendar year 2026.",
+          "New tickets are defined as product_task records created within the year 2026",
+          "Team leaders are identified by the assign_team_leader field in product_task",
+          "Only non-deleted tasks (is_deleted = 0) are counted",
+          "The created_at field in product_task represents when the ticket was created"
+        ],
+        "columns": [
+          "team_leader_name",
+          "new_ticket_count"
+        ],
+        "sample_rows": [
+          {
+            "team_leader_name": "Shiju Joseph",
+            "new_ticket_count": 1310
+          },
+          {
+            "team_leader_name": "Deepti Deshpande",
+            "new_ticket_count": 733
+          }
+        ],
+        "row_count": 4,
+        "dry_run": false,
+        "warnings": []
+      },
+      "backend_validation": {
+        "schema_available": true,
+        "schema_source": "live_database",
+        "sql_executed": true,
+        "retry_attempts": [
+          {
+            "attempt": 1,
+            "status": "success",
+            "message": "Report query executed successfully.",
+            "schema_issue": null
+          }
+        ]
+      },
+      "evaluation_checklist": [
+        "Does the SQL answer the natural-language question, not just execute?",
+        "Are requested date/week/month/year filters represented in SQL?",
+        "Are requested grouping dimensions selected and grouped?",
+        "Are requested totals/counts/top metrics calculated correctly?",
+        "Do output columns and sample rows match the requested report?",
+        "Does the explanation match the actual SQL?"
+      ],
+      "schema_evidence": {
+        "schema_source": "live_database",
+        "schema_fetched_at": "2026-05-04T16:12:39.701743",
+        "matched_tables": [
+          {
+            "name": "product_task",
+            "description": "Project/product task assignments and ownership.",
+            "columns": [
+              {
+                "name": "id",
+                "type": "bigint",
+                "description": "Primary key"
+              },
+              {
+                "name": "assign_team_leader",
+                "type": "int",
+                "description": "Assigned team leader"
+              },
+              {
+                "name": "is_deleted",
+                "type": "int",
+                "description": "Soft delete flag"
+              },
+              {
+                "name": "created_at",
+                "type": "timestamp",
+                "description": "Creation timestamp"
+              }
+            ]
+          },
+          {
+            "name": "users",
+            "description": "Employees and application users for authentication, project assignment, attendance, and time logging.",
+            "columns": [
+              {
+                "name": "id",
+                "type": "bigint",
+                "description": "Primary key"
+              },
+              {
+                "name": "name",
+                "type": "varchar",
+                "description": "Full employee name"
+              },
+              {
+                "name": "is_deleted",
+                "type": "int",
+                "description": "Soft delete flag"
+              },
+              {
+                "name": "created_at",
+                "type": "timestamp",
+                "description": "Creation timestamp"
+              }
+            ]
+          }
+        ],
+        "relationships": [
+          {
+            "from": "product_task.product_id",
+            "to": "products.id",
+            "type": "many_to_one"
+          },
+          {
+            "from": "product_task.project_id",
+            "to": "projects.id",
+            "type": "many_to_one"
+          },
+          {
+            "from": "task_hours.task_id",
+            "to": "product_task.id",
+            "type": "many_to_one"
+          },
+          {
+            "from": "task_hours.user_id",
+            "to": "users.id",
+            "type": "many_to_one"
+          },
+          {
+            "from": "timesheets.user_id",
+            "to": "users.id",
+            "type": "many_to_one"
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,68 @@
+{
+  "batch_id": "manual_eval_20260504T123435Z_4d484885",
+  "created_at": "2026-05-04T12:34:35.470070+00:00",
+  "record_count": 1,
+  "records": [
+    {
+      "id": "dd88f35d-c7dc-4add-b3f4-3f0ac5039b92",
+      "question": "Week 5 report with totals grouped by project type",
+      "report": {
+        "title": "Week 5 Report with Totals Grouped by Project Type",
+        "sql": "SELECT pt.name AS project_type, COUNT(ptask.id) AS ticket_count, SUM(CASE WHEN ptask.task_status = 'Completed' THEN 1 ELSE 0 END) AS completed_tasks, COUNT(ptask.id) - SUM(CASE WHEN ptask.task_status = 'Completed' THEN 1 ELSE 0 END) AS open_tasks, ROUND((SUM(CASE WHEN ptask.task_status = 'Completed' THEN 1 ELSE 0 END) * 100.0) / NULLIF(COUNT(ptask.id), 0), 2) AS progress FROM projects p JOIN project_type pt ON p.project_type_id = pt.id LEFT JOIN product_task ptask ON p.id = ptask.project_id AND ptask.is_deleted = 0 GROUP BY pt.id, pt.name ORDER BY pt.name\nLIMIT 500",
+        "explanation": "This query retrieves ticket counts and progress metrics grouped by project type for a Week 5 style report. It joins projects with project_type to categorize by type, then left joins product_task to count total tickets and completed tasks. The progress percentage is calculated as completed tasks divided by total tickets. The query filters out deleted tasks and groups results by project type name.",
+        "assumptions": [
+          "Project type is determined by the project_type_id foreign key in the projects table linking to project_type",
+          "Task completion is identified by task_status = 'Completed' in the product_task table",
+          "Deleted tasks (is_deleted = 1) should be excluded from counts",
+          "The report should include all projects regardless of their current status"
+        ],
+        "columns": [
+          "project_type",
+          "ticket_count",
+          "completed_tasks",
+          "open_tasks",
+          "progress"
+        ],
+        "sample_rows": [
+          {
+            "project_type": "Estim-bsl",
+            "ticket_count": 2,
+            "completed_tasks": "0",
+            "open_tasks": "2",
+            "progress": "0.00"
+          },
+          {
+            "project_type": "PD",
+            "ticket_count": 6914,
+            "completed_tasks": "0",
+            "open_tasks": "6914",
+            "progress": "0.00"
+          }
+        ],
+        "row_count": 6,
+        "dry_run": false,
+        "warnings": []
+      },
+      "backend_validation": {
+        "schema_available": true,
+        "schema_source": "live_database",
+        "sql_executed": true,
+        "retry_attempts": [
+          {
+            "attempt": 1,
+            "status": "success",
+            "message": "Report query executed successfully.",
+            "schema_issue": null
+          }
+        ]
+      },
+      "evaluation_checklist": [],
+      "schema_evidence": {
+        "schema_source": null,
+        "schema_fetched_at": null,
+        "matched_tables": [],
+        "relationships": []
+      }
+    }
+  ]
+}

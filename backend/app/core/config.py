@@ -32,8 +32,16 @@ class Settings(BaseSettings):
     openai_api_key: str | None = None
     openai_model: str = "gpt-4.1-mini"
     ai_sql_enabled: bool = True
+    eval_enabled: bool = True
+    eval_mode: str = "batch"
+    eval_batch_size: int = 1
+    eval_provider: str = "ollama"
+    ollama_base_url: str = "http://localhost:11434"
+    ollama_eval_model: str = "qwen2.5:3b"
+    ollama_eval_timeout_seconds: int = 1800
+    eval_fail_closed: bool = False
     max_rows: int = 500
-
+    
     model_config = SettingsConfigDict(
         env_file=ROOT_ENV,
         env_file_encoding="utf-8",

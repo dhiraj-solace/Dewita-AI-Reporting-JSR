@@ -4,6 +4,7 @@ from app.core.config import get_settings
 from app.db import fetch_rows
 from app.models import GeneratedReport, ReportRequest, RetryAttempt
 from app.services.date_resolver import resolve_date_range
+from app.services.evaluator import ReportEvaluationError, evaluate_report_output
 from app.services.llm import AiSqlGenerationError, generate_sql_repair_with_ai, generate_sql_with_ai
 from app.services.schema_service import schema_service
 from app.services.schema_validator import (
@@ -82,6 +83,33 @@ async def build_report(request: ReportRequest) -> GeneratedReport:
     else:
         _validate_with_current_schema(sql, retry_attempts, warnings)
 
+    evaluation = None
+    settings = get_settings()
+    try:
+        evaluation = await evaluate_report_output(
+            question=request.question,
+            title=generated["title"],
+            sql=sql,
+            explanation=generated["explanation"],
+            assumptions=resolved_dates.assumptions + generated.get("assumptions", []),
+            columns=columns,
+            rows=rows,
+            row_count=len(rows),
+            dry_run=request.dry_run,
+            warnings=warnings,
+            retry_attempts=retry_attempts,
+        )
+    except ReportEvaluationError as exc:
+        logger.warning("Report eval failed: %s", exc)
+        warnings.append(f"AI evaluation was unavailable: {exc}")
+        if settings.eval_fail_closed:
+            raise ReportBuildError(
+                str(exc),
+                retry_attempts,
+                title="AI report evaluation failed",
+                solution="Check that Ollama is running and the configured eval model is available.",
+            ) from exc
+
     return GeneratedReport(
         title=generated["title"],
         question=request.question,
@@ -94,6 +122,7 @@ async def build_report(request: ReportRequest) -> GeneratedReport:
         dry_run=request.dry_run,
         warnings=warnings,
         retry_attempts=retry_attempts,
+        evaluation=evaluation,
     )
 
 

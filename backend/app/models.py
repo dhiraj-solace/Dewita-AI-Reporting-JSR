@@ -19,6 +19,15 @@ class RetryAttempt(BaseModel):
     schema_issue: str | None = None
 
 
+class ReportEvaluation(BaseModel):
+    passed: bool
+    score: int = Field(default=0, ge=0, le=100)
+    verdict: str
+    validation_type: str = "intent_and_result"
+    issues: list[str] = []
+    suggestions: list[str] = []
+
+
 class GeneratedReport(BaseModel):
     title: str
     question: str
@@ -31,6 +40,7 @@ class GeneratedReport(BaseModel):
     dry_run: bool = False
     warnings: list[str] = []
     retry_attempts: list[RetryAttempt] = []
+    evaluation: ReportEvaluation | None = None
 
 
 class ReportFeedbackRequest(BaseModel):

@@ -1,10 +1,11 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import get_settings
 from app.db import get_engine
 from app.models import GeneratedReport, ReportFeedbackRequest, ReportFeedbackResponse, ReportRequest
 from app.services.catalog import load_report_catalog, load_schema_catalog
+from app.services.evaluator import ReportEvaluationError, evaluate_queued_reports
 from app.services.feedback_store import save_report_feedback
 from app.services.report_runner import ReportBuildError, build_report
 
@@ -90,3 +91,17 @@ def report_feedback(feedback: ReportFeedbackRequest) -> ReportFeedbackResponse:
         return save_report_feedback(feedback)
     except Exception as exc:
         raise HTTPException(status_code=500, detail="Unable to save report feedback.") from exc
+
+
+@app.post("/api/reports/evaluate-pending")
+async def evaluate_pending_reports(
+    limit: int = Query(default=1, ge=1, le=10),
+    retry_failed: bool = False,
+    reevaluate: bool = False,
+) -> dict:
+    try:
+        return await evaluate_queued_reports(limit=limit, retry_failed=retry_failed, reevaluate=reevaluate)
+    except ReportEvaluationError as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail="Unable to evaluate queued reports.") from exc

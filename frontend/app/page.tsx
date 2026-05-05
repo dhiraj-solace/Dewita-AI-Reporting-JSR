@@ -21,6 +21,7 @@ import {
   Search,
   Send,
   Settings,
+  ShieldCheck,
   ThumbsDown,
   ThumbsUp,
   User,
@@ -479,6 +480,31 @@ export default function Home() {
                 {report.warnings.length > 0 && (
                   <div className="notice-list warnings">
                     {report.warnings.map((item) => <span key={item}>Warning: {item}</span>)}
+                  </div>
+                )}
+
+                {report.evaluation && (
+                  <div className={`eval-panel ${report.evaluation.passed ? "passed" : "failed"}`}>
+                    <div className="eval-header">
+                      <div>
+                        <ShieldCheck size={22} />
+                        <strong>{report.evaluation.passed ? "AI Eval Passed" : "AI Eval Needs Review"}</strong>
+                      </div>
+                      <span>{report.evaluation.score}/100</span>
+                    </div>
+                    <p>{report.evaluation.verdict}</p>
+                    {report.evaluation.issues.length > 0 && (
+                      <div className="eval-list">
+                        <span>Issues</span>
+                        {report.evaluation.issues.map((item) => <p key={item}>{item}</p>)}
+                      </div>
+                    )}
+                    {report.evaluation.suggestions.length > 0 && (
+                      <div className="eval-list">
+                        <span>Suggestions</span>
+                        {report.evaluation.suggestions.map((item) => <p key={item}>{item}</p>)}
+                      </div>
+                    )}
                   </div>
                 )}
 

@@ -1,0 +1,145 @@
+{
+  "batch_id": "manual_eval_20260505T052747Z_98d0ac90",
+  "created_at": "2026-05-05T05:27:47.077180+00:00",
+  "record_count": 1,
+  "records": [
+    {
+      "id": "cd361471-35e4-4000-9cb3-cfc3aa4350b5",
+      "question": "Show top 10 projects by total number of shop tickets",
+      "report": {
+        "title": "Top 10 Projects by Total Shop Tickets",
+        "sql": "SELECT p.id, p.project_name, p.total_no_of_shop_tickets FROM projects p ORDER BY p.total_no_of_shop_tickets DESC\nLIMIT 500",
+        "explanation": "This query retrieves the top 10 projects ordered by their total number of shop tickets. The `total_no_of_shop_tickets` column in the `projects` table stores the count of shop tickets for each project. Results are sorted in descending order to show projects with the highest ticket counts first.",
+        "assumptions": [
+          "The `total_no_of_shop_tickets` column in the `projects` table accurately represents the total number of shop tickets for each project.",
+          "A higher value in `total_no_of_shop_tickets` indicates more shop tickets associated with the project."
+        ],
+        "columns": [
+          "id",
+          "project_name",
+          "total_no_of_shop_tickets"
+        ],
+        "sample_rows": [
+          {
+            "id": 89,
+            "project_name": "Yondr Nova 2A(Datacenter)",
+            "total_no_of_shop_tickets": 900
+          },
+          {
+            "id": 74,
+            "project_name": "Jim Ellis Cadillac PD",
+            "total_no_of_shop_tickets": 530
+          }
+        ],
+        "row_count": 92,
+        "dry_run": false,
+        "warnings": []
+      },
+      "backend_validation": {
+        "schema_available": true,
+        "schema_source": "live_database",
+        "sql_executed": true,
+        "retry_attempts": [
+          {
+            "attempt": 1,
+            "status": "success",
+            "message": "Report query executed successfully.",
+            "schema_issue": null
+          }
+        ]
+      },
+      "evaluation_checklist": [
+        "Does the SQL answer the natural-language question, not just execute?",
+        "Are requested date/week/month/year filters represented in SQL?",
+        "Are requested grouping dimensions selected and grouped?",
+        "Are requested totals/counts/top metrics calculated correctly?",
+        "Do output columns and sample rows match the requested report?",
+        "Does the explanation match the actual SQL?"
+      ],
+      "deterministic_hints": {
+        "requested_limit": 10,
+        "question_needs": {
+          "date_filter": false,
+          "grouping": true,
+          "totals_or_counts": true,
+          "top_or_ordering": true,
+          "status_filter": false
+        },
+        "sql_signals": {
+          "has_date_condition": false,
+          "has_group_by": false,
+          "has_aggregate": false,
+          "has_order_or_limit": true,
+          "limit_value": 500,
+          "limit_matches_requested": false,
+          "limit_exceeds_requested": true,
+          "has_status_condition": false,
+          "has_where": false
+        },
+        "output_signals": {
+          "columns": [
+            "id",
+            "project_name",
+            "total_no_of_shop_tickets"
+          ],
+          "row_count": 92,
+          "row_count_matches_requested_limit": false,
+          "row_count_exceeds_requested_limit": true,
+          "sample_row_count": 5,
+          "has_numeric_output": true,
+          "explanation_mentions_date": false,
+          "explanation_mentions_grouping": false
+        }
+      },
+      "schema_evidence": {
+        "schema_source": "live_database",
+        "schema_fetched_at": "2026-05-04T16:12:39.701743",
+        "matched_tables": [
+          {
+            "name": "projects",
+            "description": "Project master data from kickoff through closure.",
+            "columns": [
+              {
+                "name": "id",
+                "type": "bigint",
+                "description": "Primary key"
+              },
+              {
+                "name": "project_name",
+                "type": "varchar",
+                "description": "Project title"
+              },
+              {
+                "name": "total_no_of_shop_tickets",
+                "type": "int",
+                "description": "Total shop tickets"
+              }
+            ]
+          }
+        ],
+        "relationships": [
+          {
+            "from": "product_task.project_id",
+            "to": "projects.id",
+            "type": "many_to_one"
+          },
+          {
+            "from": "change_open_value.project_id",
+            "to": "projects.id",
+            "type": "many_to_one"
+          },
+          {
+            "from": "project_assistances.project_id",
+            "to": "projects.id",
+            "type": "many_to_one"
+          },
+          {
+            "from": "timesheets.project_id",
+            "to": "projects.id",
+            "type": "many_to_one"
+          }
+        ]
+      }
+    }
+  ]
+}

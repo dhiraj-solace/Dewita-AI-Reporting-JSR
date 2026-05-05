@@ -1,0 +1,74 @@
+{
+  "batch_id": "eval_batch_20260504T111736Z_20c1ddf2",
+  "created_at": "2026-05-04T11:17:36.729783+00:00",
+  "record_count": 1,
+  "records": [
+    {
+      "id": "39d61f15-d0f3-41ce-a84f-2ab1b5b4ee9f",
+      "created_at": "2026-05-04T11:15:45.542444+00:00",
+      "question": "Show April 2026 revision summary by project and team leader",
+      "report": {
+        "title": "April 2026 Revision Summary by Project and Team Leader",
+        "sql": "SELECT p.project_name, u.name AS team_leader, COUNT(cm.id) AS revision_count, COALESCE(SUM(cm.changerequest_detailing_estimated_hrs), 0) AS total_estimated_detailing_hrs, COALESCE(SUM(cm.changerequest_checking_estimated_hrs), 0) AS total_estimated_checking_hrs FROM changerequest_management cm JOIN projects p ON cm.project_id = p.id JOIN users u ON cm.changerequest_assign_to = u.id WHERE cm.date BETWEEN '2026-04-01' AND '2026-04-30' AND cm.is_deleted = 0 GROUP BY p.project_name, u.name ORDER BY p.project_name, u.name\nLIMIT 500",
+        "explanation": "This query retrieves a summary of change requests (revisions) for April 2026, grouped by project name and team leader. It counts the number of revisions and sums the estimated detailing and checking hours for each project-team leader combination. The query joins changerequest_management with projects to get project names and with users to get team leader names based on the changerequest_assign_to field. The date filter uses the literal dates '2026-04-01' and '2026-04-30' as specified, and excludes deleted records.",
+        "assumptions": [
+          "Interpreted the requested period as April 2026.",
+          "The changerequest_assign_to field in changerequest_management contains the user ID of the team leader responsible for the revision",
+          "Revisions are tracked as change request records in the changerequest_management table",
+          "The date field in changerequest_management represents when the revision was created or logged",
+          "Project names are stored in the projects table and team leader names in the users table"
+        ],
+        "columns": [
+          "project_name",
+          "team_leader",
+          "revision_count",
+          "total_estimated_detailing_hrs",
+          "total_estimated_checking_hrs"
+        ],
+        "sample_rows": [
+          {
+            "project_name": "Amtrack Penn Coach Guard",
+            "team_leader": "Abhishek RajeShirke",
+            "revision_count": 7,
+            "total_estimated_detailing_hrs": "1680",
+            "total_estimated_checking_hrs": "420"
+          },
+          {
+            "project_name": "Amtrack Penn Coach Guard",
+            "team_leader": "Ankush Radke",
+            "revision_count": 1,
+            "total_estimated_detailing_hrs": "240",
+            "total_estimated_checking_hrs": "60"
+          },
+          {
+            "project_name": "Amtrack Penn Coach Guard",
+            "team_leader": "Avinash Kamble",
+            "revision_count": 1,
+            "total_estimated_detailing_hrs": "180",
+            "total_estimated_checking_hrs": "60"
+          }
+        ],
+        "row_count": 26,
+        "dry_run": false,
+        "warnings": []
+      },
+      "backend_validation": {
+        "schema_available": true,
+        "schema_source": "live_database",
+        "schema_fetched_at": "2026-05-04T16:12:39.701743",
+        "table_count": 69,
+        "column_count": 749,
+        "sql_executed": true,
+        "retry_attempts": [
+          {
+            "attempt": 1,
+            "status": "success",
+            "message": "Report query executed successfully.",
+            "sql": "SELECT p.project_name, u.name AS team_leader, COUNT(cm.id) AS revision_count, COALESCE(SUM(cm.changerequest_detailing_estimated_hrs), 0) AS total_estimated_detailing_hrs, COALESCE(SUM(cm.changerequest_checking_estimated_hrs), 0) AS total_estimated_checking_hrs FROM changerequest_management cm JOIN projects p ON cm.project_id = p.id JOIN users u ON cm.changerequest_assign_to = u.id WHERE cm.date BETWEEN '2026-04-01' AND '2026-04-30' AND cm.is_deleted = 0 GROUP BY p.project_name, u.name ORDER BY p.project_name, u.name\nLIMIT 500",
+            "schema_issue": null
+          }
+        ]
+      }
+    }
+  ]
+}

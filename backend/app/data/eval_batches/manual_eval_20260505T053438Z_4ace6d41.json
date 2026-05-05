@@ -1,0 +1,180 @@
+{
+  "batch_id": "manual_eval_20260505T053438Z_4ace6d41",
+  "created_at": "2026-05-05T05:34:38.262474+00:00",
+  "record_count": 1,
+  "records": [
+    {
+      "id": "45ead891-8a77-4ded-9510-ce12cf3df961",
+      "question": "Top team leaders by equivalent new tickets this year",
+      "report": {
+        "title": "Top team leaders by equivalent new tickets this year",
+        "sql": "SELECT u.name AS team_leader_name, COUNT(pt.id) AS equivalent_new_tickets\nFROM product_task pt\nJOIN users u ON pt.assign_team_leader = u.id\nWHERE pt.created_at BETWEEN '2026-01-01' AND '2026-12-31'\n  AND pt.is_deleted = 0\nGROUP BY u.id, u.name\nORDER BY equivalent_new_tickets DESC\nLIMIT 500",
+        "explanation": "This query counts the number of new tickets (product_task records) assigned to each team leader during 2026. It joins the product_task table with the users table to get team leader names, filters for non-deleted tasks created within the specified year, groups by team leader, and orders by ticket count descending to show top team leaders.",
+        "assumptions": [
+          "Interpreted 'this year' as calendar year 2026.",
+          "New tickets are defined as product_task records created within the date range",
+          "Team leader is identified by the assign_team_leader field in product_task",
+          "Only non-deleted tasks (is_deleted = 0) are counted",
+          "The created_at field in product_task represents when the ticket was created"
+        ],
+        "columns": [
+          "team_leader_name",
+          "equivalent_new_tickets"
+        ],
+        "sample_rows": [
+          {
+            "team_leader_name": "Shiju Joseph",
+            "equivalent_new_tickets": 1310
+          },
+          {
+            "team_leader_name": "Deepti Deshpande",
+            "equivalent_new_tickets": 733
+          }
+        ],
+        "row_count": 4,
+        "dry_run": false,
+        "warnings": []
+      },
+      "backend_validation": {
+        "schema_available": true,
+        "schema_source": "live_database",
+        "sql_executed": true,
+        "retry_attempts": [
+          {
+            "attempt": 1,
+            "status": "success",
+            "message": "Report query executed successfully.",
+            "schema_issue": null
+          }
+        ]
+      },
+      "evaluation_checklist": [
+        "Does the SQL answer the natural-language question, not just execute?",
+        "Are requested date/week/month/year filters represented in SQL?",
+        "Are requested grouping dimensions selected and grouped?",
+        "Are requested totals/counts/top metrics calculated correctly?",
+        "Do output columns and sample rows match the requested report?",
+        "Does the explanation match the actual SQL?"
+      ],
+      "deterministic_hints": {
+        "requested_limit": null,
+        "question_needs": {
+          "date_filter": true,
+          "grouping": true,
+          "totals_or_counts": true,
+          "top_or_ordering": true,
+          "status_filter": false
+        },
+        "sql_signals": {
+          "has_date_condition": true,
+          "has_group_by": true,
+          "has_aggregate": true,
+          "has_order_or_limit": true,
+          "limit_value": 500,
+          "limit_matches_requested": true,
+          "limit_exceeds_requested": false,
+          "has_status_condition": false,
+          "has_where": false
+        },
+        "output_signals": {
+          "columns": [
+            "team_leader_name",
+            "equivalent_new_tickets"
+          ],
+          "row_count": 4,
+          "row_count_matches_requested_limit": true,
+          "row_count_exceeds_requested_limit": false,
+          "sample_row_count": 4,
+          "has_numeric_output": true,
+          "explanation_mentions_date": true,
+          "explanation_mentions_grouping": true
+        }
+      },
+      "schema_evidence": {
+        "schema_source": "live_database",
+        "schema_fetched_at": "2026-05-04T16:12:39.701743",
+        "matched_tables": [
+          {
+            "name": "product_task",
+            "description": "Project/product task assignments and ownership.",
+            "columns": [
+              {
+                "name": "id",
+                "type": "bigint",
+                "description": "Primary key"
+              },
+              {
+                "name": "assign_team_leader",
+                "type": "int",
+                "description": "Assigned team leader"
+              },
+              {
+                "name": "is_deleted",
+                "type": "int",
+                "description": "Soft delete flag"
+              },
+              {
+                "name": "created_at",
+                "type": "timestamp",
+                "description": "Creation timestamp"
+              }
+            ]
+          },
+          {
+            "name": "users",
+            "description": "Employees and application users for authentication, project assignment, attendance, and time logging.",
+            "columns": [
+              {
+                "name": "id",
+                "type": "bigint",
+                "description": "Primary key"
+              },
+              {
+                "name": "name",
+                "type": "varchar",
+                "description": "Full employee name"
+              },
+              {
+                "name": "is_deleted",
+                "type": "int",
+                "description": "Soft delete flag"
+              },
+              {
+                "name": "created_at",
+                "type": "timestamp",
+                "description": "Creation timestamp"
+              }
+            ]
+          }
+        ],
+        "relationships": [
+          {
+            "from": "product_task.product_id",
+            "to": "products.id",
+            "type": "many_to_one"
+          },
+          {
+            "from": "product_task.project_id",
+            "to": "projects.id",
+            "type": "many_to_one"
+          },
+          {
+            "from": "task_hours.task_id",
+            "to": "product_task.id",
+            "type": "many_to_one"
+          },
+          {
+            "from": "task_hours.user_id",
+            "to": "users.id",
+            "type": "many_to_one"
+          },
+          {
+            "from": "timesheets.user_id",
+            "to": "users.id",
+            "type": "many_to_one"
+          }
+        ]
+      }
+    }
+  ]
+}

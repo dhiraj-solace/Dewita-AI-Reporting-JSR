@@ -543,6 +543,72 @@ p {
   background: #ffe0e0;
 }
 
+.eval-panel {
+  border: 1px solid #dbe5f3;
+  border-radius: 6px;
+  background: #f8fbff;
+  padding: 14px 16px;
+  margin: 18px 0;
+}
+
+.eval-panel.passed {
+  border-color: #b7dfce;
+  background: #f0fbf6;
+}
+
+.eval-panel.failed {
+  border-color: #ffc9c9;
+  background: #fff6f6;
+}
+
+.eval-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 9px;
+}
+
+.eval-header div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #142a46;
+}
+
+.eval-header strong {
+  font-size: 17px;
+}
+
+.eval-header span {
+  border-radius: 999px;
+  background: #e7efff;
+  color: #1e59df;
+  font-size: 13px;
+  font-weight: 800;
+  padding: 5px 10px;
+}
+
+.eval-panel > p,
+.eval-list p {
+  color: #53647d;
+  font-size: 15px;
+  line-height: 1.42;
+}
+
+.eval-list {
+  display: grid;
+  gap: 6px;
+  margin-top: 11px;
+}
+
+.eval-list span {
+  color: #142a46;
+  font-size: 13px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
 .table-wrap {
   max-height: 560px;
   overflow: auto;

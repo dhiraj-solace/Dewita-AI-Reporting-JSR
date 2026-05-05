@@ -18,6 +18,16 @@ export type GeneratedReport = {
   dry_run: boolean;
   warnings: string[];
   retry_attempts: RetryAttempt[];
+  evaluation?: ReportEvaluation | null;
+};
+
+export type ReportEvaluation = {
+  passed: boolean;
+  score: number;
+  verdict: string;
+  validation_type: string;
+  issues: string[];
+  suggestions: string[];
 };
 
 export type RetryAttempt = {

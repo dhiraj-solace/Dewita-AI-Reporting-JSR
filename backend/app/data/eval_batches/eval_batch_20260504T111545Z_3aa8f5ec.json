@@ -1,0 +1,42 @@
+{
+  "batch_id": "eval_batch_20260504T111545Z_3aa8f5ec",
+  "created_at": "2026-05-04T11:15:45.557442+00:00",
+  "record_count": 1,
+  "records": [
+    {
+      "id": "cdba5b4f-912d-4d1d-b928-ea05f6baef4b",
+      "created_at": "2026-05-04T11:08:19.541256+00:00",
+      "question": "Week 5 report with totals grouped by project type",
+      "report": {
+        "title": "Week Five Report",
+        "sql": "SELECT\n  COALESCE(ptype.name, 'Unassigned') AS project_type,\n  p.project_mfg_type,\n  COUNT(DISTINCT p.id) AS total_projects,\n  SUM(COALESCE(p.total_no_of_shop_tickets, 0)) AS total_shop_tickets,\n  COUNT(DISTINCT task.id) AS total_tasks,\n  SUM(CASE WHEN task.task_status = 'Completed' THEN 1 ELSE 0 END) AS completed_tasks,\n  ROUND(\n    (SUM(CASE WHEN task.task_status = 'Completed' THEN 1 ELSE 0 END) / NULLIF(COUNT(DISTINCT task.id), 0)) * 100,\n    2\n  ) AS completion_percentage\nFROM projects p\nLEFT JOIN project_type ptype ON ptype.id = p.project_type_id\nLEFT JOIN product_task task ON task.project_id = p.id AND COALESCE(task.is_deleted, 0) = 0\nWHERE p.project_status != 'Completed'\n  AND COALESCE(p.client, '') != 'DAI'\n  AND p.project_mfg_type IN ('CAD_CAM', 'BIM')\n  AND (NULL IS NULL OR DATE(p.created_at) >= NULL)\n  AND (NULL IS NULL OR DATE(p.created_at) <= NULL)\nGROUP BY ptype.name, p.project_mfg_type\nORDER BY total_projects DESC, project_type\nLIMIT 100",
+        "explanation": "Five-week planning summary grouped by project type and manufacturing type for active non-DAI CAD/BIM projects.",
+        "assumptions": [],
+        "columns": [],
+        "sample_rows": [],
+        "row_count": 0,
+        "dry_run": true,
+        "warnings": [
+          "AI SQL generation was unavailable or rejected by the provider, so a safe built-in template was used."
+        ]
+      },
+      "backend_validation": {
+        "schema_available": true,
+        "schema_source": "live_database",
+        "schema_fetched_at": "2026-05-04T16:12:39.701743",
+        "table_count": 69,
+        "column_count": 749,
+        "sql_executed": false,
+        "retry_attempts": [
+          {
+            "attempt": 1,
+            "status": "success",
+            "message": "Schema validation passed.",
+            "sql": "SELECT\n  COALESCE(ptype.name, 'Unassigned') AS project_type,\n  p.project_mfg_type,\n  COUNT(DISTINCT p.id) AS total_projects,\n  SUM(COALESCE(p.total_no_of_shop_tickets, 0)) AS total_shop_tickets,\n  COUNT(DISTINCT task.id) AS total_tasks,\n  SUM(CASE WHEN task.task_status = 'Completed' THEN 1 ELSE 0 END) AS completed_tasks,\n  ROUND(\n    (SUM(CASE WHEN task.task_status = 'Completed' THEN 1 ELSE 0 END) / NULLIF(COUNT(DISTINCT task.id), 0)) * 100,\n    2\n  ) AS completion_percentage\nFROM projects p\nLEFT JOIN project_type ptype ON ptype.id = p.project_type_id\nLEFT JOIN product_task task ON task.project_id = p.id AND COALESCE(task.is_deleted, 0) = 0\nWHERE p.project_status != 'Completed'\n  AND COALESCE(p.client, '') != 'DAI'\n  AND p.project_mfg_type IN ('CAD_CAM', 'BIM')\n  AND (NULL IS NULL OR DATE(p.created_at) >= NULL)\n  AND (NULL IS NULL OR DATE(p.created_at) <= NULL)\nGROUP BY ptype.name, p.project_mfg_type\nORDER BY total_projects DESC, project_type\nLIMIT 100",
+            "schema_issue": null
+          }
+        ]
+      }
+    }
+  ]
+}
