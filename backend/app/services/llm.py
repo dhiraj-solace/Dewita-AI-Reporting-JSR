@@ -54,6 +54,33 @@ async def generate_sql_repair_with_ai(
     return await _generate_sql_payload(payload)
 
 
+async def generate_sql_validation_retry_with_ai(
+    question: str,
+    start_date: str | None,
+    end_date: str | None,
+    failed_output: dict[str, Any],
+    validation_errors: list[dict[str, Any]],
+    retry_prompt: str,
+) -> dict[str, Any] | None:
+    payload = _build_sql_payload(
+        question,
+        start_date,
+        end_date,
+        {
+            "validation_retry_mode": True,
+            "failed_sql": failed_output.get("sql") if isinstance(failed_output, dict) else failed_output,
+            "validation_errors": validation_errors,
+            "validator_retry_prompt": retry_prompt,
+            "requirements": [
+                "Regenerate only the corrected SQL query.",
+                "Correct every validation error before returning.",
+                "Do not repeat unsafe SQL or invalid schema references.",
+            ],
+        },
+    )
+    return await _generate_sql_payload(payload)
+
+
 def _build_sql_payload(
     question: str,
     start_date: str | None,
@@ -65,8 +92,11 @@ def _build_sql_payload(
         "start_date": start_date,
         "end_date": end_date,
         "requirements": [
-            "Return one MySQL SELECT query only.",
+            "Return one MySQL SELECT query only as plain text.",
+            "Do not return JSON, markdown, explanation, assumptions, comments, or metadata.",
             "Use literal MySQL date values from start_date and end_date when date filtering is needed, not placeholders.",
+            "Include the requested top/limit count when the question asks for one.",
+            "If no count is requested, include a safe LIMIT based on the app request limit.",
             "Prefer documented tables and columns.",
         ],
     }
@@ -142,7 +172,6 @@ async def _generate_sql_with_openrouter(
     body = {
         "model": model,
         "temperature": 0,
-        "response_format": {"type": "json_object"},
         "messages": [
             {"role": "system", "content": prompt},
             {"role": "user", "content": catalog_context()},
@@ -160,7 +189,7 @@ async def _generate_sql_with_openrouter(
             response.raise_for_status()
         content = response.json()["choices"][0]["message"]["content"] or "{}"
         logger.info("OpenRouter API call successful")
-        return _parse_ai_json(content)
+        return _parse_ai_sql(content)
     except httpx.HTTPStatusError as e:
         raise _provider_http_error("OpenRouter", e) from e
     except Exception as e:
@@ -180,7 +209,6 @@ async def _generate_sql_with_openai(prompt: str, payload: str, api_key: str, mod
         response = await client.chat.completions.create(
             model=model,
             temperature=0,
-            response_format={"type": "json_object"},
             messages=[
                 {"role": "system", "content": prompt},
                 {"role": "user", "content": catalog_context()},
@@ -189,7 +217,7 @@ async def _generate_sql_with_openai(prompt: str, payload: str, api_key: str, mod
         )
         content = response.choices[0].message.content or "{}"
         logger.info("OpenAI API call successful")
-        return _parse_ai_json(content)
+        return _parse_ai_sql(content)
     except Exception as e:
         logger.error(f"OpenAI API call failed: {str(e)}")
         status_code = getattr(e, "status_code", None)
@@ -224,7 +252,6 @@ async def _generate_sql_with_gemini(prompt: str, payload: str, api_key: str, mod
         ],
         "generationConfig": {
             "temperature": 0,
-            "responseMimeType": "application/json",
         },
     }
     try:
@@ -235,7 +262,7 @@ async def _generate_sql_with_gemini(prompt: str, payload: str, api_key: str, mod
         data = response.json()
         content = data["candidates"][0]["content"]["parts"][0]["text"]
         logger.info("Gemini API call successful")
-        return _parse_ai_json(content)
+        return _parse_ai_sql(content)
     except httpx.HTTPStatusError as e:
         raise _provider_http_error("Gemini", e) from e
     except Exception as e:
@@ -247,14 +274,18 @@ async def _generate_sql_with_gemini(prompt: str, payload: str, api_key: str, mod
         ) from e
 
 
-def _parse_ai_json(content: str) -> dict[str, Any]:
-    parsed = json.loads(content)
-    return {
-        "title": parsed.get("title") or "Custom Report",
-        "sql": parsed["sql"],
-        "explanation": parsed.get("explanation") or "Generated from the semantic catalog.",
-        "assumptions": parsed.get("assumptions") or [],
-    }
+def _parse_ai_sql(content: str) -> dict[str, Any]:
+    raw = content.strip()
+    if raw.startswith("```"):
+        raw = raw.strip("`").strip()
+        raw = raw.removeprefix("sql").strip()
+    try:
+        parsed = json.loads(raw)
+        if isinstance(parsed, dict) and isinstance(parsed.get("sql"), str):
+            raw = parsed["sql"].strip()
+    except json.JSONDecodeError:
+        pass
+    return {"sql": raw.strip().rstrip(";")}
 
 
 def _provider_http_error(provider: str, error: httpx.HTTPStatusError) -> AiSqlGenerationError:

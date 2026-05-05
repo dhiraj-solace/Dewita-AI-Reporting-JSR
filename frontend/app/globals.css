@@ -489,6 +489,29 @@ p {
   margin: 0 0 18px;
 }
 
+.retry-summary {
+  grid-column: 1 / -1;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid #d7e2f2;
+  border-radius: 6px;
+  background: #f8fbff;
+  padding: 10px 13px;
+}
+
+.retry-summary strong {
+  font-size: 16px;
+}
+
+.retry-summary span {
+  color: #176044;
+  font-size: 14px;
+  font-weight: 700;
+}
+
 .retry-step {
   min-height: 94px;
   border: 1px solid #dbe5f3;

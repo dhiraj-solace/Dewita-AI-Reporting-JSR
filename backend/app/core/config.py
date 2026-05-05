@@ -32,6 +32,11 @@ class Settings(BaseSettings):
     openai_api_key: str | None = None
     openai_model: str = "gpt-4.1-mini"
     ai_sql_enabled: bool = True
+    llm_validator_enabled: bool = True
+    llm_validator_url: str = "http://localhost:11434/api/chat"
+    llm_validator_model: str = "qwen2.5:3b"
+    llm_validator_max_retries: int = 10
+    llm_validator_timeout_seconds: float = 360
     max_rows: int = 500
 
     model_config = SettingsConfigDict(

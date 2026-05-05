@@ -136,6 +136,9 @@ function reportStatusLabel(report: GeneratedReport) {
 }
 
 function friendlyRetryMessage(attempt: RetryAttempt) {
+  if (attempt.message.startsWith("Validator ")) {
+    return attempt.message.replace(/^Validator (failed|success):\s*/i, "");
+  }
   if (attempt.status === "success" && attempt.attempt >= 3) {
     return "A safe built-in report was used after generated SQL could not be repaired.";
   }
@@ -147,6 +150,14 @@ function friendlyRetryMessage(attempt: RetryAttempt) {
     return `The query referenced a schema field that is not available. ${issue}`;
   }
   return issue;
+}
+
+function validationSummary(attempts: RetryAttempt[]) {
+  const validatorAttempts = attempts.filter((attempt) => attempt.message.startsWith("Validator "));
+  if (validatorAttempts.length === 0) return "";
+  const success = validatorAttempts.find((attempt) => attempt.status === "success");
+  if (success) return `Validation passed on attempt ${success.attempt}.`;
+  return `Validation stopped after ${validatorAttempts.length} attempts.`;
 }
 
 function buildSummaryItems(report: GeneratedReport) {
@@ -192,6 +203,7 @@ export default function Home() {
 
   const visibleRows = useMemo(() => report?.rows.slice(0, 100) ?? [], [report]);
   const summaryItems = useMemo(() => report ? buildSummaryItems(report) : [], [report]);
+  const retrySummary = useMemo(() => validationSummary(retryAttempts), [retryAttempts]);
 
   async function submit(nextQuestion = question) {
     setQuestion(nextQuestion);
@@ -358,10 +370,16 @@ export default function Home() {
             )}
             {retryAttempts.length > 0 && (
               <div className="retry-panel">
-                {retryAttempts.map((attempt) => (
-                  <div className={`retry-step ${attempt.status}`} key={`${attempt.attempt}-${attempt.status}`}>
+                {retrySummary && (
+                  <div className="retry-summary">
+                    <strong>Validation check</strong>
+                    <span>{retrySummary}</span>
+                  </div>
+                )}
+                {retryAttempts.map((attempt, index) => (
+                  <div className={`retry-step ${attempt.status}`} key={`${attempt.attempt}-${attempt.status}-${index}`}>
                     <div>
-                      <strong>Retry {attempt.attempt}</strong>
+                      <strong>{attempt.message.startsWith("Validator ") ? `Output ${attempt.attempt}` : `Retry ${attempt.attempt}`}</strong>
                       <span>{attempt.status}</span>
                     </div>
                     <p>{friendlyRetryMessage(attempt)}</p>

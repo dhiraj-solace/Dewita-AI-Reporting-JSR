@@ -19,6 +19,19 @@ class RetryAttempt(BaseModel):
     schema_issue: str | None = None
 
 
+class ValidationErrorItem(BaseModel):
+    type: str
+    message: str
+    fix_hint: str
+
+
+class ValidationResult(BaseModel):
+    is_valid: bool
+    reason: str = ""
+    errors: list[ValidationErrorItem] = []
+    retry_prompt: str = ""
+
+
 class GeneratedReport(BaseModel):
     title: str
     question: str

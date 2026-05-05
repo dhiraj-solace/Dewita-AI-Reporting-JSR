@@ -1,10 +1,24 @@
+import json
 import logging
 import re
+import sys
+from datetime import datetime
+from typing import Any
 from app.core.config import get_settings
 from app.db import fetch_rows
 from app.models import GeneratedReport, ReportRequest, RetryAttempt
 from app.services.date_resolver import resolve_date_range
-from app.services.llm import AiSqlGenerationError, generate_sql_repair_with_ai, generate_sql_with_ai
+from app.services.llm import (
+    AiSqlGenerationError,
+    generate_sql_repair_with_ai,
+    generate_sql_validation_retry_with_ai,
+    generate_sql_with_ai,
+)
+from app.services.llm_output_validator import (
+    OutputValidationError,
+    build_validation_payload,
+    validate_llm_report_output,
+)
 from app.services.schema_service import schema_service
 from app.services.schema_validator import (
     SchemaDiagnosis,
@@ -12,10 +26,14 @@ from app.services.schema_validator import (
     diagnose_database_error,
     validate_sql_against_schema,
 )
-from app.services.sql_guard import apply_limit, normalize_live_schema_sql, validate_select_sql
+from app.services.sql_guard import normalize_live_schema_sql, validate_select_sql
 from app.services.templates import find_template
 
 logger = logging.getLogger(__name__)
+
+VALIDATION_FALLBACK_MESSAGE = (
+    "ERROR: Unable to generate a valid SQL query after multiple attempts. Please refine your query."
+)
 
 
 class ReportBuildError(Exception):
@@ -36,14 +54,17 @@ class ReportBuildError(Exception):
 
 async def build_report(request: ReportRequest) -> GeneratedReport:
     warnings: list[str] = []
+    retry_attempts: list[RetryAttempt] = []
     resolved_dates = resolve_date_range(request.question, request.start_date, request.end_date)
+    _console_validation_log("request started")
+    _console_validation_detail("user query", {"question": request.question, "limit": request.limit, "dry_run": request.dry_run})
     try:
         generated = await generate_sql_with_ai(request.question, resolved_dates.start_date, resolved_dates.end_date)
     except AiSqlGenerationError as exc:
         raise _ai_report_error(exc, []) from exc
 
     if generated is None:
-        logger.warning(f"AI SQL generation failed for question: '{request.question}'")
+        logger.warning("AI SQL generation failed.")
         logger.info("Falling back to template-based report generation")
         
         template = find_template(request.question)
@@ -52,7 +73,7 @@ async def build_report(request: ReportRequest) -> GeneratedReport:
             template = find_template("project summary")
             warnings.append("No exact report template matched; using Project Summary Report as a safe fallback.")
         else:
-            logger.info(f"Using template: '{template.title}' for question: '{request.question}'")
+            logger.info("Using matched report template.")
             
         generated = {
             "title": template.title,
@@ -62,32 +83,55 @@ async def build_report(request: ReportRequest) -> GeneratedReport:
         warnings.append(
             "AI SQL generation was unavailable or rejected by the provider, so a safe built-in template was used."
         )
+        _console_validation_log("template output 1 generated")
+        _console_validation_detail("template output 1", generated)
     else:
-        logger.info(f"AI SQL generation successful for question: '{request.question}'")
+        logger.info("AI SQL generation successful.")
+        _console_validation_log("llm1 output 1 generated")
+        _console_validation_detail("llm1 output 1", generated)
 
-    sql = _prepare_sql(
-        generated["sql"],
-        min(request.limit, get_settings().max_rows),
-        warnings,
+    generated, sql = await _validate_generated_output_with_retries(
+        generated,
+        request,
         resolved_dates.start_date,
         resolved_dates.end_date,
+        warnings,
+        retry_attempts,
     )
     params = {"start_date": resolved_dates.start_date, "end_date": resolved_dates.end_date}
 
     columns: list[str] = []
     rows: list[dict] = []
-    retry_attempts: list[RetryAttempt] = []
     if not request.dry_run:
-        columns, rows, sql = await _execute_with_schema_retries(sql, params, request, retry_attempts, warnings)
+        _console_validation_log("validation passed; executing SQL now")
+        _console_validation_detail("sql execution request", {"sql": sql, "params": params})
+        try:
+            columns, rows = fetch_rows(sql, params)
+            retry_attempts.append(
+                RetryAttempt(
+                    attempt=len(retry_attempts) + 1,
+                    status="success",
+                    message="Validated SQL executed successfully.",
+                    sql=sql,
+                )
+            )
+            _console_validation_detail(
+                "sql execution output",
+                {"columns": columns, "row_count": len(rows), "rows": rows},
+            )
+        except Exception as exc:
+            _console_validation_detail("sql execution error", {"error": str(exc)})
+            raise ReportBuildError(str(exc), retry_attempts, title="SQL execution failed") from exc
     else:
+        _console_validation_log("validation passed; dry run skips SQL execution")
         _validate_with_current_schema(sql, retry_attempts, warnings)
 
     return GeneratedReport(
-        title=generated["title"],
+        title=generated.get("title") or "SQL Report",
         question=request.question,
         sql=sql,
-        explanation=generated["explanation"],
-        assumptions=resolved_dates.assumptions + generated.get("assumptions", []),
+        explanation=generated.get("explanation") or "",
+        assumptions=[],
         columns=columns,
         rows=rows,
         row_count=len(rows),
@@ -95,6 +139,279 @@ async def build_report(request: ReportRequest) -> GeneratedReport:
         warnings=warnings,
         retry_attempts=retry_attempts,
     )
+
+
+async def _validate_generated_output_with_retries(
+    generated: dict,
+    request: ReportRequest,
+    start_date: str | None,
+    end_date: str | None,
+    warnings: list[str],
+    retry_attempts: list[RetryAttempt],
+) -> tuple[dict, str]:
+    settings = get_settings()
+    max_retries = max(1, settings.llm_validator_max_retries)
+    max_rows = min(request.limit, settings.max_rows)
+    requested_result_limit = _requested_result_limit(request.question)
+    sql_limit = min(max_rows, requested_result_limit) if requested_result_limit else max_rows
+    current = dict(generated)
+    last_error_message = "Generated report output did not pass validation."
+    llm1_outputs = 1
+    llm2_calls = 0
+
+    for attempt in range(1, max_retries + 1):
+        validation_errors: list[dict] = []
+        retry_prompt = ""
+        prepared_sql: str | None = None
+        schema = _safe_schema()
+
+        _console_validation_log(f"validator attempt {attempt} started for output {llm1_outputs}")
+        try:
+            prepared_sql = _prepare_sql(current["sql"], sql_limit, warnings, start_date, end_date)
+            _validate_requested_limit_alignment(prepared_sql, requested_result_limit)
+            warnings.extend(validate_sql_against_schema(prepared_sql, schema))
+        except SchemaValidationError as exc:
+            last_error_message = exc.diagnosis.message
+            _console_validation_log(
+                f"llm2 validation call {attempt} skipped qwen: {_short_reason(last_error_message)}"
+            )
+            validation_errors = [
+                {
+                    "type": "schema_error",
+                    "message": exc.diagnosis.message,
+                    "fix_hint": "Use only tables and columns from the provided schema.",
+                }
+            ]
+            retry_prompt = exc.diagnosis.message
+        except Exception as exc:
+            last_error_message = str(exc)
+            _console_validation_log(
+                f"llm2 validation call {attempt} skipped qwen: {_short_reason(last_error_message)}"
+            )
+            validation_errors = [
+                {
+                    "type": "safety_error",
+                    "message": str(exc),
+                    "fix_hint": "Return one safe read-only SELECT query that matches the report request.",
+                }
+            ]
+            retry_prompt = str(exc)
+        else:
+            try:
+                llm2_calls += 1
+                _console_validation_log(f"llm2 qwen call {llm2_calls} started for output {llm1_outputs}")
+                validation_payload = build_validation_payload(
+                    question=request.question,
+                    schema=schema,
+                    generated_sql=prepared_sql,
+                )
+                _console_validation_detail(
+                    "llm2 validation request",
+                    _validation_payload_for_console(validation_payload),
+                )
+                validation = await validate_llm_report_output(
+                    question=request.question,
+                    schema=schema,
+                    generated_sql=prepared_sql,
+                )
+                _console_validation_detail("llm2 validation response", validation.model_dump())
+            except OutputValidationError as exc:
+                retry_attempts.append(
+                    _validator_attempt(attempt, "failed", _short_reason(str(exc)))
+                )
+                logger.warning("Validator attempt %s failed: %s", attempt, _short_reason(str(exc)))
+                _console_validation_log(
+                    f"llm2 qwen call {llm2_calls} failed: {_short_reason(str(exc))}"
+                )
+                raise ReportBuildError(
+                    "Local LLM validator request failed.",
+                    retry_attempts,
+                    title="Report validator unavailable",
+                    solution=(
+                        "Ensure Ollama is running with qwen2.5:3b and increase "
+                        "LLM_VALIDATOR_TIMEOUT_SECONDS if local validation takes longer."
+                    ),
+                ) from exc
+            else:
+                if validation.is_valid:
+                    retry_attempts.append(
+                        _validator_attempt(attempt, "success", f"Validator accepted output on attempt {attempt}.")
+                    )
+                    logger.info("Validator accepted output on attempt %s.", attempt)
+                    _console_validation_log(
+                        f"success llm1_outputs={llm1_outputs} llm2_calls={llm2_calls} passed_on_attempt={attempt}"
+                    )
+                    return current, prepared_sql
+                if _is_limit_false_positive(validation.reason, prepared_sql, requested_result_limit):
+                    retry_attempts.append(
+                        _validator_attempt(
+                            attempt,
+                            "success",
+                            "Backend overrode validator LIMIT false positive; SQL LIMIT matches user request.",
+                        )
+                    )
+                    _console_validation_detail(
+                        "llm2 validation override",
+                        {
+                            "reason_from_llm2": validation.reason,
+                            "backend_check": "requested LIMIT matches SQL LIMIT",
+                            "decision": "accepted",
+                        },
+                    )
+                    return current, prepared_sql
+                last_error_message = validation.reason or _validation_error_summary(
+                    [error.model_dump() for error in validation.errors]
+                )
+                validation_errors = [
+                    {
+                        "type": "validation_error",
+                        "message": last_error_message,
+                        "fix_hint": "Regenerate only a corrected SQL query.",
+                    }
+                ]
+                retry_prompt = last_error_message
+
+        retry_attempts.append(_validator_attempt(attempt, "failed", last_error_message))
+        logger.info("Validator attempt %s rejected output: %s", attempt, _short_reason(last_error_message))
+        _console_validation_log(
+            f"validator attempt {attempt} rejected output {llm1_outputs}: {_short_reason(last_error_message)}"
+        )
+
+        if attempt >= max_retries:
+            break
+
+        _console_validation_log(f"llm1 retry {attempt + 1} started after validator rejection")
+        llm1_retry_payload = {
+            "user_query": request.question,
+            "failed_sql": prepared_sql or current.get("sql", ""),
+            "validation_reason_from_llm2": retry_prompt or last_error_message,
+            "validation_errors": validation_errors,
+            "start_date": start_date,
+            "end_date": end_date,
+        }
+        _console_validation_detail("data passed to llm1 retry", llm1_retry_payload)
+        try:
+            regenerated = await generate_sql_validation_retry_with_ai(
+                llm1_retry_payload["user_query"],
+                llm1_retry_payload["start_date"],
+                llm1_retry_payload["end_date"],
+                {"sql": llm1_retry_payload["failed_sql"]},
+                llm1_retry_payload["validation_errors"],
+                llm1_retry_payload["validation_reason_from_llm2"],
+            )
+        except AiSqlGenerationError as exc:
+            raise _ai_report_error(exc, []) from exc
+
+        if regenerated is None:
+            _console_validation_log(f"llm1 retry {attempt + 1} unavailable")
+            break
+        current = regenerated
+        llm1_outputs += 1
+        _console_validation_log(f"llm1 output {llm1_outputs} generated")
+        _console_validation_detail(f"llm1 output {llm1_outputs}", current)
+
+    _console_validation_log(f"failed llm1_outputs={llm1_outputs} llm2_calls={llm2_calls}")
+    raise ReportBuildError(
+        VALIDATION_FALLBACK_MESSAGE,
+        retry_attempts,
+        title="Unable to build report",
+        solution="Refine the report question or ask an admin to review the schema and local validator service.",
+    )
+
+
+def _structured_validator_output(generated: dict, sql: str) -> dict:
+    return {
+        "title": generated.get("title") or "Custom Report",
+        "sql": sql,
+        "explanation": generated.get("explanation") or "",
+        "assumptions": generated.get("assumptions") or [],
+    }
+
+
+def _requested_result_limit(question: str) -> int | None:
+    match = re.search(
+        r"\b(?:top|bottom|first|last|limit|show)\s+(\d{1,4})\b",
+        question,
+        re.IGNORECASE,
+    )
+    if not match:
+        return None
+    value = int(match.group(1))
+    return value if value > 0 else None
+
+
+def _validate_requested_limit_alignment(sql: str, requested_limit: int | None) -> None:
+    if requested_limit is None:
+        return
+    limit_match = re.search(r"\blimit\s+(\d+)\s*$", sql, re.IGNORECASE)
+    if not limit_match:
+        raise ValueError(f"The user requested {requested_limit} rows, but the SQL has no LIMIT clause.")
+    sql_limit = int(limit_match.group(1))
+    if sql_limit != requested_limit:
+        raise ValueError(
+            f"The user requested top {requested_limit} rows, but the SQL returns LIMIT {sql_limit}."
+        )
+
+
+def _is_limit_false_positive(reason: str, sql: str, requested_limit: int | None) -> bool:
+    if requested_limit is None:
+        return False
+    normalized_reason = reason.lower()
+    if "limit" not in normalized_reason:
+        return False
+    limit_match = re.search(r"\blimit\s+(\d+)\s*$", sql, re.IGNORECASE)
+    return bool(limit_match and int(limit_match.group(1)) == requested_limit)
+
+
+def _validation_error_summary(validation_errors: list[dict]) -> str:
+    if not validation_errors:
+        return "Validator rejected the generated output."
+    first_error = validation_errors[0]
+    error_type = str(first_error.get("type") or "validation_error").replace("_", " ")
+    message = str(first_error.get("message") or "Generated output failed validation.")
+    return _short_reason(f"{error_type}: {message}")
+
+
+def _validator_attempt(attempt: int, status: str, reason: str) -> RetryAttempt:
+    return RetryAttempt(
+        attempt=attempt,
+        status=status,
+        message=f"Validator {status}: {_short_reason(reason)}",
+        sql=None,
+        schema_issue=None,
+    )
+
+
+def _short_reason(reason: str, max_length: int = 140) -> str:
+    normalized = " ".join(str(reason).split())
+    if len(normalized) <= max_length:
+        return normalized
+    return normalized[: max_length - 1].rstrip() + "."
+
+
+def _console_validation_log(message: str) -> None:
+    timestamp = datetime.now().strftime("%H:%M:%S")
+    sys.stderr.write(f"[validator {timestamp}] {message}\n")
+    sys.stderr.flush()
+
+
+def _console_validation_detail(label: str, payload: Any) -> None:
+    timestamp = datetime.now().strftime("%H:%M:%S")
+    rendered = json.dumps(payload, ensure_ascii=False, indent=2, default=str)
+    sys.stderr.write(f"[validator {timestamp}] {label}:\n{rendered}\n")
+    sys.stderr.flush()
+
+
+def _validation_payload_for_console(payload: dict[str, Any]) -> dict[str, Any]:
+    visible_payload = dict(payload)
+    schema = visible_payload.pop("database_schema", None)
+    if isinstance(schema, dict):
+        visible_payload["database_schema"] = {
+            "hidden_in_console": True,
+            "table_count": len(schema.get("all_table_names", []) or []),
+            "referenced_table_count": len(schema.get("referenced_tables", []) or []),
+        }
+    return visible_payload
 
 
 def _prepare_sql(
@@ -107,8 +424,7 @@ def _prepare_sql(
     sql, normalization_warnings = normalize_live_schema_sql(sql)
     warnings.extend(normalization_warnings)
     sql = _render_terminal_sql(sql, {"start_date": start_date, "end_date": end_date})
-    sql = validate_select_sql(sql)
-    return apply_limit(sql, limit)
+    return validate_select_sql(sql)
 
 
 def _render_terminal_sql(sql: str, params: dict[str, str | None]) -> str:
