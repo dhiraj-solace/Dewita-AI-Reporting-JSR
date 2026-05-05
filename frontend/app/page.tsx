@@ -21,10 +21,12 @@ import {
   Search,
   Send,
   Settings,
+  ThumbsDown,
+  ThumbsUp,
   User,
   Users
 } from "lucide-react";
-import {ApiError, GeneratedReport, Health, RetryAttempt, getHealth, runReport} from "@/lib/api";
+import {ApiError, GeneratedReport, Health, RetryAttempt, getHealth, runReport, submitReportFeedback} from "@/lib/api";
 
 const monthOptions = ["January", "February", "March", "April", "May", "June"];
 const examples = [
@@ -66,6 +68,19 @@ const stats = [
   ["View Team Leader", "19"],
   ["View Team Member", "57"],
   ["View All Member", "77"]
+];
+
+const feedbackReasons = [
+  "Result is useful",
+  "Wrong table used",
+  "Wrong column used",
+  "Incorrect date range",
+  "Missing filters",
+  "Wrong aggregation",
+  "Data looks incomplete",
+  "Report format confusing",
+  "SQL failed",
+  "Other"
 ];
 
 const numberFormatter = new Intl.NumberFormat("en-IN", {maximumFractionDigits: 2});
@@ -196,6 +211,14 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [showSql, setShowSql] = useState(false);
   const [generatedAt, setGeneratedAt] = useState<string | null>(null);
+  const [feedbackRating, setFeedbackRating] = useState<"up" | "down" | null>(null);
+  const [feedbackReason, setFeedbackReason] = useState("");
+  const [feedbackComment, setFeedbackComment] = useState("");
+  const [expectedResult, setExpectedResult] = useState("");
+  const [correctedSql, setCorrectedSql] = useState("");
+  const [feedbackSubmitting, setFeedbackSubmitting] = useState(false);
+  const [feedbackMessage, setFeedbackMessage] = useState("");
+  const [feedbackError, setFeedbackError] = useState("");
 
   useEffect(() => {
     getHealth().then(setStatus).catch(() => setStatus(null));
@@ -214,6 +237,7 @@ export default function Home() {
     setErrorStatusCode(null);
     setRetryAttempts([]);
     setGeneratedAt(null);
+    resetFeedback();
     try {
       const result = await runReport({
         question: nextQuestion,
@@ -238,6 +262,44 @@ export default function Home() {
       }
     } finally {
       setLoading(false);
+    }
+  }
+
+  function resetFeedback() {
+    setFeedbackRating(null);
+    setFeedbackReason("");
+    setFeedbackComment("");
+    setExpectedResult("");
+    setCorrectedSql("");
+    setFeedbackMessage("");
+    setFeedbackError("");
+  }
+
+  async function submitFeedback() {
+    if (!report || !feedbackRating) return;
+    setFeedbackSubmitting(true);
+    setFeedbackMessage("");
+    setFeedbackError("");
+    try {
+      const result = await submitReportFeedback({
+        question: report.question,
+        report_title: report.title,
+        generated_sql: report.sql,
+        rating: feedbackRating,
+        reason: feedbackReason || null,
+        comment: feedbackComment || null,
+        expected_result: expectedResult || null,
+        corrected_sql: correctedSql || null,
+        retry_attempts: report.retry_attempts,
+        warnings: report.warnings,
+        row_count: report.row_count
+      });
+      setFeedbackMessage(`${result.message} Reference: ${result.id}`);
+      setFeedbackError("");
+    } catch (err) {
+      setFeedbackError(err instanceof Error ? err.message : "Unable to save feedback");
+    } finally {
+      setFeedbackSubmitting(false);
     }
   }
 
@@ -463,6 +525,74 @@ export default function Home() {
                   {showSql ? <ChevronDown size={18} /> : <ChevronRight size={18} />} Generated SQL
                 </button>
                 {showSql && <pre className="sql-box">{report.sql}</pre>}
+
+                <section className="feedback-panel">
+                  <div className="feedback-header">
+                    <div>
+                      <h3>Report Feedback</h3>
+                      <p>Help improve future SQL generation and report formatting.</p>
+                    </div>
+                    <div className="feedback-rating">
+                      <button
+                        className={feedbackRating === "up" ? "active" : ""}
+                        onClick={() => setFeedbackRating("up")}
+                        type="button"
+                      >
+                        <ThumbsUp size={18} /> Useful
+                      </button>
+                      <button
+                        className={feedbackRating === "down" ? "active" : ""}
+                        onClick={() => setFeedbackRating("down")}
+                        type="button"
+                      >
+                        <ThumbsDown size={18} /> Needs Fix
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="feedback-grid">
+                    <label>
+                      <span>Reason</span>
+                      <select value={feedbackReason} onChange={(event) => setFeedbackReason(event.target.value)}>
+                        <option value="">Select reason</option>
+                        {feedbackReasons.map((reason) => <option key={reason}>{reason}</option>)}
+                      </select>
+                    </label>
+                    <label>
+                      <span>Comment</span>
+                      <textarea
+                        value={feedbackComment}
+                        onChange={(event) => setFeedbackComment(event.target.value)}
+                        placeholder="What worked or what should change?"
+                      />
+                    </label>
+                    <label>
+                      <span>Expected result</span>
+                      <textarea
+                        value={expectedResult}
+                        onChange={(event) => setExpectedResult(event.target.value)}
+                        placeholder="Describe the report you expected."
+                      />
+                    </label>
+                    <label>
+                      <span>Correct SQL</span>
+                      <textarea
+                        value={correctedSql}
+                        onChange={(event) => setCorrectedSql(event.target.value)}
+                        placeholder="Optional: paste corrected SQL for review."
+                      />
+                    </label>
+                  </div>
+
+                  <div className="feedback-footer">
+                    <button disabled={!feedbackRating || feedbackSubmitting} onClick={submitFeedback} type="button">
+                      {feedbackSubmitting ? <Loader2 className="spin" size={18} /> : <Send size={18} />}
+                      Submit Feedback
+                    </button>
+                    {feedbackMessage && <span className="feedback-success">{feedbackMessage}</span>}
+                    {feedbackError && <span className="feedback-error">{feedbackError}</span>}
+                  </div>
+                </section>
               </>
             )}
           </section>

@@ -44,3 +44,23 @@ class GeneratedReport(BaseModel):
     dry_run: bool = False
     warnings: list[str] = []
     retry_attempts: list[RetryAttempt] = []
+
+
+class ReportFeedbackRequest(BaseModel):
+    question: str = Field(..., min_length=3)
+    report_title: str | None = None
+    generated_sql: str | None = None
+    rating: str = Field(..., pattern="^(up|down)$")
+    reason: str | None = None
+    comment: str | None = None
+    expected_result: str | None = None
+    corrected_sql: str | None = None
+    retry_attempts: list[RetryAttempt] = []
+    warnings: list[str] = []
+    row_count: int | None = None
+
+
+class ReportFeedbackResponse(BaseModel):
+    id: str
+    status: str
+    message: str
