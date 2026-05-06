@@ -329,15 +329,40 @@ def _structured_validator_output(generated: dict, sql: str) -> dict:
 
 
 def _requested_result_limit(question: str) -> int | None:
-    match = re.search(
+    normalized = question.lower()
+    digit_match = re.search(
         r"\b(?:top|bottom|first|last|limit|show)\s+(\d{1,4})\b",
-        question,
+        normalized,
         re.IGNORECASE,
     )
-    if not match:
-        return None
-    value = int(match.group(1))
-    return value if value > 0 else None
+    if digit_match:
+        value = int(digit_match.group(1))
+        return value if value > 0 else None
+
+    word_numbers = {
+        "one": 1,
+        "two": 2,
+        "three": 3,
+        "four": 4,
+        "five": 5,
+        "six": 6,
+        "seven": 7,
+        "eight": 8,
+        "nine": 9,
+        "ten": 10,
+    }
+    word_pattern = "|".join(word_numbers)
+    word_match = re.search(
+        rf"\b(?:top|bottom|first|last|limit|show|only)\s+({word_pattern})\b",
+        normalized,
+    )
+    if word_match:
+        return word_numbers[word_match.group(1)]
+
+    if re.search(r"\b(?:only\s+1|single|one\s+record|one\s+row|one\s+result)\b", normalized):
+        return 1
+
+    return None
 
 
 def _validate_requested_limit_alignment(sql: str, requested_limit: int | None) -> None:

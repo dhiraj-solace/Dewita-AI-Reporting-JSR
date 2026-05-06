@@ -28,6 +28,7 @@ Rules:
   - User asks "top 10 projects" and SQL has LIMIT 10: valid for the LIMIT check.
   - User asks "show me top 10" and SQL has LIMIT 10: valid for the LIMIT check.
   - User asks "first 5 employees" and SQL has LIMIT 5: valid for the LIMIT check.
+  - User asks "only one" or "single record" and SQL has LIMIT 1: valid for the LIMIT check.
   - User asks "top 10 projects" and SQL has LIMIT 500: invalid because 500 does not equal 10.
   - User asks "top 10 projects" and SQL has LIMIT 20: invalid because 20 does not equal 10.
   - User asks "top 10 projects" and SQL has no LIMIT: invalid because LIMIT 10 is required.
