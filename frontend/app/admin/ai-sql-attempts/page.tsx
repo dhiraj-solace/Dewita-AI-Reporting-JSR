@@ -2,7 +2,7 @@
 
 import {useEffect, useMemo, useState} from "react";
 import {CheckCircle2, Database, RefreshCw, ShieldCheck, XCircle} from "lucide-react";
-import {AiSqlAttempt, listAiSqlAttempts, reviewAiSqlAttempt} from "@/lib/api";
+import {AiSqlAttempt, SqlMistakeExample, listAiSqlAttempts, listSqlMistakeExamples, reviewAiSqlAttempt} from "@/lib/api";
 
 function shortId(id: string) {
   return id.slice(0, 8);
@@ -29,6 +29,7 @@ function countByStatus(attempts: AiSqlAttempt[], status: string) {
 
 export default function AiSqlAttemptsAdminPage() {
   const [attempts, setAttempts] = useState<AiSqlAttempt[]>([]);
+  const [mistakes, setMistakes] = useState<SqlMistakeExample[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [goldOnly, setGoldOnly] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -50,7 +51,9 @@ export default function AiSqlAttemptsAdminPage() {
     setError("");
     try {
       const data = await listAiSqlAttempts(nextGoldOnly);
+      const mistakeData = await listSqlMistakeExamples();
       setAttempts(data);
+      setMistakes(mistakeData);
       setSelectedId((current) => current && data.some((attempt) => attempt.id === current) ? current : data[0]?.id ?? null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to load attempts");
@@ -77,7 +80,7 @@ export default function AiSqlAttemptsAdminPage() {
     <main className="admin-shell">
       <header className="admin-header">
         <div>
-          <h1>AI SQL Attempts</h1>
+          <h1>AI Safe Self-Learning Module Dashboard</h1>
           <p>Review generated SQL, approve correct runs, and promote safe examples into the gold dataset.</p>
         </div>
         <div className="admin-actions">
@@ -230,6 +233,25 @@ export default function AiSqlAttemptsAdminPage() {
             </>
           )}
         </section>
+
+        <aside className="mistake-panel">
+          <div className="attempt-list-header">
+            <span>Mistakes</span>
+            <strong>{mistakes.length}</strong>
+          </div>
+          {mistakes.length === 0 && <div className="attempt-empty">No mistake examples yet.</div>}
+          {mistakes.slice(0, 12).map((mistake) => (
+            <article className="mistake-row" key={mistake.id}>
+              <div>
+                <strong>{mistake.mistake_type}</strong>
+                <span>{mistake.risk_level}</span>
+              </div>
+              <p>{mistake.user_question}</p>
+              <small>{mistake.validation_reason || mistake.validator_feedback || "-"}</small>
+              <pre>{mistake.wrong_sql || "-"}</pre>
+            </article>
+          ))}
+        </aside>
       </section>
     </main>
   );

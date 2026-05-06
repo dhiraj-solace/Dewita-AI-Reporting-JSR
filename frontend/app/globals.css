@@ -800,12 +800,13 @@ tr:nth-child(even) td {
   height: calc(100vh - 186px);
   min-height: 560px;
   display: grid;
-  grid-template-columns: 390px minmax(0, 1fr);
+  grid-template-columns: 360px minmax(0, 1fr) 340px;
   gap: 14px;
 }
 
 .attempt-list,
-.attempt-detail {
+.attempt-detail,
+.mistake-panel {
   min-height: 0;
   border: 1px solid #dbe5f3;
   border-radius: 7px;
@@ -813,6 +814,11 @@ tr:nth-child(even) td {
 }
 
 .attempt-list {
+  overflow: auto;
+  padding: 10px;
+}
+
+.mistake-panel {
   overflow: auto;
   padding: 10px;
 }
@@ -1034,6 +1040,59 @@ tr:nth-child(even) td {
   color: var(--muted);
   padding: 18px;
   text-align: center;
+}
+
+.mistake-row {
+  border: 1px solid #dbe5f3;
+  border-radius: 6px;
+  background: #fbfdff;
+  padding: 10px;
+  margin-bottom: 8px;
+}
+
+.mistake-row div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 7px;
+}
+
+.mistake-row strong {
+  color: #142a46;
+  font-size: 14px;
+}
+
+.mistake-row span {
+  border-radius: 999px;
+  background: #fff6dc;
+  color: #835200;
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.mistake-row p,
+.mistake-row small {
+  display: block;
+  color: #53647d;
+  font-size: 13px;
+  line-height: 1.35;
+  margin-bottom: 8px;
+}
+
+.mistake-row pre {
+  max-height: 120px;
+  overflow: auto;
+  margin: 0;
+  border-radius: 5px;
+  background: var(--sql);
+  color: #f4f8ff;
+  padding: 10px;
+  font-size: 12px;
+  line-height: 1.4;
+  white-space: pre-wrap;
 }
 
 .spin {

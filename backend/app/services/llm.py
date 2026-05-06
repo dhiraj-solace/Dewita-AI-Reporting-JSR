@@ -28,16 +28,21 @@ async def generate_sql_with_ai(
     start_date: str | None,
     end_date: str | None,
     similar_examples: list[dict[str, str]] | None = None,
+    mistake_examples: list[dict[str, str]] | None = None,
 ) -> dict[str, Any] | None:
     extra = None
-    if similar_examples:
+    if similar_examples or mistake_examples:
         extra = {
-            "similar_approved_examples": similar_examples,
             "requirements": [
-                "Use similar_approved_examples only as reference patterns.",
+                "Use correct_approved_examples only as reference patterns.",
                 "Do not copy an example SQL blindly; the current question, schema catalog, and safety rules are authoritative.",
+                "Do not repeat mistakes shown in past_mistakes_to_avoid. Use them only as warnings.",
             ],
         }
+        if similar_examples:
+            extra["correct_approved_examples"] = _format_correct_examples(similar_examples)
+        if mistake_examples:
+            extra["past_mistakes_to_avoid"] = _format_mistake_examples(mistake_examples)
     payload = _build_sql_payload(question, start_date, end_date, extra)
     return await _generate_sql_payload(payload)
 
@@ -47,30 +52,46 @@ def build_sql_generation_payload_preview(
     start_date: str | None,
     end_date: str | None,
     similar_examples: list[dict[str, str]] | None = None,
+    mistake_examples: list[dict[str, str]] | None = None,
 ) -> dict[str, Any]:
     extra = None
-    if similar_examples:
+    if similar_examples or mistake_examples:
         extra = {
-            "similar_approved_examples": similar_examples,
             "requirements": [
-                "Use similar_approved_examples only as reference patterns.",
+                "Use correct_approved_examples only as reference patterns.",
                 "Do not copy an example SQL blindly; the current question, schema catalog, and safety rules are authoritative.",
+                "Do not repeat mistakes shown in past_mistakes_to_avoid. Use them only as warnings.",
             ],
         }
+        if similar_examples:
+            extra["correct_approved_examples"] = _format_correct_examples(similar_examples)
+        if mistake_examples:
+            extra["past_mistakes_to_avoid"] = _format_mistake_examples(mistake_examples)
     payload = json.loads(_build_sql_payload(question, start_date, end_date, extra))
-    examples = payload.get("similar_approved_examples") or []
+    examples = payload.get("correct_approved_examples") or []
+    mistakes = payload.get("past_mistakes_to_avoid") or []
     return {
         "question": payload.get("question"),
         "start_date": payload.get("start_date"),
         "end_date": payload.get("end_date"),
         "requirements_count": len(payload.get("requirements") or []),
         "similar_examples_count": len(examples),
+        "mistake_examples_count": len(mistakes),
         "similar_examples_preview": [
             {
                 "user_question": _short_text(str(example.get("user_question") or ""), 120),
-                "sql": _short_text(str(example.get("sql") or ""), 220),
+                "correct_sql": _short_text(str(example.get("correct_sql") or ""), 220),
             }
             for example in examples[:3]
+        ],
+        "mistake_examples_preview": [
+            {
+                "user_question": _short_text(str(example.get("user_question") or ""), 120),
+                "wrong_sql": _short_text(str(example.get("wrong_sql") or ""), 180),
+                "reason": _short_text(str(example.get("reason") or ""), 160),
+                "correct_sql": _short_text(str(example.get("correct_sql") or ""), 180),
+            }
+            for example in mistakes[:3]
         ],
     }
 
@@ -99,6 +120,32 @@ async def generate_sql_repair_with_ai(
         },
     )
     return await _generate_sql_payload(payload)
+
+
+def _format_correct_examples(examples: list[dict[str, str]]) -> list[dict[str, str]]:
+    return [
+        {
+            "label": "Correct approved example",
+            "user_question": example.get("user_question", ""),
+            "correct_sql": example.get("sql") or example.get("correct_sql", ""),
+        }
+        for example in examples[:3]
+    ]
+
+
+def _format_mistake_examples(examples: list[dict[str, str]]) -> list[dict[str, str]]:
+    return [
+        {
+            "label": "Past mistake to avoid",
+            "user_question": example.get("user_question", ""),
+            "wrong_sql": example.get("wrong_sql", ""),
+            "reason_it_was_wrong": example.get("reason", ""),
+            "correct_sql": example.get("correct_sql", ""),
+            "instruction": "Do not repeat this mistake. Use it only as warning/context.",
+        }
+        for example in examples[:3]
+        if example.get("reason") or example.get("correct_sql")
+    ]
 
 
 async def generate_sql_validation_retry_with_ai(
@@ -145,6 +192,9 @@ def _build_sql_payload(
             "Include the requested top/limit count when the question asks for one.",
             "If no count is requested, include a safe LIMIT based on the app request limit.",
             "Prefer documented tables and columns.",
+            "Only SELECT or WITH queries are allowed.",
+            "Never generate INSERT, UPDATE, DELETE, DROP, ALTER, TRUNCATE, CREATE, GRANT, EXEC, CALL, or multiple statements.",
+            "If the question is unclear, return clarification_needed instead of SQL.",
         ],
     }
     if extra:

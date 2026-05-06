@@ -55,6 +55,20 @@ export type AiSqlAttempt = {
   updated_at: string;
 };
 
+export type SqlMistakeExample = {
+  id: string;
+  query_attempt_id: string;
+  user_question: string;
+  wrong_sql?: string | null;
+  validator_feedback?: string | null;
+  validation_reason?: string | null;
+  mistake_type: string;
+  corrected_sql?: string | null;
+  final_correct_sql?: string | null;
+  risk_level: string;
+  created_at: string;
+};
+
 export class ApiError extends Error {
   title: string;
   solution?: string | null;
@@ -139,5 +153,13 @@ export async function reviewAiSqlAttempt(
     throw new ApiError("Unable to review AI SQL attempt");
   }
 
+  return response.json();
+}
+
+export async function listSqlMistakeExamples(): Promise<SqlMistakeExample[]> {
+  const response = await fetch(`${API_URL}/api/admin/sql-mistake-examples?limit=100`, {cache: "no-store"});
+  if (!response.ok) {
+    throw new ApiError("Unable to load SQL mistake examples");
+  }
   return response.json();
 }

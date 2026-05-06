@@ -30,6 +30,12 @@ from app.services.schema_validator import (
     validate_sql_against_schema,
 )
 from app.services.sql_guard import normalize_live_schema_sql, validate_select_sql
+from app.services.sql_mistake_store import (
+    create_mistake_example,
+    similar_mistake_examples,
+    update_attempt_mistakes_with_final_sql,
+)
+from app.services.sql_safety_validator import SafetyValidationResult, validate_sql_safety
 from app.services.templates import find_template
 
 logger = logging.getLogger(__name__)
@@ -72,6 +78,7 @@ async def build_report(request: ReportRequest) -> GeneratedReport:
         _console_attempt_log(attempt_id, "examples", "searching previous gold examples")
         example_search_started = perf_counter()
         examples, example_source = similar_gold_examples(request.question, limit=3, attempt_id=attempt_id)
+        mistake_examples = similar_mistake_examples(request.question, limit=3)
         example_elapsed_ms = int((perf_counter() - example_search_started) * 1000)
         if example_source == "vector":
             _console_attempt_log(attempt_id, "examples", "vector DB search returned approved examples")
@@ -80,7 +87,14 @@ async def build_report(request: ReportRequest) -> GeneratedReport:
         _console_attempt_detail(
             attempt_id,
             "examples",
-            {"source": example_source, "elapsed_ms": example_elapsed_ms, "count": len(examples), "examples": examples},
+            {
+                "source": example_source,
+                "elapsed_ms": example_elapsed_ms,
+                "count": len(examples),
+                "examples": examples,
+                "mistakes_count": len(mistake_examples),
+                "mistakes": mistake_examples,
+            },
         )
         _console_attempt_detail(
             attempt_id,
@@ -90,6 +104,7 @@ async def build_report(request: ReportRequest) -> GeneratedReport:
                 resolved_dates.start_date,
                 resolved_dates.end_date,
                 examples,
+                mistake_examples,
             ),
         )
         _console_attempt_log(attempt_id, "generation", "calling first AI model")
@@ -98,6 +113,7 @@ async def build_report(request: ReportRequest) -> GeneratedReport:
             resolved_dates.start_date,
             resolved_dates.end_date,
             examples,
+            mistake_examples,
         )
     except AiSqlGenerationError as exc:
         update_attempt(attempt_id, execution_status="failed", execution_error=str(exc))
@@ -164,7 +180,9 @@ async def build_report(request: ReportRequest) -> GeneratedReport:
         _console_attempt_log(attempt_id, "execution", "SQL execution started")
         _console_attempt_detail(attempt_id, "execution", {"final_sql": sql, "params": params})
         try:
+            execution_started = perf_counter()
             columns, rows = fetch_rows(sql, params)
+            execution_elapsed_ms = int((perf_counter() - execution_started) * 1000)
             retry_attempts.append(
                 RetryAttempt(
                     attempt=len(retry_attempts) + 1,
@@ -184,12 +202,17 @@ async def build_report(request: ReportRequest) -> GeneratedReport:
                 execution_error=None,
                 result_row_count=len(rows),
             )
+            update_attempt_mistakes_with_final_sql(attempt_id, sql)
             _console_attempt_detail(
                 attempt_id,
                 "execution",
                 {"status": "success", "row_count": len(rows)},
             )
-            _console_attempt_log(attempt_id, "execution", f"SQL execution completed row_count={len(rows)}")
+            _console_attempt_log(
+                attempt_id,
+                "execution",
+                f"SQL execution completed row_count={len(rows)} elapsed_ms={execution_elapsed_ms}",
+            )
         except Exception as exc:
             _console_validation_detail("sql execution error", {"error": str(exc)})
             update_attempt(
@@ -205,6 +228,7 @@ async def build_report(request: ReportRequest) -> GeneratedReport:
     else:
         _console_validation_log("validation passed; dry run skips SQL execution")
         _validate_with_current_schema(sql, retry_attempts, warnings)
+        update_attempt_mistakes_with_final_sql(attempt_id, sql)
         update_attempt(
             attempt_id,
             final_sql=sql,
@@ -240,7 +264,7 @@ async def _validate_generated_output_with_retries(
     attempt_id: str,
 ) -> tuple[dict, str]:
     settings = get_settings()
-    max_retries = max(1, settings.llm_validator_max_retries)
+    max_retries = min(2, max(1, settings.llm_validator_max_retries))
     max_rows = min(request.limit, settings.max_rows)
     requested_result_limit = _requested_result_limit(request.question)
     sql_limit = min(max_rows, requested_result_limit) if requested_result_limit else max_rows
@@ -254,15 +278,27 @@ async def _validate_generated_output_with_retries(
         retry_prompt = ""
         prepared_sql: str | None = None
         schema = _safe_schema()
+        mistake_saved = False
 
         _console_validation_log(f"validator attempt {attempt} started for output {llm1_outputs}")
         _console_attempt_log(attempt_id, "validator", f"attempt {attempt} started for output {llm1_outputs}")
         try:
-            prepared_sql = _prepare_sql(current["sql"], sql_limit, warnings, start_date, end_date)
+            raw_sql = current["sql"]
+            prepared_sql = _prepare_sql(raw_sql, sql_limit, warnings, start_date, end_date)
+            safety = validate_sql_safety(prepared_sql, schema)
+            if not safety.isValid:
+                _save_mistake(attempt_id, request.question, prepared_sql, safety)
+                mistake_saved = True
+                raise ValueError(safety.reason)
             _validate_requested_limit_alignment(prepared_sql, requested_result_limit)
-            warnings.extend(validate_sql_against_schema(prepared_sql, schema))
         except SchemaValidationError as exc:
             last_error_message = exc.diagnosis.message
+            _save_mistake(
+                attempt_id,
+                request.question,
+                prepared_sql or current.get("sql", ""),
+                SafetyValidationResult(False, last_error_message, "Use only schema tables and columns.", "medium", "invalid_column" if exc.diagnosis.column else "invalid_table"),
+            )
             update_attempt(attempt_id, validator_status="failed", validator_feedback=last_error_message)
             _console_attempt_log(attempt_id, "validator", f"schema failed: {_short_reason(last_error_message)}")
             _console_validation_log(
@@ -278,6 +314,13 @@ async def _validate_generated_output_with_retries(
             retry_prompt = exc.diagnosis.message
         except Exception as exc:
             last_error_message = str(exc)
+            if not mistake_saved and (prepared_sql or current.get("sql")):
+                _save_mistake(
+                    attempt_id,
+                    request.question,
+                    prepared_sql or current.get("sql", ""),
+                    SafetyValidationResult(False, last_error_message, "Regenerate a safe SQL query.", "medium", _mistake_type_from_reason(last_error_message)),
+                )
             update_attempt(attempt_id, validator_status="failed", validator_feedback=last_error_message)
             _console_attempt_log(attempt_id, "validator", f"safety failed: {_short_reason(last_error_message)}")
             _console_validation_log(
@@ -375,6 +418,12 @@ async def _validate_generated_output_with_retries(
                     return current, prepared_sql
                 last_error_message = validation.reason or _validation_error_summary(
                     [error.model_dump() for error in validation.errors]
+                )
+                _save_mistake(
+                    attempt_id,
+                    request.question,
+                    prepared_sql,
+                    SafetyValidationResult(False, last_error_message, "Regenerate SQL using validator feedback.", "medium", _mistake_type_from_reason(last_error_message)),
                 )
                 update_attempt(attempt_id, validator_status="failed", validator_feedback=last_error_message)
                 validation_errors = [
@@ -522,6 +571,45 @@ def _validation_error_summary(validation_errors: list[dict]) -> str:
     error_type = str(first_error.get("type") or "validation_error").replace("_", " ")
     message = str(first_error.get("message") or "Generated output failed validation.")
     return _short_reason(f"{error_type}: {message}")
+
+
+def _save_mistake(
+    attempt_id: str,
+    user_question: str,
+    wrong_sql: str | None,
+    safety: SafetyValidationResult,
+) -> None:
+    create_mistake_example(
+        query_attempt_id=attempt_id,
+        user_question=user_question,
+        wrong_sql=wrong_sql,
+        validator_feedback=safety.reason,
+        validation_reason=safety.reason,
+        mistake_type=safety.mistakeType,
+        risk_level=safety.riskLevel,
+        corrected_sql=safety.fixedSuggestion,
+    )
+
+
+def _mistake_type_from_reason(reason: str) -> str:
+    lowered = reason.lower()
+    if "table" in lowered and ("not present" in lowered or "does not exist" in lowered):
+        return "invalid_table"
+    if "column" in lowered:
+        return "invalid_column"
+    if "limit" in lowered:
+        return "missing_limit"
+    if "multiple" in lowered:
+        return "multiple_statements"
+    if "forbidden" in lowered or "dangerous" in lowered or "write" in lowered:
+        return "dangerous_query"
+    if "syntax" in lowered:
+        return "syntax_error"
+    if "permission" in lowered:
+        return "permission_denied"
+    if "unclear" in lowered or "clarification" in lowered:
+        return "unclear_question"
+    return "unknown"
 
 
 def _validator_attempt(attempt: int, status: str, reason: str) -> RetryAttempt:

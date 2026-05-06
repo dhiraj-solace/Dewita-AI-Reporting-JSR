@@ -69,3 +69,17 @@ class AiSqlAttempt(BaseModel):
 class AiSqlAttemptReviewRequest(BaseModel):
     user_feedback_status: str = Field(..., pattern="^(pending|correct|incorrect)$")
     admin_approved: bool = False
+
+
+class SqlMistakeExample(BaseModel):
+    id: str
+    query_attempt_id: str
+    user_question: str
+    wrong_sql: str | None = None
+    validator_feedback: str | None = None
+    validation_reason: str | None = None
+    mistake_type: str
+    corrected_sql: str | None = None
+    final_correct_sql: str | None = None
+    risk_level: str
+    created_at: Any

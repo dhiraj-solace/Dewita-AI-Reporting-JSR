@@ -38,6 +38,7 @@ class Settings(BaseSettings):
     llm_validator_max_retries: int = 10
     llm_validator_timeout_seconds: float = 360
     max_rows: int = 500
+    query_timeout_seconds: int = 60
 
     model_config = SettingsConfigDict(
         env_file=ROOT_ENV,

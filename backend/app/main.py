@@ -3,9 +3,10 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import get_settings
 from app.db import get_engine
-from app.models import AiSqlAttempt, AiSqlAttemptReviewRequest, GeneratedReport, ReportRequest
+from app.models import AiSqlAttempt, AiSqlAttemptReviewRequest, GeneratedReport, ReportRequest, SqlMistakeExample
 from app.services.catalog import load_report_catalog, load_schema_catalog
 from app.services.ai_sql_attempt_store import get_attempt, list_attempts, review_attempt
+from app.services.sql_mistake_store import list_mistake_examples
 from app.services.report_runner import ReportBuildError, build_report
 
 settings = get_settings()
@@ -121,6 +122,14 @@ def admin_review_ai_sql_attempt(attempt_id: str, review: AiSqlAttemptReviewReque
         )
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@app.get("/api/admin/sql-mistake-examples", response_model=list[SqlMistakeExample])
+def admin_sql_mistake_examples(limit: int = Query(default=100, ge=1, le=200)) -> list[SqlMistakeExample]:
+    try:
+        return [SqlMistakeExample.model_validate(item) for item in list_mistake_examples(limit)]
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 

@@ -17,7 +17,13 @@ def get_engine() -> Engine:
             raise RuntimeError(
                 "Database is not configured. Set DATABASE_URL or DB_HOST/DB_NAME/DB_USER/DB_PASSWORD."
             )
-        _engine = create_engine(database_url, pool_pre_ping=True, pool_recycle=280)
+        timeout = max(1, get_settings().query_timeout_seconds)
+        _engine = create_engine(
+            database_url,
+            pool_pre_ping=True,
+            pool_recycle=280,
+            connect_args={"read_timeout": timeout, "write_timeout": timeout},
+        )
     return _engine
 
 
