@@ -33,6 +33,7 @@ ATTEMPT_FIELDS = (
 )
 
 _VECTOR_SYNCED_ONCE = False
+MIN_EXAMPLE_SIMILARITY = 0.18
 
 
 def ensure_ai_sql_attempts_table() -> None:
@@ -84,6 +85,7 @@ def create_attempt(user_question: str, schema_snapshot: dict[str, Any]) -> str:
             ),
             payload,
         )
+    _console_attempt_log(attempt_id, "saved", "query attempt saved")
     return attempt_id
 
 
@@ -133,10 +135,15 @@ def review_attempt(attempt_id: str, user_feedback_status: str, admin_approved: b
         raise ValueError("AI SQL attempt was not found.")
 
     is_gold_example = _is_gold_eligible(attempt, user_feedback_status, admin_approved)
+    if admin_approved and not is_gold_example:
+        _console_attempt_log(attempt_id, "gold", "gold example rejected")
+        raise ValueError(
+            "Only successful, correct, read-only attempts with no execution error can be approved as gold."
+        )
     _console_attempt_log(
         attempt_id,
-        "admin",
-        f"user_feedback_status={user_feedback_status} admin_approved={admin_approved}",
+        "feedback",
+        f"feedback received user_feedback_status={user_feedback_status} admin_approved={admin_approved}",
     )
     update_attempt(
         attempt_id,
@@ -144,7 +151,7 @@ def review_attempt(attempt_id: str, user_feedback_status: str, admin_approved: b
         admin_approved=admin_approved,
         is_gold_example=is_gold_example,
     )
-    _console_attempt_log(attempt_id, "gold", f"is_gold_example={is_gold_example}")
+    _console_attempt_log(attempt_id, "gold", "gold example created" if is_gold_example else "gold example rejected")
     reviewed = get_attempt(attempt_id)
     if reviewed is None:
         raise ValueError("AI SQL attempt was not found after review.")
@@ -163,7 +170,7 @@ def similar_gold_examples(
     attempt_id: str | None = None,
 ) -> tuple[list[dict[str, str]], str]:
     global _VECTOR_SYNCED_ONCE
-    examples = list_attempts(limit=200, gold_only=True)
+    examples = _dedupe_examples(list_attempts(limit=200, gold_only=True))
     try:
         started = perf_counter()
         if not _VECTOR_SYNCED_ONCE:
@@ -172,7 +179,7 @@ def similar_gold_examples(
             _VECTOR_SYNCED_ONCE = True
             if attempt_id:
                 _console_attempt_log(attempt_id, "vector", f"synced {len(examples)} gold examples into vector DB")
-        vector_examples = search_gold_examples(question, limit)
+        vector_examples = _filter_similar_examples(question, search_gold_examples(question, limit * 4), limit)
         if attempt_id:
             elapsed_ms = int((perf_counter() - started) * 1000)
             _console_attempt_log(attempt_id, "vector", f"vector search completed in {elapsed_ms}ms with {len(vector_examples)} result(s)")
@@ -189,14 +196,50 @@ def similar_gold_examples(
         if example.get("final_sql")
     ]
     scored.sort(key=lambda item: item[0], reverse=True)
+    return _format_scored_examples(scored, limit), "keyword"
+
+
+def _filter_similar_examples(
+    question: str,
+    examples: list[dict[str, str]],
+    limit: int,
+) -> list[dict[str, str]]:
+    scored = [
+        (_token_similarity(question, str(example.get("user_question") or "")), example)
+        for example in examples
+    ]
+    scored.sort(key=lambda item: item[0], reverse=True)
+    return [
+        example
+        for score, example in scored[:limit]
+        if score >= MIN_EXAMPLE_SIMILARITY
+    ]
+
+
+def _format_scored_examples(scored: list[tuple[float, dict[str, Any]]], limit: int) -> list[dict[str, str]]:
     return [
         {
             "user_question": str(example.get("user_question") or ""),
             "sql": str(example.get("final_sql") or ""),
         }
         for score, example in scored[:limit]
-        if score > 0
-    ], "keyword"
+        if score >= MIN_EXAMPLE_SIMILARITY
+    ]
+
+
+def _dedupe_examples(examples: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    seen: set[tuple[str, str]] = set()
+    deduped: list[dict[str, Any]] = []
+    for example in examples:
+        key = (
+            str(example.get("user_question") or "").strip().lower(),
+            str(example.get("final_sql") or "").strip().lower(),
+        )
+        if key in seen:
+            continue
+        seen.add(key)
+        deduped.append(example)
+    return deduped
 
 
 def _is_gold_eligible(attempt: dict[str, Any], user_feedback_status: str, admin_approved: bool) -> bool:

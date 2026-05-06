@@ -10,7 +10,17 @@ EMBEDDING_DIMENSIONS = 256
 
 
 class HashEmbeddingFunction:
+    @staticmethod
+    def name() -> str:
+        return "devita_hash_embedding"
+
     def __call__(self, input: list[str]) -> list[list[float]]:
+        return [_hash_embedding(document) for document in input]
+
+    def embed_query(self, input: str) -> list[float]:
+        return _hash_embedding(input)
+
+    def embed_documents(self, input: list[str]) -> list[list[float]]:
         return [_hash_embedding(document) for document in input]
 
 
@@ -32,6 +42,7 @@ def upsert_gold_example(attempt: dict[str, Any]) -> None:
     collection.upsert(
         ids=[attempt_id],
         documents=[question],
+        embeddings=[_hash_embedding(question)],
         metadatas=[
             {
                 "attempt_id": attempt_id,
@@ -44,7 +55,7 @@ def upsert_gold_example(attempt: dict[str, Any]) -> None:
 
 def search_gold_examples(question: str, limit: int = 3) -> list[dict[str, str]]:
     collection = _collection()
-    result = collection.query(query_texts=[question], n_results=limit)
+    result = collection.query(query_embeddings=[_hash_embedding(question)], n_results=limit)
     metadatas = result.get("metadatas") or [[]]
     return [
         {
@@ -63,7 +74,6 @@ def _collection() -> Any:
     client = chromadb.PersistentClient(path=str(VECTOR_STORE_PATH))
     return client.get_or_create_collection(
         name=COLLECTION_NAME,
-        embedding_function=HashEmbeddingFunction(),
         metadata={"hnsw:space": "cosine"},
     )
 

@@ -67,5 +67,5 @@ class AiSqlAttempt(BaseModel):
 
 
 class AiSqlAttemptReviewRequest(BaseModel):
-    user_feedback_status: str = Field(..., pattern="^(correct|incorrect)$")
+    user_feedback_status: str = Field(..., pattern="^(pending|correct|incorrect)$")
     admin_approved: bool = False

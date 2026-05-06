@@ -123,7 +123,7 @@ export async function listAiSqlAttempts(goldOnly = false): Promise<AiSqlAttempt[
 
 export async function reviewAiSqlAttempt(
   attemptId: string,
-  userFeedbackStatus: "correct" | "incorrect",
+  userFeedbackStatus: "pending" | "correct" | "incorrect",
   adminApproved: boolean
 ): Promise<AiSqlAttempt> {
   const response = await fetch(`${API_URL}/api/admin/ai-sql-attempts/${attemptId}/review`, {

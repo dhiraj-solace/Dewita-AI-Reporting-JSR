@@ -13,6 +13,20 @@ function statusClass(value?: string | null) {
   return value.toLowerCase() === "success" ? "success" : value.toLowerCase() === "failed" ? "failed" : "muted";
 }
 
+function formatDate(value: string) {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
+}
+
+function compactSql(value?: string | null) {
+  if (!value) return "-";
+  return value.length > 140 ? `${value.slice(0, 139)}.` : value;
+}
+
+function countByStatus(attempts: AiSqlAttempt[], status: string) {
+  return attempts.filter((attempt) => (attempt.execution_status || "pending").toLowerCase() === status).length;
+}
+
 export default function AiSqlAttemptsAdminPage() {
   const [attempts, setAttempts] = useState<AiSqlAttempt[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -25,6 +39,7 @@ export default function AiSqlAttemptsAdminPage() {
     () => attempts.find((attempt) => attempt.id === selectedId) || attempts[0] || null,
     [attempts, selectedId]
   );
+  const goldCount = useMemo(() => attempts.filter((attempt) => attempt.is_gold_example).length, [attempts]);
 
   useEffect(() => {
     loadAttempts(goldOnly);
@@ -44,7 +59,7 @@ export default function AiSqlAttemptsAdminPage() {
     }
   }
 
-  async function review(attempt: AiSqlAttempt, status: "correct" | "incorrect", approved: boolean) {
+  async function review(attempt: AiSqlAttempt, status: "pending" | "correct" | "incorrect", approved: boolean) {
     setReviewing(attempt.id);
     setError("");
     try {
@@ -77,8 +92,19 @@ export default function AiSqlAttemptsAdminPage() {
 
       {error && <div className="admin-error">{error}</div>}
 
-      <section className="admin-grid">
+      <section className="admin-kpis">
+        <div><span>Total Attempts</span><strong>{attempts.length}</strong></div>
+        <div><span>Successful</span><strong>{countByStatus(attempts, "success")}</strong></div>
+        <div><span>Failed</span><strong>{countByStatus(attempts, "failed")}</strong></div>
+        <div><span>Gold Examples</span><strong>{goldCount}</strong></div>
+      </section>
+
+      <section className="admin-workspace">
         <aside className="attempt-list">
+          <div className="attempt-list-header">
+            <span>Attempt Queue</span>
+            <strong>{attempts.length}</strong>
+          </div>
           {loading && <div className="attempt-empty">Loading attempts...</div>}
           {!loading && attempts.length === 0 && <div className="attempt-empty">No attempts found.</div>}
           {attempts.map((attempt) => (
@@ -90,10 +116,12 @@ export default function AiSqlAttemptsAdminPage() {
             >
               <span>{shortId(attempt.id)}</span>
               <strong>{attempt.user_question}</strong>
-              <small>
-                {attempt.execution_status || "pending"}
-                {attempt.is_gold_example ? " | gold" : ""}
-              </small>
+              <small>{formatDate(attempt.created_at)}</small>
+              <div className="attempt-row-meta">
+                <em className={statusClass(attempt.execution_status)}>{attempt.execution_status || "pending"}</em>
+                <em>{attempt.result_row_count ?? "-"} rows</em>
+                {attempt.is_gold_example && <em className="gold">gold</em>}
+              </div>
             </button>
           ))}
         </aside>
@@ -113,7 +141,22 @@ export default function AiSqlAttemptsAdminPage() {
                     onClick={() => review(selected, "correct", true)}
                     type="button"
                   >
-                    <CheckCircle2 size={18} /> Correct + Approve
+                    <ShieldCheck size={18} /> Approve
+                  </button>
+                  <button
+                    className="reject"
+                    disabled={reviewing === selected.id}
+                    onClick={() => review(selected, "pending", false)}
+                    type="button"
+                  >
+                    <XCircle size={18} /> Reject
+                  </button>
+                  <button
+                    disabled={reviewing === selected.id}
+                    onClick={() => review(selected, "correct", false)}
+                    type="button"
+                  >
+                    <CheckCircle2 size={18} /> Mark Correct
                   </button>
                   <button
                     className="reject"
@@ -121,7 +164,7 @@ export default function AiSqlAttemptsAdminPage() {
                     onClick={() => review(selected, "incorrect", false)}
                     type="button"
                   >
-                    <XCircle size={18} /> Incorrect
+                    <XCircle size={18} /> Mark Incorrect
                   </button>
                 </div>
               </div>
@@ -130,9 +173,26 @@ export default function AiSqlAttemptsAdminPage() {
                 <span className={statusClass(selected.validator_status)}>Validator: {selected.validator_status || "pending"}</span>
                 <span className={statusClass(selected.execution_status)}>Execution: {selected.execution_status || "pending"}</span>
                 <span><Database size={15} /> Rows: {selected.result_row_count ?? "-"}</span>
+                <span>Feedback: {selected.user_feedback_status || "pending"}</span>
                 <span>{selected.admin_approved ? "Admin approved" : "Not approved"}</span>
                 <span>{selected.is_gold_example ? "Gold example" : "Not gold"}</span>
+                <span>Created: {formatDate(selected.created_at)}</span>
+                <span>Updated: {formatDate(selected.updated_at)}</span>
               </div>
+
+              <section className="attempt-block">
+                <h3>Review Summary</h3>
+                <dl className="review-summary">
+                  <div><dt>Final SQL</dt><dd>{compactSql(selected.final_sql)}</dd></div>
+                  <div><dt>Validator Feedback</dt><dd>{selected.validator_feedback || "-"}</dd></div>
+                  <div><dt>Execution Error</dt><dd>{selected.execution_error || "-"}</dd></div>
+                </dl>
+              </section>
+
+              <section className="attempt-block">
+                <h3>Final SQL</h3>
+                <pre>{selected.final_sql || "-"}</pre>
+              </section>
 
               {selected.validator_feedback && (
                 <section className="attempt-block">
@@ -149,6 +209,13 @@ export default function AiSqlAttemptsAdminPage() {
               )}
 
               <section className="attempt-block">
+                <details>
+                  <summary>Schema Snapshot</summary>
+                  <pre>{selected.schema_snapshot || "-"}</pre>
+                </details>
+              </section>
+
+              <section className="attempt-block">
                 <h3>Generated SQL</h3>
                 <pre>{selected.generated_sql || "-"}</pre>
               </section>
@@ -160,10 +227,6 @@ export default function AiSqlAttemptsAdminPage() {
                 </section>
               )}
 
-              <section className="attempt-block">
-                <h3>Final SQL</h3>
-                <pre>{selected.final_sql || "-"}</pre>
-              </section>
             </>
           )}
         </section>

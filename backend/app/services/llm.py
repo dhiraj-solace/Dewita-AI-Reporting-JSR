@@ -42,6 +42,39 @@ async def generate_sql_with_ai(
     return await _generate_sql_payload(payload)
 
 
+def build_sql_generation_payload_preview(
+    question: str,
+    start_date: str | None,
+    end_date: str | None,
+    similar_examples: list[dict[str, str]] | None = None,
+) -> dict[str, Any]:
+    extra = None
+    if similar_examples:
+        extra = {
+            "similar_approved_examples": similar_examples,
+            "requirements": [
+                "Use similar_approved_examples only as reference patterns.",
+                "Do not copy an example SQL blindly; the current question, schema catalog, and safety rules are authoritative.",
+            ],
+        }
+    payload = json.loads(_build_sql_payload(question, start_date, end_date, extra))
+    examples = payload.get("similar_approved_examples") or []
+    return {
+        "question": payload.get("question"),
+        "start_date": payload.get("start_date"),
+        "end_date": payload.get("end_date"),
+        "requirements_count": len(payload.get("requirements") or []),
+        "similar_examples_count": len(examples),
+        "similar_examples_preview": [
+            {
+                "user_question": _short_text(str(example.get("user_question") or ""), 120),
+                "sql": _short_text(str(example.get("sql") or ""), 220),
+            }
+            for example in examples[:3]
+        ],
+    }
+
+
 async def generate_sql_repair_with_ai(
     question: str,
     start_date: str | None,
@@ -300,6 +333,13 @@ def _parse_ai_sql(content: str) -> dict[str, Any]:
     except json.JSONDecodeError:
         pass
     return {"sql": raw.strip().rstrip(";")}
+
+
+def _short_text(value: str, max_length: int) -> str:
+    normalized = " ".join(value.split())
+    if len(normalized) <= max_length:
+        return normalized
+    return normalized[: max_length - 1].rstrip() + "."
 
 
 def _provider_http_error(provider: str, error: httpx.HTTPStatusError) -> AiSqlGenerationError:
