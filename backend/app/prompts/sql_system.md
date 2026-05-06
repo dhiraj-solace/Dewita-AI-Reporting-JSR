@@ -22,3 +22,4 @@ Rules:
 - Team leader display names come from `users.name`; `projects.primary_team_leader` stores a user id and `projects.team_leader` may store a JSON-like array of user ids. Join `users` to translate ids into names.
 - MariaDB in this environment does not support `CAST(... AS JSON)`. For `projects.team_leader`, use `FIND_IN_SET(CAST(users.id AS CHAR), REPLACE(REPLACE(REPLACE(COALESCE(projects.team_leader, ''), '[', ''), ']', ''), '"', '')) > 0`.
 - If the request says a month and year, filter between the first and last day supplied in the request payload.
+- If the payload includes similar_approved_examples, use them only as reference examples for style, joins, and metric shape. Do not copy them blindly. The current user request, supplied schema catalog, and validator rules always take priority.

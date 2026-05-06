@@ -23,8 +23,22 @@ class AiSqlGenerationError(Exception):
         self.status_code = status_code
 
 
-async def generate_sql_with_ai(question: str, start_date: str | None, end_date: str | None) -> dict[str, Any] | None:
-    payload = _build_sql_payload(question, start_date, end_date)
+async def generate_sql_with_ai(
+    question: str,
+    start_date: str | None,
+    end_date: str | None,
+    similar_examples: list[dict[str, str]] | None = None,
+) -> dict[str, Any] | None:
+    extra = None
+    if similar_examples:
+        extra = {
+            "similar_approved_examples": similar_examples,
+            "requirements": [
+                "Use similar_approved_examples only as reference patterns.",
+                "Do not copy an example SQL blindly; the current question, schema catalog, and safety rules are authoritative.",
+            ],
+        }
+    payload = _build_sql_payload(question, start_date, end_date, extra)
     return await _generate_sql_payload(payload)
 
 

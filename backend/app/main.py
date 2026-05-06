@@ -1,11 +1,11 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import get_settings
 from app.db import get_engine
-from app.models import GeneratedReport, ReportFeedbackRequest, ReportFeedbackResponse, ReportRequest
+from app.models import AiSqlAttempt, AiSqlAttemptReviewRequest, GeneratedReport, ReportRequest
 from app.services.catalog import load_report_catalog, load_schema_catalog
-from app.services.feedback_store import save_report_feedback
+from app.services.ai_sql_attempt_store import get_attempt, list_attempts, review_attempt
 from app.services.report_runner import ReportBuildError, build_report
 
 settings = get_settings()
@@ -77,6 +77,7 @@ async def query_report(request: ReportRequest) -> GeneratedReport:
                 "message": str(exc),
                 "solution": exc.solution,
                 "status_code": exc.status_code,
+                "attempt_id": exc.attempt_id,
                 "retry_attempts": [attempt.model_dump() for attempt in exc.attempts],
             },
         ) from exc
@@ -84,9 +85,43 @@ async def query_report(request: ReportRequest) -> GeneratedReport:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
-@app.post("/api/reports/feedback", response_model=ReportFeedbackResponse)
-def report_feedback(feedback: ReportFeedbackRequest) -> ReportFeedbackResponse:
+@app.get("/api/admin/ai-sql-attempts", response_model=list[AiSqlAttempt])
+def admin_ai_sql_attempts(
+    limit: int = Query(default=50, ge=1, le=200),
+    gold_only: bool = False,
+) -> list[AiSqlAttempt]:
     try:
-        return save_report_feedback(feedback)
+        return [AiSqlAttempt.model_validate(attempt) for attempt in list_attempts(limit, gold_only)]
     except Exception as exc:
-        raise HTTPException(status_code=500, detail="Unable to save report feedback.") from exc
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@app.get("/api/admin/ai-sql-attempts/{attempt_id}", response_model=AiSqlAttempt)
+def admin_ai_sql_attempt(attempt_id: str) -> AiSqlAttempt:
+    try:
+        attempt = get_attempt(attempt_id)
+        if attempt is None:
+            raise HTTPException(status_code=404, detail="AI SQL attempt was not found.")
+        return AiSqlAttempt.model_validate(attempt)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@app.post("/api/admin/ai-sql-attempts/{attempt_id}/review", response_model=AiSqlAttempt)
+def admin_review_ai_sql_attempt(attempt_id: str, review: AiSqlAttemptReviewRequest) -> AiSqlAttempt:
+    try:
+        return AiSqlAttempt.model_validate(
+            review_attempt(
+                attempt_id,
+                user_feedback_status=review.user_feedback_status,
+                admin_approved=review.admin_approved,
+            )
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+

@@ -33,6 +33,7 @@ class ValidationResult(BaseModel):
 
 
 class GeneratedReport(BaseModel):
+    attempt_id: str | None = None
     title: str
     question: str
     sql: str
@@ -46,21 +47,25 @@ class GeneratedReport(BaseModel):
     retry_attempts: list[RetryAttempt] = []
 
 
-class ReportFeedbackRequest(BaseModel):
-    question: str = Field(..., min_length=3)
-    report_title: str | None = None
-    generated_sql: str | None = None
-    rating: str = Field(..., pattern="^(up|down)$")
-    reason: str | None = None
-    comment: str | None = None
-    expected_result: str | None = None
-    corrected_sql: str | None = None
-    retry_attempts: list[RetryAttempt] = []
-    warnings: list[str] = []
-    row_count: int | None = None
-
-
-class ReportFeedbackResponse(BaseModel):
+class AiSqlAttempt(BaseModel):
     id: str
-    status: str
-    message: str
+    user_question: str
+    schema_snapshot: str | None = None
+    generated_sql: str | None = None
+    validator_status: str | None = None
+    validator_feedback: str | None = None
+    regenerated_sql: str | None = None
+    final_sql: str | None = None
+    execution_status: str | None = None
+    execution_error: str | None = None
+    result_row_count: int | None = None
+    user_feedback_status: str | None = None
+    admin_approved: bool = False
+    is_gold_example: bool = False
+    created_at: Any
+    updated_at: Any
+
+
+class AiSqlAttemptReviewRequest(BaseModel):
+    user_feedback_status: str = Field(..., pattern="^(correct|incorrect)$")
+    admin_approved: bool = False

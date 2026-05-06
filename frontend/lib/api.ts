@@ -7,6 +7,7 @@ export type ReportRequest = {
 };
 
 export type GeneratedReport = {
+  attempt_id?: string | null;
   title: string;
   question: string;
   sql: string;
@@ -35,24 +36,23 @@ export type Health = {
   ai_enabled: boolean;
 };
 
-export type ReportFeedbackRequest = {
-  question: string;
-  report_title?: string | null;
-  generated_sql?: string | null;
-  rating: "up" | "down";
-  reason?: string | null;
-  comment?: string | null;
-  expected_result?: string | null;
-  corrected_sql?: string | null;
-  retry_attempts: RetryAttempt[];
-  warnings: string[];
-  row_count?: number | null;
-};
-
-export type ReportFeedbackResponse = {
+export type AiSqlAttempt = {
   id: string;
-  status: string;
-  message: string;
+  user_question: string;
+  schema_snapshot?: string | null;
+  generated_sql?: string | null;
+  validator_status?: string | null;
+  validator_feedback?: string | null;
+  regenerated_sql?: string | null;
+  final_sql?: string | null;
+  execution_status?: string | null;
+  execution_error?: string | null;
+  result_row_count?: number | null;
+  user_feedback_status?: string | null;
+  admin_approved: boolean;
+  is_gold_example: boolean;
+  created_at: string;
+  updated_at: string;
 };
 
 export class ApiError extends Error {
@@ -112,15 +112,31 @@ export async function getHealth(): Promise<Health> {
   return response.json();
 }
 
-export async function submitReportFeedback(payload: ReportFeedbackRequest): Promise<ReportFeedbackResponse> {
-  const response = await fetch(`${API_URL}/api/reports/feedback`, {
+export async function listAiSqlAttempts(goldOnly = false): Promise<AiSqlAttempt[]> {
+  const params = new URLSearchParams({limit: "100", gold_only: String(goldOnly)});
+  const response = await fetch(`${API_URL}/api/admin/ai-sql-attempts?${params.toString()}`, {cache: "no-store"});
+  if (!response.ok) {
+    throw new ApiError("Unable to load AI SQL attempts");
+  }
+  return response.json();
+}
+
+export async function reviewAiSqlAttempt(
+  attemptId: string,
+  userFeedbackStatus: "correct" | "incorrect",
+  adminApproved: boolean
+): Promise<AiSqlAttempt> {
+  const response = await fetch(`${API_URL}/api/admin/ai-sql-attempts/${attemptId}/review`, {
     method: "POST",
     headers: {"Content-Type": "application/json"},
-    body: JSON.stringify(payload)
+    body: JSON.stringify({
+      user_feedback_status: userFeedbackStatus,
+      admin_approved: adminApproved
+    })
   });
 
   if (!response.ok) {
-    throw new ApiError("Unable to save report feedback");
+    throw new ApiError("Unable to review AI SQL attempt");
   }
 
   return response.json();

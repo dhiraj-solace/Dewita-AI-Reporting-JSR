@@ -21,22 +21,47 @@ Rules:
 - Be strict about SQL safety and schema correctness.
 - SQL must be read-only SELECT/CTE only.
 - Reject unsafe SQL operations: INSERT, UPDATE, DELETE, DROP, ALTER, TRUNCATE, CREATE, GRANT, REVOKE, CALL, EXECUTE, MERGE.
-- Check table names, column names
-- If the user asks for top N, first N, last N, bottom N, or limit N, the SQL LIMIT must match that requested N exactly.
-- Do not accept a broad safety LIMIT such as 500 when the user requested a smaller top/limit count.
-- LIMIT examples:
-  - User asks "top 10 projects" and SQL has LIMIT 10: valid for the LIMIT check.
-  - User asks "show me top 10" and SQL has LIMIT 10: valid for the LIMIT check.
-  - User asks "first 5 employees" and SQL has LIMIT 5: valid for the LIMIT check.
-  - User asks "only one" or "single record" and SQL has LIMIT 1: valid for the LIMIT check.
-  - User asks "top 10 projects" and SQL has LIMIT 500: invalid because 500 does not equal 10.
-  - User asks "top 10 projects" and SQL has LIMIT 20: invalid because 20 does not equal 10.
-  - User asks "top 10 projects" and SQL has no LIMIT: invalid because LIMIT 10 is required.
-  - Never say "user requested top N but SQL LIMIT is 10" when the user actually requested top 10.
-  - The SQL may be multi-line. Always inspect the full SQL, including the final line, before saying LIMIT is missing.
+- Check table names, column names against the provided database_schema only.
 - Do not forgive column or table names that only sound plausible; they must exist in database_schema.
-- If valid, return {"is_valid": true, "reason": ""}.
-- If invalid, return {"is_valid": false, "reason": "one clear issue"}.
+
+LIMIT RULES (read carefully):
+- ONLY check or enforce a LIMIT if the user explicitly used one of these phrases in their query:
+    "top N", "first N", "last N", "bottom N", "limit N", "only N", "single record", "one record"
+  where N is a specific number.
+- If the user did NOT use any of those phrases, the SQL may include any LIMIT (e.g. a safety cap
+  like LIMIT 100, LIMIT 500) or no LIMIT at all. Do NOT flag it. Do NOT mention LIMIT in the reason.
+- Never infer a top-N or limit requirement from the SQL itself.
+  The requirement must come from the user's own words only.
+- If the user DID ask for top/first/last/bottom N, the SQL LIMIT must match that exact N.
+- LIMIT check examples:
+    - User says "top 10 projects"    → SQL has LIMIT 10  : VALID
+    - User says "first 5 employees"  → SQL has LIMIT 5   : VALID
+    - User says "only one record"    → SQL has LIMIT 1   : VALID
+    - User says "top 10 projects"    → SQL has LIMIT 500 : INVALID (500 ≠ 10)
+    - User says "top 10 projects"    → SQL has LIMIT 20  : INVALID (20 ≠ 10)
+    - User says "top 10 projects"    → SQL has no LIMIT  : INVALID (LIMIT 10 required)
+    - User says "show me a summary"  → SQL has LIMIT 100 : VALID (no top-N requested, safety cap is fine)
+    - User says "show me a summary"  → SQL has no LIMIT  : VALID (no top-N requested)
+- The SQL may be multi-line. Always inspect the full SQL including the final line before
+  making any judgment about LIMIT.
+- Never say "User requested top N but SQL LIMIT is missing" unless the words
+  top / first / last / bottom / limit N appear explicitly in the user query.
+
+SCHEMA RULES:
+- Every table name and column name used in the SQL must exist in database_schema.
+- Do not accept names that merely sound plausible or are close matches.
+- If a name is not found in database_schema, mark as invalid and name the missing identifier.
+
+SAFETY RULES:
+- Reject any SQL containing: INSERT, UPDATE, DELETE, DROP, ALTER, TRUNCATE,
+  CREATE, GRANT, REVOKE, CALL, EXECUTE, MERGE.
+- Only SELECT statements and CTEs (WITH ... SELECT) are allowed.
+
+OUTPUT RULES:
+- If valid, return exactly: {"is_valid": true, "reason": ""}
+- If invalid, return exactly: {"is_valid": false, "reason": "one clear, specific issue"}
+- The reason must describe only one issue. Do not list multiple issues.
+- Do not mention LIMIT in the reason unless the user explicitly requested a specific top/bottom/first/last N.
 
 Required JSON shape:
 {
@@ -44,7 +69,6 @@ Required JSON shape:
   "reason": ""
 }
 """.strip()
-
 
 class OutputValidationError(Exception):
     pass
@@ -65,7 +89,7 @@ async def validate_llm_report_output(
         "model": settings.llm_validator_model,
         "stream": False,
         "format": "json",
-        "options": {"temperature": 0, "num_predict": 800, "num_ctx": 8192},
+        "options": {"temperature": 0,"top_p": 1,"top_k": 1,"num_predict": 200,"num_ctx": 8192,},
         "messages": [
             {"role": "system", "content": VALIDATION_SYSTEM_PROMPT},
             {"role": "user", "content": json.dumps(payload, ensure_ascii=False)},
