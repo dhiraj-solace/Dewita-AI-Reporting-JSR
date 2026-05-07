@@ -40,7 +40,8 @@ def health() -> dict:
         "ai_enabled": bool(
             settings.ai_sql_enabled
             and (
-                settings.openrouter_api_key
+                settings.ai_provider.lower() == "ollama"
+                or bool(settings.openrouter_api_key)
                 or settings.gemini_api_key
                 or settings.openai_api_key
             )

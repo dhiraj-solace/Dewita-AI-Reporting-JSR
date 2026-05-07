@@ -70,6 +70,11 @@ const stats = [
 
 const numberFormatter = new Intl.NumberFormat("en-IN", {maximumFractionDigits: 2});
 const dateFormatter = new Intl.DateTimeFormat("en-GB", {day: "2-digit", month: "short", year: "numeric"});
+const sqlProviderOptions = [
+  {label: "OpenRouter", value: "openrouter"},
+  {label: "Local Qwen", value: "ollama"}
+] as const;
+type SqlGenerationProvider = (typeof sqlProviderOptions)[number]["value"];
 
 function humanizeColumn(column: string) {
   const knownLabels: Record<string, string> = {
@@ -186,6 +191,7 @@ export default function Home() {
   const [question, setQuestion] = useState(examples[0]);
   const [month, setMonth] = useState("April");
   const [year, setYear] = useState("2026");
+  const [sqlProvider, setSqlProvider] = useState<SqlGenerationProvider>("openrouter");
   const [report, setReport] = useState<GeneratedReport | null>(null);
   const [status, setStatus] = useState<Health | null>(null);
   const [error, setError] = useState("");
@@ -218,7 +224,8 @@ export default function Home() {
       const result = await runReport({
         question: nextQuestion,
         limit: 500,
-        dry_run: false
+        dry_run: false,
+        sql_generation_provider: sqlProvider
       });
       setReport(result);
       setRetryAttempts(result.retry_attempts ?? []);
@@ -327,6 +334,19 @@ export default function Home() {
                   <h1>AI Report Assistant</h1>
                   <p>Ask any complex report in natural language.</p>
                 </div>
+              </div>
+
+              <div className="provider-switch" aria-label="SQL generation model">
+                {sqlProviderOptions.map((option) => (
+                  <button
+                    className={sqlProvider === option.value ? "active" : ""}
+                    key={option.value}
+                    onClick={() => setSqlProvider(option.value)}
+                    type="button"
+                  >
+                    {option.label}
+                  </button>
+                ))}
               </div>
 
               <div className="searchbar">

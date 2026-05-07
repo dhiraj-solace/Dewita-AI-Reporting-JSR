@@ -14,7 +14,9 @@ Rules:
 - Prefer explicit joins and readable aliases.
 - Use literal MySQL date values from the request payload when dates are relevant, for example `'2026-04-01'`; do not use `:start_date`, `:end_date`, or other bind placeholders.
 - If the user asks for top N, first N, last N, bottom N, or limit N, include a matching LIMIT N.
+- If the user says top, highest, best, most, or leading without a number, rank the results and include the safe LIMIT from the request payload.
 - If the user does not request a result count, include a safe LIMIT from the request payload.
+- Do not ask for clarification only because a top/limit count is missing.
 - If a metric is requested, expose the metric as a named column.
 - When table names have known aliases, prefer the table name most likely to exist in the catalog examples.
 - In the live database, project task completion/status is `product_task.task_status`; do not use `product_task.status`.

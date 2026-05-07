@@ -295,6 +295,33 @@ p {
   margin-top: 3px;
 }
 
+.provider-switch {
+  width: fit-content;
+  display: inline-grid;
+  grid-template-columns: repeat(2, minmax(128px, 1fr));
+  gap: 4px;
+  border: 1px solid #cbd9ec;
+  border-radius: 6px;
+  background: #f8fbff;
+  padding: 4px;
+  margin-top: 18px;
+}
+
+.provider-switch button {
+  min-height: 38px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: #53647d;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.provider-switch button.active {
+  background: var(--blue);
+  color: #fff;
+}
+
 .searchbar {
   display: grid;
   grid-template-columns: 34px minmax(0, 1fr) 172px;

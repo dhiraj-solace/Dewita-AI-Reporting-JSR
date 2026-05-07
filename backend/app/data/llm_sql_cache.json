@@ -1,0 +1,132 @@
+{
+  "entries": {
+    "b505ddb004273ef0b1ce38b2f805efc711bf9ca9ea5233a1a7f254214c22fba9": {
+      "cache_policy": {
+        "created_at": "2026-05-07T12:31:33.234665+00:00",
+        "expires_at": "2026-05-09T12:31:33.234665+00:00",
+        "ttl_days": 2
+      },
+      "intent": {
+        "canonical_tokens": [
+          "2026",
+          "equivalent",
+          "leaders",
+          "new",
+          "team",
+          "tickets",
+          "top"
+        ],
+        "date_tokens": [
+          "2026"
+        ],
+        "end_date": "2026-12-31",
+        "limit": 500,
+        "start_date": "2026-01-01"
+      },
+      "key": "b505ddb004273ef0b1ce38b2f805efc711bf9ca9ea5233a1a7f254214c22fba9",
+      "query": {
+        "normalized": "top team leaders by equivalent new tickets from 2026",
+        "original": "Top team leaders by equivalent new tickets from 2026"
+      },
+      "response": {
+        "explanation": "",
+        "sql": "SELECT u.name AS team_leader, COUNT(pt.id) AS new_tickets\nFROM product_task pt\nJOIN users u ON pt.assign_team_leader = u.id\nWHERE pt.created_at BETWEEN '2026-01-01' AND '2026-12-31'\n  AND pt.is_deleted = 0\nGROUP BY u.id, u.name\nORDER BY new_tickets DESC\nLIMIT 10",
+        "title": "SQL Report"
+      },
+      "sources": {
+        "schema_version": "40faa2f8bc8d828a"
+      },
+      "stats": {
+        "hit_count": 0,
+        "invalidated_reason": null,
+        "last_hit_at": null,
+        "last_invalidated_at": null
+      },
+      "tags": [
+        "cache_key:b505ddb004273ef0b1ce38b2f805efc711bf9ca9ea5233a1a7f254214c22fba9",
+        "end:2026-12-31",
+        "llm_sql",
+        "start:2026-01-01",
+        "table:product_task",
+        "table:users",
+        "token:2026",
+        "token:equivalent",
+        "token:leaders",
+        "token:new",
+        "token:team",
+        "token:tickets",
+        "token:top"
+      ]
+    },
+    "f24e015e0003cc866749623ef76012317febbd9518eb5ff1a9032515702c0031": {
+      "cache_policy": {
+        "created_at": "2026-05-07T12:26:37.937659+00:00",
+        "expires_at": "2026-05-09T12:26:37.937659+00:00",
+        "ttl_days": 2
+      },
+      "intent": {
+        "canonical_tokens": [
+          "equivalent",
+          "leaders",
+          "new",
+          "team",
+          "this",
+          "tickets",
+          "top",
+          "year"
+        ],
+        "date_tokens": [
+          "this",
+          "year"
+        ],
+        "end_date": "2026-12-31",
+        "limit": 500,
+        "start_date": "2026-01-01"
+      },
+      "key": "f24e015e0003cc866749623ef76012317febbd9518eb5ff1a9032515702c0031",
+      "query": {
+        "normalized": "top team leaders by equivalent new tickets this year",
+        "original": "Top team leaders by equivalent new tickets this year"
+      },
+      "response": {
+        "explanation": "",
+        "sql": "SELECT u.name AS team_leader_name, COUNT(pt.id) AS equivalent_new_tickets\nFROM product_task pt\nJOIN users u ON pt.assign_team_leader = u.id\nWHERE pt.created_at >= '2026-01-01' \n  AND pt.created_at <= '2026-12-31'\n  AND pt.is_deleted = 0\n  AND pt.assign_team_leader IS NOT NULL\nGROUP BY u.id, u.name\nORDER BY equivalent_new_tickets DESC\nLIMIT 10",
+        "title": "SQL Report"
+      },
+      "sources": {
+        "schema_version": "40faa2f8bc8d828a"
+      },
+      "stats": {
+        "hit_count": 1,
+        "invalidated_reason": null,
+        "last_hit_at": "2026-05-07T12:26:54.909905+00:00",
+        "last_invalidated_at": null
+      },
+      "tags": [
+        "cache_key:f24e015e0003cc866749623ef76012317febbd9518eb5ff1a9032515702c0031",
+        "end:2026-12-31",
+        "llm_sql",
+        "start:2026-01-01",
+        "table:product_task",
+        "table:users",
+        "token:equivalent",
+        "token:leaders",
+        "token:new",
+        "token:team",
+        "token:this",
+        "token:tickets",
+        "token:top",
+        "token:year"
+      ]
+    }
+  },
+  "exact_index": {
+    "2e884a9e48c61d686b116b5f57953dcf673d2a6de08c753c8603271d58111886": "b505ddb004273ef0b1ce38b2f805efc711bf9ca9ea5233a1a7f254214c22fba9",
+    "81faec0803dcb17d125c52388163f951ca2dbc359603baff654d4700ca968487": "f24e015e0003cc866749623ef76012317febbd9518eb5ff1a9032515702c0031"
+  },
+  "intent_index": {
+    "b505ddb004273ef0b1ce38b2f805efc711bf9ca9ea5233a1a7f254214c22fba9": "b505ddb004273ef0b1ce38b2f805efc711bf9ca9ea5233a1a7f254214c22fba9",
+    "f24e015e0003cc866749623ef76012317febbd9518eb5ff1a9032515702c0031": "f24e015e0003cc866749623ef76012317febbd9518eb5ff1a9032515702c0031"
+  },
+  "version": 1
+}

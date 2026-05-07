@@ -4,6 +4,7 @@ export type ReportRequest = {
   end_date?: string | null;
   limit: number;
   dry_run: boolean;
+  sql_generation_provider?: "openrouter" | "ollama" | "gemini" | "openai" | null;
 };
 
 export type GeneratedReport = {

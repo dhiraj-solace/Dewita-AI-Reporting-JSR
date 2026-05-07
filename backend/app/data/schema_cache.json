@@ -2,10 +2,10 @@
   "source_files": [
     "live_database"
   ],
-  "fetched_at": "2026-05-06T12:35:12.555991",
+  "fetched_at": "2026-05-07T13:37:12.748254",
   "notes": [
     "Schema fetched from live database",
-    "Last updated: 2026-05-06T12:35:12.555991",
+    "Last updated: 2026-05-07T13:37:12.748254",
     "Static schema metadata preserved where available"
   ],
   "relationships": [
@@ -101,6 +101,93 @@
         }
       ],
       "description": "Administrator login records from migration descriptions.",
+      "aliases": []
+    },
+    {
+      "name": "ai_sql_attempts",
+      "columns": [
+        {
+          "name": "id",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "user_question",
+          "type": "text",
+          "description": ""
+        },
+        {
+          "name": "schema_snapshot",
+          "type": "longtext",
+          "description": ""
+        },
+        {
+          "name": "generated_sql",
+          "type": "longtext",
+          "description": ""
+        },
+        {
+          "name": "validator_status",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "validator_feedback",
+          "type": "longtext",
+          "description": ""
+        },
+        {
+          "name": "regenerated_sql",
+          "type": "longtext",
+          "description": ""
+        },
+        {
+          "name": "final_sql",
+          "type": "longtext",
+          "description": ""
+        },
+        {
+          "name": "execution_status",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "execution_error",
+          "type": "longtext",
+          "description": ""
+        },
+        {
+          "name": "result_row_count",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "user_feedback_status",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "admin_approved",
+          "type": "tinyint",
+          "description": ""
+        },
+        {
+          "name": "is_gold_example",
+          "type": "tinyint",
+          "description": ""
+        },
+        {
+          "name": "created_at",
+          "type": "datetime",
+          "description": ""
+        },
+        {
+          "name": "updated_at",
+          "type": "datetime",
+          "description": ""
+        }
+      ],
+      "description": "",
       "aliases": []
     },
     {
@@ -3358,6 +3445,68 @@
         {
           "name": "updated_at",
           "type": "timestamp",
+          "description": ""
+        }
+      ],
+      "description": "",
+      "aliases": []
+    },
+    {
+      "name": "sql_mistake_examples",
+      "columns": [
+        {
+          "name": "id",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "query_attempt_id",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "user_question",
+          "type": "text",
+          "description": ""
+        },
+        {
+          "name": "wrong_sql",
+          "type": "longtext",
+          "description": ""
+        },
+        {
+          "name": "validator_feedback",
+          "type": "longtext",
+          "description": ""
+        },
+        {
+          "name": "validation_reason",
+          "type": "longtext",
+          "description": ""
+        },
+        {
+          "name": "mistake_type",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "corrected_sql",
+          "type": "longtext",
+          "description": ""
+        },
+        {
+          "name": "final_correct_sql",
+          "type": "longtext",
+          "description": ""
+        },
+        {
+          "name": "risk_level",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "created_at",
+          "type": "datetime",
           "description": ""
         }
       ],

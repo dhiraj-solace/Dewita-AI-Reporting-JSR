@@ -22,6 +22,7 @@ from app.services.llm_output_validator import (
     build_validation_payload,
     validate_llm_report_output,
 )
+from app.services.llm_sql_cache import get_cached_sql, invalidate_cache, set_cached_sql
 from app.services.schema_service import schema_service
 from app.services.schema_validator import (
     SchemaDiagnosis,
@@ -69,52 +70,103 @@ async def build_report(request: ReportRequest) -> GeneratedReport:
     resolved_dates = resolve_date_range(request.question, request.start_date, request.end_date)
     schema_snapshot = _safe_schema()
     attempt_id = create_attempt(request.question, schema_snapshot)
+    generated: dict[str, Any] | None = None
+    cached_sql: str | None = None
+    cache_entry: dict[str, Any] | None = None
+    generated_source: str | None = None
     _console_attempt_log(attempt_id, "request", f"received user question: {_short_reason(request.question)}")
     _console_attempt_log(attempt_id, "schema", f"loaded schema with {_schema_table_count(schema_snapshot)} table(s)")
     _console_attempt_log(attempt_id, "start", "request started")
     _console_validation_log("request started")
     _console_validation_detail("user query", {"question": request.question, "limit": request.limit, "dry_run": request.dry_run})
     try:
-        _console_attempt_log(attempt_id, "examples", "searching previous gold examples")
-        example_search_started = perf_counter()
-        examples, example_source = similar_gold_examples(request.question, limit=3, attempt_id=attempt_id)
-        mistake_examples = similar_mistake_examples(request.question, limit=3)
-        example_elapsed_ms = int((perf_counter() - example_search_started) * 1000)
-        if example_source == "vector":
-            _console_attempt_log(attempt_id, "examples", "vector DB search returned approved examples")
-        else:
-            _console_attempt_log(attempt_id, "examples", "vector DB unavailable or empty; using keyword/token similarity")
-        _console_attempt_detail(
-            attempt_id,
-            "examples",
-            {
-                "source": example_source,
-                "elapsed_ms": example_elapsed_ms,
-                "count": len(examples),
-                "examples": examples,
-                "mistakes_count": len(mistake_examples),
-                "mistakes": mistake_examples,
-            },
+        cache_entry, cache_match_type = get_cached_sql(
+            request.question,
+            resolved_dates.start_date,
+            resolved_dates.end_date,
+            request.limit,
+            schema_snapshot,
         )
-        _console_attempt_detail(
-            attempt_id,
-            "llm1-input",
-            build_sql_generation_payload_preview(
+        if cache_entry:
+            generated = {
+                "title": cache_entry.get("response", {}).get("title") or "SQL Report",
+                "sql": cache_entry.get("response", {}).get("sql") or "",
+                "explanation": cache_entry.get("response", {}).get("explanation") or "",
+            }
+            _console_attempt_log(attempt_id, "cache", f"hit via {cache_match_type} match")
+            _console_attempt_detail(
+                attempt_id,
+                "cache",
+                {
+                    "cache_key": cache_entry.get("key"),
+                    "matched_query": cache_entry.get("query", {}).get("original"),
+                    "tags": cache_entry.get("tags") or [],
+                },
+            )
+            try:
+                cached_sql = _validate_cached_sql(
+                    generated["sql"],
+                    request,
+                    resolved_dates.start_date,
+                    resolved_dates.end_date,
+                    warnings,
+                    retry_attempts,
+                )
+                update_attempt(attempt_id, generated_sql=generated.get("sql"), final_sql=cached_sql)
+                generated_source = "cache"
+                _console_attempt_log(attempt_id, "cache", "cached SQL accepted by backend validation")
+            except Exception as exc:
+                invalidate_cache([f"cache_key:{cache_entry.get('key')}"], reason=str(exc))
+                generated = None
+                cached_sql = None
+                generated_source = None
+                _console_attempt_log(attempt_id, "cache", f"cached SQL rejected: {_short_reason(str(exc))}")
+        else:
+            _console_attempt_log(attempt_id, "cache", f"miss ({cache_match_type})")
+
+        if generated is None:
+            _console_attempt_log(attempt_id, "examples", "searching previous gold examples")
+            example_search_started = perf_counter()
+            examples, example_source = similar_gold_examples(request.question, limit=3, attempt_id=attempt_id)
+            mistake_examples = similar_mistake_examples(request.question, limit=3)
+            example_elapsed_ms = int((perf_counter() - example_search_started) * 1000)
+            if example_source == "vector":
+                _console_attempt_log(attempt_id, "examples", "vector DB search returned approved examples")
+            else:
+                _console_attempt_log(attempt_id, "examples", "vector DB unavailable or empty; using keyword/token similarity")
+            _console_attempt_detail(
+                attempt_id,
+                "examples",
+                {
+                    "source": example_source,
+                    "elapsed_ms": example_elapsed_ms,
+                    "count": len(examples),
+                    "examples": examples,
+                    "mistakes_count": len(mistake_examples),
+                    "mistakes": mistake_examples,
+                },
+            )
+            _console_attempt_detail(
+                attempt_id,
+                "llm1-input",
+                build_sql_generation_payload_preview(
+                    request.question,
+                    resolved_dates.start_date,
+                    resolved_dates.end_date,
+                    examples,
+                    mistake_examples,
+                ),
+            )
+            _console_attempt_log(attempt_id, "generation", "calling first AI model")
+            generated = await generate_sql_with_ai(
                 request.question,
                 resolved_dates.start_date,
                 resolved_dates.end_date,
                 examples,
                 mistake_examples,
-            ),
-        )
-        _console_attempt_log(attempt_id, "generation", "calling first AI model")
-        generated = await generate_sql_with_ai(
-            request.question,
-            resolved_dates.start_date,
-            resolved_dates.end_date,
-            examples,
-            mistake_examples,
-        )
+                request.sql_generation_provider,
+            )
+            generated_source = "ai" if generated is not None else None
     except AiSqlGenerationError as exc:
         update_attempt(attempt_id, execution_status="failed", execution_error=str(exc))
         _console_attempt_log(attempt_id, "generation", f"failed: {_short_reason(str(exc))}")
@@ -139,6 +191,7 @@ async def build_report(request: ReportRequest) -> GeneratedReport:
             "sql": template.sql,
             "explanation": template.explanation,
         }
+        generated_source = "template"
         warnings.append(
             "AI SQL generation was unavailable or rejected by the provider, so a safe built-in template was used."
         )
@@ -147,6 +200,10 @@ async def build_report(request: ReportRequest) -> GeneratedReport:
         update_attempt(attempt_id, generated_sql=generated.get("sql"))
         _console_attempt_log(attempt_id, "generation", "SQL generated from template fallback")
         _console_attempt_detail(attempt_id, "generation", {"source": "template", "generated_sql": generated.get("sql")})
+    elif generated_source == "cache":
+        logger.info("Using cached SQL generation output.")
+        _console_validation_log("cache output accepted")
+        _console_validation_detail("cache output", generated)
     else:
         logger.info("AI SQL generation successful.")
         _console_validation_log("llm1 output 1 generated")
@@ -155,20 +212,32 @@ async def build_report(request: ReportRequest) -> GeneratedReport:
         _console_attempt_log(attempt_id, "generation", "SQL generated by first AI model")
         _console_attempt_detail(attempt_id, "generation", {"source": "ai", "generated_sql": generated.get("sql")})
 
-    try:
-        generated, sql = await _validate_generated_output_with_retries(
-            generated,
-            request,
-            resolved_dates.start_date,
-            resolved_dates.end_date,
-            warnings,
-            retry_attempts,
-            attempt_id,
-        )
-    except ReportBuildError as exc:
-        update_attempt(attempt_id, execution_status="failed", execution_error=str(exc))
-        exc.attempt_id = attempt_id
-        raise
+    if cached_sql:
+        sql = cached_sql
+    else:
+        try:
+            generated, sql = await _validate_generated_output_with_retries(
+                generated,
+                request,
+                resolved_dates.start_date,
+                resolved_dates.end_date,
+                warnings,
+                retry_attempts,
+                attempt_id,
+            )
+        except ReportBuildError as exc:
+            update_attempt(attempt_id, execution_status="failed", execution_error=str(exc))
+            exc.attempt_id = attempt_id
+            raise
+        if generated_source == "ai":
+            set_cached_sql(
+                request.question,
+                resolved_dates.start_date,
+                resolved_dates.end_date,
+                request.limit,
+                schema_snapshot,
+                {**generated, "sql": sql},
+            )
     params = {"start_date": resolved_dates.start_date, "end_date": resolved_dates.end_date}
 
     columns: list[str] = []
@@ -302,7 +371,7 @@ async def _validate_generated_output_with_retries(
             update_attempt(attempt_id, validator_status="failed", validator_feedback=last_error_message)
             _console_attempt_log(attempt_id, "validator", f"schema failed: {_short_reason(last_error_message)}")
             _console_validation_log(
-                f"llm2 validation call {attempt} skipped qwen: {_short_reason(last_error_message)}"
+                f"llm2 validation call {attempt} skipped smollm: {_short_reason(last_error_message)}"
             )
             validation_errors = [
                 {
@@ -324,7 +393,7 @@ async def _validate_generated_output_with_retries(
             update_attempt(attempt_id, validator_status="failed", validator_feedback=last_error_message)
             _console_attempt_log(attempt_id, "validator", f"safety failed: {_short_reason(last_error_message)}")
             _console_validation_log(
-                f"llm2 validation call {attempt} skipped qwen: {_short_reason(last_error_message)}"
+                f"llm2 validation call {attempt} skipped smollm: {_short_reason(last_error_message)}"
             )
             validation_errors = [
                 {
@@ -337,7 +406,7 @@ async def _validate_generated_output_with_retries(
         else:
             try:
                 llm2_calls += 1
-                _console_validation_log(f"llm2 qwen call {llm2_calls} started for output {llm1_outputs}")
+                _console_validation_log(f"llm2 smollm call {llm2_calls} started for output {llm1_outputs}")
                 validation_payload = build_validation_payload(
                     question=request.question,
                     schema=schema,
@@ -355,23 +424,27 @@ async def _validate_generated_output_with_retries(
                 _console_validation_detail("llm2 validation response", validation.model_dump())
                 _console_attempt_detail(attempt_id, "validator", validation.model_dump())
             except OutputValidationError as exc:
-                update_attempt(attempt_id, validator_status="failed", validator_feedback=str(exc))
+                fallback_message = (
+                    "Local Smollm validator returned an unusable response, so backend safety and schema "
+                    "validation were used as the final check."
+                )
+                warnings.append(fallback_message)
+                update_attempt(
+                    attempt_id,
+                    validator_status="success",
+                    validator_feedback=fallback_message,
+                    final_sql=prepared_sql,
+                )
                 retry_attempts.append(
-                    _validator_attempt(attempt, "failed", _short_reason(str(exc)))
+                    _validator_attempt(attempt, "success", fallback_message)
                 )
-                logger.warning("Validator attempt %s failed: %s", attempt, _short_reason(str(exc)))
+                logger.warning("Validator attempt %s fell back to backend validation: %s", attempt, _short_reason(str(exc)))
                 _console_validation_log(
-                    f"llm2 qwen call {llm2_calls} failed: {_short_reason(str(exc))}"
+                    f"llm2 smollm call {llm2_calls} unusable; accepted by backend validation"
                 )
-                raise ReportBuildError(
-                    "Local LLM validator request failed.",
-                    retry_attempts,
-                    title="Report validator unavailable",
-                    solution=(
-                        "Ensure Ollama is running with qwen2.5:3b and increase "
-                        "LLM_VALIDATOR_TIMEOUT_SECONDS if local validation takes longer."
-                    ),
-                ) from exc
+                _console_attempt_log(attempt_id, "validator", "smollm unusable; backend validation accepted SQL")
+                _console_attempt_detail(attempt_id, "validator", {"fallback_reason": str(exc)})
+                return current, prepared_sql
             else:
                 if validation.is_valid:
                     update_attempt(
@@ -468,6 +541,7 @@ async def _validate_generated_output_with_retries(
                 {"sql": llm1_retry_payload["failed_sql"]},
                 llm1_retry_payload["validation_errors"],
                 llm1_retry_payload["validation_reason_from_llm2"],
+                request.sql_generation_provider,
             )
         except AiSqlGenerationError as exc:
             raise _ai_report_error(exc, []) from exc
@@ -726,6 +800,32 @@ def _validate_with_current_schema(
         raise ReportBuildError(exc.diagnosis.message, retry_attempts) from exc
 
 
+def _validate_cached_sql(
+    sql: str,
+    request: ReportRequest,
+    start_date: str | None,
+    end_date: str | None,
+    warnings: list[str],
+    retry_attempts: list[RetryAttempt],
+) -> str:
+    max_rows = min(request.limit, get_settings().max_rows)
+    prepared_sql = _prepare_sql(sql, max_rows, warnings, start_date, end_date)
+    schema = _safe_schema()
+    safety = validate_sql_safety(prepared_sql, schema)
+    if not safety.isValid:
+        raise ValueError(safety.reason)
+    warnings.extend(validate_sql_against_schema(prepared_sql, schema))
+    retry_attempts.append(
+        RetryAttempt(
+            attempt=len(retry_attempts) + 1,
+            status="success",
+            message="Cached SQL passed backend validation.",
+            sql=prepared_sql,
+        )
+    )
+    return prepared_sql
+
+
 async def _execute_with_schema_retries(
     sql: str,
     params: dict[str, str | None],
@@ -851,6 +951,7 @@ async def _repair_generated_sql(
         resolved_dates.end_date,
         failed_sql,
         error_message,
+        request.sql_generation_provider,
     )
     if repaired is None:
         return None

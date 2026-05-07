@@ -9,6 +9,7 @@ class ReportRequest(BaseModel):
     end_date: str | None = None
     limit: int = Field(default=100, ge=1, le=1000)
     dry_run: bool = False
+    sql_generation_provider: str | None = Field(default=None, pattern="^(openrouter|ollama|gemini|openai)$")
 
 
 class RetryAttempt(BaseModel):

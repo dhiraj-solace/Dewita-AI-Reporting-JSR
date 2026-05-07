@@ -29,6 +29,7 @@ async def generate_sql_with_ai(
     end_date: str | None,
     similar_examples: list[dict[str, str]] | None = None,
     mistake_examples: list[dict[str, str]] | None = None,
+    provider: str | None = None,
 ) -> dict[str, Any] | None:
     extra = None
     if similar_examples or mistake_examples:
@@ -44,7 +45,7 @@ async def generate_sql_with_ai(
         if mistake_examples:
             extra["past_mistakes_to_avoid"] = _format_mistake_examples(mistake_examples)
     payload = _build_sql_payload(question, start_date, end_date, extra)
-    return await _generate_sql_payload(payload)
+    return await _generate_sql_payload(payload, question=question, provider=provider)
 
 
 def build_sql_generation_payload_preview(
@@ -102,6 +103,7 @@ async def generate_sql_repair_with_ai(
     end_date: str | None,
     failed_sql: str,
     error_message: str,
+    provider: str | None = None,
 ) -> dict[str, Any] | None:
     payload = _build_sql_payload(
         question,
@@ -119,7 +121,7 @@ async def generate_sql_repair_with_ai(
             ],
         },
     )
-    return await _generate_sql_payload(payload)
+    return await _generate_sql_payload(payload, question=question, provider=provider)
 
 
 def _format_correct_examples(examples: list[dict[str, str]]) -> list[dict[str, str]]:
@@ -155,6 +157,7 @@ async def generate_sql_validation_retry_with_ai(
     failed_output: dict[str, Any],
     validation_errors: list[dict[str, Any]],
     retry_prompt: str,
+    provider: str | None = None,
 ) -> dict[str, Any] | None:
     payload = _build_sql_payload(
         question,
@@ -169,10 +172,11 @@ async def generate_sql_validation_retry_with_ai(
                 "Regenerate only the corrected SQL query.",
                 "Correct every validation error before returning.",
                 "Do not repeat unsafe SQL or invalid schema references.",
+                "Do not return clarification_needed when the issue is only a missing top/limit count; use the safe app LIMIT instead.",
             ],
         },
     )
-    return await _generate_sql_payload(payload)
+    return await _generate_sql_payload(payload, question=question, provider=provider)
 
 
 def _build_sql_payload(
@@ -190,6 +194,7 @@ def _build_sql_payload(
             "Do not return JSON, markdown, explanation, assumptions, comments, or metadata.",
             "Use literal MySQL date values from start_date and end_date when date filtering is needed, not placeholders.",
             "Include the requested top/limit count when the question asks for one.",
+            "If the question says top, highest, best, most, or leading without a number, rank the results and use the safe app LIMIT.",
             "If no count is requested, include a safe LIMIT based on the app request limit.",
             "Prefer documented tables and columns.",
             "Only SELECT or WITH queries are allowed.",
@@ -205,7 +210,11 @@ def _build_sql_payload(
     return json.dumps(payload)
 
 
-async def _generate_sql_payload(payload: str) -> dict[str, Any] | None:
+async def _generate_sql_payload(
+    payload: str,
+    question: str | None = None,
+    provider: str | None = None,
+) -> dict[str, Any] | None:
     settings = get_settings()
     if not settings.ai_sql_enabled:
         logger.warning("AI SQL generation is disabled in settings")
@@ -213,7 +222,8 @@ async def _generate_sql_payload(payload: str) -> dict[str, Any] | None:
     
     prompt = (Path(__file__).resolve().parents[1] / "prompts" / "sql_system.md").read_text(encoding="utf-8")
 
-    provider = settings.ai_provider.lower()
+    provider = (provider or settings.ai_provider).lower()
+    context = catalog_context()
 
     if provider == "openrouter":
         if not settings.openrouter_api_key:
@@ -230,6 +240,18 @@ async def _generate_sql_payload(payload: str) -> dict[str, Any] | None:
             settings.openrouter_model,
             settings.openrouter_site_url,
             settings.openrouter_app_name,
+            context,
+        )
+
+    if provider == "ollama":
+        logger.info(f"Using Ollama SQL provider with model: {settings.ollama_sql_model}")
+        return await _generate_sql_with_ollama(
+            prompt,
+            payload,
+            settings.ollama_sql_url,
+            settings.ollama_sql_model,
+            settings.ollama_sql_timeout_seconds,
+            context,
         )
 
     if provider == "gemini":
@@ -240,7 +262,7 @@ async def _generate_sql_payload(payload: str) -> dict[str, Any] | None:
                 solution="Add GEMINI_API_KEY in the backend .env file, or switch AI_PROVIDER to a configured provider.",
             )
         logger.info(f"Using Gemini AI provider with model: {settings.gemini_model}")
-        return await _generate_sql_with_gemini(prompt, payload, settings.gemini_api_key, settings.gemini_model)
+        return await _generate_sql_with_gemini(prompt, payload, settings.gemini_api_key, settings.gemini_model, context)
 
     if not settings.openai_api_key:
         raise AiSqlGenerationError(
@@ -249,7 +271,7 @@ async def _generate_sql_payload(payload: str) -> dict[str, Any] | None:
             solution="Add OPENAI_API_KEY in the backend .env file, or switch AI_PROVIDER to a configured provider.",
         )
     logger.info(f"Using OpenAI AI provider with model: {settings.openai_model}")
-    return await _generate_sql_with_openai(prompt, payload, settings.openai_api_key, settings.openai_model)
+    return await _generate_sql_with_openai(prompt, payload, settings.openai_api_key, settings.openai_model, context)
 
 
 async def _generate_sql_with_openrouter(
@@ -259,6 +281,7 @@ async def _generate_sql_with_openrouter(
     model: str,
     site_url: str | None,
     app_name: str,
+    context: str,
 ) -> dict[str, Any] | None:
     headers = {"Authorization": f"Bearer {api_key}"}
     if site_url:
@@ -271,7 +294,7 @@ async def _generate_sql_with_openrouter(
         "temperature": 0,
         "messages": [
             {"role": "system", "content": prompt},
-            {"role": "user", "content": catalog_context()},
+            {"role": "user", "content": context},
             {"role": "user", "content": payload},
         ],
     }
@@ -297,7 +320,47 @@ async def _generate_sql_with_openrouter(
             solution="Check the OpenRouter API key, model name, provider status, and backend network access.",
         ) from e
 
-async def _generate_sql_with_openai(prompt: str, payload: str, api_key: str, model: str) -> dict[str, Any] | None:
+async def _generate_sql_with_ollama(
+    prompt: str,
+    payload: str,
+    url: str,
+    model: str,
+    timeout_seconds: float,
+    context: str,
+) -> dict[str, Any] | None:
+    body = {
+        "model": model,
+        "stream": False,
+        "options": {"temperature": 0, "top_p": 1, "top_k": 1, "num_ctx": 8192},
+        "messages": [
+            {"role": "system", "content": prompt},
+            {"role": "user", "content": context},
+            {"role": "user", "content": payload},
+        ],
+    }
+    try:
+        timeout = httpx.Timeout(timeout_seconds, connect=10)
+        async with httpx.AsyncClient(timeout=timeout) as client:
+            response = await client.post(url, json=body)
+            response.raise_for_status()
+        content = response.json().get("message", {}).get("content", "") or ""
+        return _parse_ai_sql(content)
+    except httpx.HTTPError as e:
+        raise AiSqlGenerationError(
+            f"Ollama SQL generation failed: {_http_error_message(e)}",
+            title="Local Qwen request failed",
+            solution="Local Qwen is using the full database schema and may take several minutes. Try again, increase OLLAMA_SQL_TIMEOUT_SECONDS, or switch SQL generation to OpenRouter for faster response.",
+        ) from e
+    except Exception as e:
+        logger.error(f"Ollama SQL generation failed: {str(e)}")
+        raise AiSqlGenerationError(
+            f"Ollama SQL generation failed: {str(e)}",
+            title="Local Qwen request failed",
+            solution="Ensure Ollama is running and qwen2.5:3b is installed. If it is running, switch SQL generation to OpenRouter or increase OLLAMA_SQL_TIMEOUT_SECONDS for full-schema local generation.",
+        ) from e
+
+
+async def _generate_sql_with_openai(prompt: str, payload: str, api_key: str, model: str, context: str) -> dict[str, Any] | None:
     from openai import AsyncOpenAI
     
     try:
@@ -308,7 +371,7 @@ async def _generate_sql_with_openai(prompt: str, payload: str, api_key: str, mod
             temperature=0,
             messages=[
                 {"role": "system", "content": prompt},
-                {"role": "user", "content": catalog_context()},
+                {"role": "user", "content": context},
                 {"role": "user", "content": payload},
             ],
         )
@@ -333,14 +396,14 @@ async def _generate_sql_with_openai(prompt: str, payload: str, api_key: str, mod
         ) from e
 
 
-async def _generate_sql_with_gemini(prompt: str, payload: str, api_key: str, model: str) -> dict[str, Any] | None:
+async def _generate_sql_with_gemini(prompt: str, payload: str, api_key: str, model: str, context: str) -> dict[str, Any] | None:
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
     body = {
         "systemInstruction": {"parts": [{"text": prompt}]},
         "contents": [
             {
                 "role": "user",
-                "parts": [{"text": catalog_context()}],
+                "parts": [{"text": context}],
             },
             {
                 "role": "user",
@@ -408,3 +471,13 @@ def _provider_http_error(provider: str, error: httpx.HTTPStatusError) -> AiSqlGe
         solution="Check provider quota, API key permissions, selected model availability, and provider status.",
         status_code=status_code,
     )
+
+
+def _http_error_message(exc: httpx.HTTPError) -> str:
+    if isinstance(exc, httpx.TimeoutException):
+        return "timed out waiting for local model response"
+    if isinstance(exc, httpx.ConnectError):
+        return "could not connect to Ollama"
+    if isinstance(exc, httpx.HTTPStatusError):
+        return f"Ollama returned HTTP {exc.response.status_code}"
+    return exc.__class__.__name__
