@@ -69,6 +69,16 @@ export type SqlMistakeExample = {
   created_at: string;
 };
 
+export type AiSqlAttemptPreview = {
+  attempt_id: string;
+  columns: string[];
+  rows: Record<string, unknown>[];
+  row_count: number;
+  preview_limit: number;
+  execution_status: string;
+  error?: string | null;
+};
+
 export class ApiError extends Error {
   title: string;
   solution?: string | null;
@@ -160,6 +170,15 @@ export async function listSqlMistakeExamples(): Promise<SqlMistakeExample[]> {
   const response = await fetch(`${API_URL}/api/admin/sql-mistake-examples?limit=100`, {cache: "no-store"});
   if (!response.ok) {
     throw new ApiError("Unable to load SQL mistake examples");
+  }
+  return response.json();
+}
+
+export async function previewAiSqlAttempt(attemptId: string, limit = 25): Promise<AiSqlAttemptPreview> {
+  const params = new URLSearchParams({limit: String(limit)});
+  const response = await fetch(`${API_URL}/api/admin/ai-sql-attempts/${attemptId}/preview?${params.toString()}`, {cache: "no-store"});
+  if (!response.ok) {
+    throw new ApiError("Unable to load SQL result preview");
   }
   return response.json();
 }

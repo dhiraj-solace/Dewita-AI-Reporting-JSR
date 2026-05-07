@@ -2,7 +2,15 @@
 
 import {useEffect, useMemo, useState} from "react";
 import {CheckCircle2, Database, RefreshCw, ShieldCheck, XCircle} from "lucide-react";
-import {AiSqlAttempt, SqlMistakeExample, listAiSqlAttempts, listSqlMistakeExamples, reviewAiSqlAttempt} from "@/lib/api";
+import {
+  AiSqlAttempt,
+  AiSqlAttemptPreview,
+  SqlMistakeExample,
+  listAiSqlAttempts,
+  listSqlMistakeExamples,
+  previewAiSqlAttempt,
+  reviewAiSqlAttempt
+} from "@/lib/api";
 
 function shortId(id: string) {
   return id.slice(0, 8);
@@ -23,6 +31,12 @@ function compactSql(value?: string | null) {
   return value.length > 140 ? `${value.slice(0, 139)}.` : value;
 }
 
+function formatValue(value: unknown) {
+  if (value === null || value === undefined || value === "") return "-";
+  if (typeof value === "object") return JSON.stringify(value);
+  return String(value);
+}
+
 function countByStatus(attempts: AiSqlAttempt[], status: string) {
   return attempts.filter((attempt) => (attempt.execution_status || "pending").toLowerCase() === status).length;
 }
@@ -33,6 +47,8 @@ export default function AiSqlAttemptsAdminPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [goldOnly, setGoldOnly] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [preview, setPreview] = useState<AiSqlAttemptPreview | null>(null);
   const [reviewing, setReviewing] = useState("");
   const [error, setError] = useState("");
 
@@ -45,6 +61,14 @@ export default function AiSqlAttemptsAdminPage() {
   useEffect(() => {
     loadAttempts(goldOnly);
   }, [goldOnly]);
+
+  useEffect(() => {
+    if (!selected?.id) {
+      setPreview(null);
+      return;
+    }
+    loadPreview(selected.id);
+  }, [selected?.id]);
 
   async function loadAttempts(nextGoldOnly = goldOnly) {
     setLoading(true);
@@ -73,6 +97,25 @@ export default function AiSqlAttemptsAdminPage() {
       setError(err instanceof Error ? err.message : "Unable to review attempt");
     } finally {
       setReviewing("");
+    }
+  }
+
+  async function loadPreview(attemptId: string) {
+    setPreviewLoading(true);
+    try {
+      setPreview(await previewAiSqlAttempt(attemptId, 25));
+    } catch (err) {
+      setPreview({
+        attempt_id: attemptId,
+        columns: [],
+        rows: [],
+        row_count: 0,
+        preview_limit: 25,
+        execution_status: "failed",
+        error: err instanceof Error ? err.message : "Unable to load preview"
+      });
+    } finally {
+      setPreviewLoading(false);
     }
   }
 
@@ -190,6 +233,41 @@ export default function AiSqlAttemptsAdminPage() {
                   <div><dt>Validator Feedback</dt><dd>{selected.validator_feedback || "-"}</dd></div>
                   <div><dt>Execution Error</dt><dd>{selected.execution_error || "-"}</dd></div>
                 </dl>
+              </section>
+
+              <section className="attempt-block result-preview-block">
+                <div className="result-preview-header">
+                  <div>
+                    <h3>SQL Result Preview</h3>
+                    <p>Read-only preview from final SQL, limited to {preview?.preview_limit ?? 25} rows.</p>
+                  </div>
+                  <button onClick={() => loadPreview(selected.id)} type="button">
+                    <RefreshCw size={16} /> Refresh Data
+                  </button>
+                </div>
+                {previewLoading && <div className="attempt-empty">Loading table data...</div>}
+                {!previewLoading && preview?.error && <div className="preview-error">{preview.error}</div>}
+                {!previewLoading && preview && !preview.error && preview.rows.length === 0 && (
+                  <div className="attempt-empty">Query executed, but no rows were returned.</div>
+                )}
+                {!previewLoading && preview && !preview.error && preview.rows.length > 0 && (
+                  <div className="preview-table-wrap">
+                    <table className="preview-table">
+                      <thead>
+                        <tr>{preview.columns.map((column) => <th key={column}>{column}</th>)}</tr>
+                      </thead>
+                      <tbody>
+                        {preview.rows.map((row, index) => (
+                          <tr key={index}>
+                            {preview.columns.map((column) => (
+                              <td key={column}>{formatValue(row[column])}</td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </section>
 
               <section className="attempt-block">

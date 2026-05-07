@@ -3,9 +3,10 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import get_settings
 from app.db import get_engine
-from app.models import AiSqlAttempt, AiSqlAttemptReviewRequest, GeneratedReport, ReportRequest, SqlMistakeExample
+from app.models import AiSqlAttempt, AiSqlAttemptPreview, AiSqlAttemptReviewRequest, GeneratedReport, ReportRequest, SqlMistakeExample
 from app.services.catalog import load_report_catalog, load_schema_catalog
 from app.services.ai_sql_attempt_store import get_attempt, list_attempts, review_attempt
+from app.services.admin_attempt_preview import preview_attempt_rows
 from app.services.sql_mistake_store import list_mistake_examples
 from app.services.report_runner import ReportBuildError, build_report
 
@@ -122,6 +123,19 @@ def admin_review_ai_sql_attempt(attempt_id: str, review: AiSqlAttemptReviewReque
         )
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@app.get("/api/admin/ai-sql-attempts/{attempt_id}/preview", response_model=AiSqlAttemptPreview)
+def admin_ai_sql_attempt_preview(
+    attempt_id: str,
+    limit: int = Query(default=25, ge=1, le=100),
+) -> AiSqlAttemptPreview:
+    try:
+        return AiSqlAttemptPreview.model_validate(preview_attempt_rows(attempt_id, limit))
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 

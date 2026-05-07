@@ -83,3 +83,13 @@ class SqlMistakeExample(BaseModel):
     final_correct_sql: str | None = None
     risk_level: str
     created_at: Any
+
+
+class AiSqlAttemptPreview(BaseModel):
+    attempt_id: str
+    columns: list[str]
+    rows: list[dict[str, Any]]
+    row_count: int
+    preview_limit: int
+    execution_status: str
+    error: str | None = None
