@@ -5,6 +5,7 @@ import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from app.services.sql_safety_validator import validate_sql_safety
+from app.services.query_safety import validate_user_query_safety
 
 
 SCHEMA = {
@@ -39,6 +40,17 @@ def test_invalid_table_name() -> None:
     result = validate_sql_safety("SELECT id FROM fake_projects LIMIT 10", SCHEMA)
     assert not result.isValid
     assert result.mistakeType == "invalid_table"
+
+
+def test_user_query_safety_blocks_write_requests_before_schema() -> None:
+    result = validate_user_query_safety("Please delete old projects")
+    assert not result.is_safe
+    assert result.blocked_operation == "DELETE"
+
+
+def test_user_query_safety_allows_reporting_requests_without_schema() -> None:
+    result = validate_user_query_safety("Show week 5 project totals grouped by type")
+    assert result.is_safe
 
 
 def test_similar_example_injected_into_prompt_preview() -> None:
@@ -78,6 +90,8 @@ if __name__ == "__main__":
         test_dangerous_delete_query,
         test_query_without_limit,
         test_invalid_table_name,
+        test_user_query_safety_blocks_write_requests_before_schema,
+        test_user_query_safety_allows_reporting_requests_without_schema,
         test_similar_example_injected_into_prompt_preview,
         test_gold_db_path_available_or_skipped,
     ]

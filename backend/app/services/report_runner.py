@@ -37,6 +37,7 @@ from app.services.sql_mistake_store import (
     update_attempt_mistakes_with_final_sql,
 )
 from app.services.sql_safety_validator import SafetyValidationResult, validate_sql_safety
+from app.services.query_safety import validate_user_query_safety
 from app.services.templates import find_template
 
 logger = logging.getLogger(__name__)
@@ -65,6 +66,16 @@ class ReportBuildError(Exception):
 
 
 async def build_report(request: ReportRequest) -> GeneratedReport:
+    query_safety = validate_user_query_safety(request.question)
+    if not query_safety.is_safe:
+        logger.warning("Blocked unsafe report request: %s", query_safety.reason)
+        raise ReportBuildError(
+            query_safety.reason,
+            [],
+            title="Unsafe report request blocked",
+            solution="Ask for a read-only SELECT-style report, summary, count, total, or list.",
+        )
+
     warnings: list[str] = []
     retry_attempts: list[RetryAttempt] = []
     resolved_dates = resolve_date_range(request.question, request.start_date, request.end_date)
