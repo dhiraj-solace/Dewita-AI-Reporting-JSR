@@ -1,10 +1,17 @@
 export type ReportRequest = {
   question: string;
+  report_category?: string | null;
   start_date?: string | null;
   end_date?: string | null;
   limit: number;
   dry_run: boolean;
   sql_generation_provider?: "openrouter" | "ollama" | "gemini" | "openai" | null;
+};
+
+export type ReportCategory = {
+  id: string;
+  label: string;
+  enabled?: boolean;
 };
 
 export type GeneratedReport = {
@@ -135,6 +142,15 @@ export async function getHealth(): Promise<Health> {
     throw new Error("Backend health check failed");
   }
   return response.json();
+}
+
+export async function listReportCategories(): Promise<ReportCategory[]> {
+  const response = await fetch(`${API_URL}/api/reports/categories`, {cache: "no-store"});
+  if (!response.ok) {
+    throw new Error("Unable to load report categories");
+  }
+  const payload = await response.json();
+  return payload.categories || [];
 }
 
 export async function listAiSqlAttempts(goldOnly = false): Promise<AiSqlAttempt[]> {

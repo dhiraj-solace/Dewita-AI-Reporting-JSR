@@ -1,5 +1,122 @@
 {
   "entries": {
+    "52822310166876f5317e5ad1ea1808561c8efbd1a7a5fed55d7ef7471dbfc47f": {
+      "cache_policy": {
+        "created_at": "2026-05-25T10:41:36.610295+00:00",
+        "expires_at": "2026-05-27T10:41:36.610295+00:00",
+        "ttl_days": 2
+      },
+      "intent": {
+        "canonical_tokens": [
+          "5",
+          "count",
+          "group",
+          "project",
+          "type",
+          "week"
+        ],
+        "date_tokens": [
+          "5",
+          "week"
+        ],
+        "end_date": null,
+        "limit": 500,
+        "report_category": "custom",
+        "start_date": null
+      },
+      "key": "52822310166876f5317e5ad1ea1808561c8efbd1a7a5fed55d7ef7471dbfc47f",
+      "query": {
+        "normalized": "week 5 report with totals grouped by project type",
+        "original": "Week 5 report with totals grouped by project type"
+      },
+      "response": {
+        "explanation": "",
+        "sql": "SELECT \n    pt.name AS project_type_name,\n    COUNT(pdt.id) AS ticket_count\nFROM \n    project_type pt\nLEFT JOIN \n    projects p ON pt.id = p.project_type_id\nLEFT JOIN \n    product_task pdt ON p.id = pdt.project_id AND pdt.is_deleted = 0\nGROUP BY \n    pt.id, pt.name\nORDER BY \n    ticket_count DESC\nLIMIT 100",
+        "title": "SQL Report"
+      },
+      "sources": {
+        "schema_version": "ecb2b73f92f14b42"
+      },
+      "stats": {
+        "hit_count": 0,
+        "invalidated_reason": null,
+        "last_hit_at": null,
+        "last_invalidated_at": null
+      },
+      "tags": [
+        "cache_key:52822310166876f5317e5ad1ea1808561c8efbd1a7a5fed55d7ef7471dbfc47f",
+        "llm_sql",
+        "table:product_task",
+        "table:project_type",
+        "table:projects",
+        "token:5",
+        "token:count",
+        "token:group",
+        "token:project",
+        "token:type",
+        "token:week"
+      ]
+    },
+    "6bfa98d911a52c1e99514aea56676863e16f8886c35d734ffafad0acb5c122ff": {
+      "cache_policy": {
+        "created_at": "2026-05-25T08:03:42.733369+00:00",
+        "expires_at": "2026-05-27T08:03:42.733369+00:00",
+        "ttl_days": 2
+      },
+      "intent": {
+        "canonical_tokens": [
+          "2026",
+          "april",
+          "leader",
+          "project",
+          "revision",
+          "summary",
+          "team"
+        ],
+        "date_tokens": [
+          "2026"
+        ],
+        "end_date": "2026-04-30",
+        "limit": 500,
+        "report_category": "team_employee",
+        "start_date": "2026-04-01"
+      },
+      "key": "6bfa98d911a52c1e99514aea56676863e16f8886c35d734ffafad0acb5c122ff",
+      "query": {
+        "normalized": "show april 2026 revision summary by project and team leader",
+        "original": "Show April 2026 revision summary by project and team leader"
+      },
+      "response": {
+        "explanation": "",
+        "sql": "SELECT \n    p.project_name,\n    u.name AS team_leader_name,\n    COUNT(cm.id) AS revision_count\nFROM \n    changerequest_management cm\nJOIN \n    projects p ON cm.project_id = p.id\nJOIN \n    users u ON p.primary_team_leader = u.id\nWHERE \n    cm.date BETWEEN '2026-04-01' AND '2026-04-30'\nGROUP BY \n    p.id, u.id\nORDER BY \n    revision_count DESC\nLIMIT 10",
+        "title": "SQL Report"
+      },
+      "sources": {
+        "schema_version": "ecb2b73f92f14b42"
+      },
+      "stats": {
+        "hit_count": 0,
+        "invalidated_reason": null,
+        "last_hit_at": null,
+        "last_invalidated_at": null
+      },
+      "tags": [
+        "cache_key:6bfa98d911a52c1e99514aea56676863e16f8886c35d734ffafad0acb5c122ff",
+        "end:2026-04-30",
+        "llm_sql",
+        "start:2026-04-01",
+        "table:changerequest_management",
+        "table:projects",
+        "table:users",
+        "token:2026",
+        "token:april",
+        "token:leader",
+        "token:project",
+        "token:revision",
+        "token:summary",
+        "token:team"
+      ]
+    },
     "b505ddb004273ef0b1ce38b2f805efc711bf9ca9ea5233a1a7f254214c22fba9": {
       "cache_policy": {
         "created_at": "2026-05-07T12:31:33.234665+00:00",
@@ -118,15 +235,81 @@
         "token:top",
         "token:year"
       ]
+    },
+    "f37bddf3e86dd0fd8b9d023cd0f71ef38f84e8e6ee9ae2a4e19c89295b57b2c0": {
+      "cache_policy": {
+        "created_at": "2026-05-22T11:08:38.013472+00:00",
+        "expires_at": "2026-05-24T11:08:38.013472+00:00",
+        "ttl_days": 2
+      },
+      "intent": {
+        "canonical_tokens": [
+          "2026",
+          "april",
+          "leader",
+          "project",
+          "revision",
+          "summary",
+          "team"
+        ],
+        "date_tokens": [
+          "2026"
+        ],
+        "end_date": "2026-04-30",
+        "limit": 500,
+        "report_category": "project",
+        "start_date": "2026-04-01"
+      },
+      "key": "f37bddf3e86dd0fd8b9d023cd0f71ef38f84e8e6ee9ae2a4e19c89295b57b2c0",
+      "query": {
+        "normalized": "show april 2026 revision summary by project and team leader",
+        "original": "Show April 2026 revision summary by project and team leader"
+      },
+      "response": {
+        "explanation": "",
+        "sql": "SELECT p.project_name, u.name AS team_leader_name, COUNT(cm.id) AS revision_count FROM changerequest_management cm JOIN projects p ON cm.project_id = p.id JOIN users u ON p.primary_team_leader = u.id WHERE cm.date BETWEEN '2026-04-01' AND '2026-04-30' GROUP BY p.id, u.id ORDER BY revision_count DESC LIMIT 10",
+        "title": "SQL Report"
+      },
+      "sources": {
+        "schema_version": "dc4f3cc68149517f"
+      },
+      "stats": {
+        "hit_count": 0,
+        "invalidated_reason": null,
+        "last_hit_at": null,
+        "last_invalidated_at": null
+      },
+      "tags": [
+        "cache_key:f37bddf3e86dd0fd8b9d023cd0f71ef38f84e8e6ee9ae2a4e19c89295b57b2c0",
+        "end:2026-04-30",
+        "llm_sql",
+        "start:2026-04-01",
+        "table:changerequest_management",
+        "table:projects",
+        "table:users",
+        "token:2026",
+        "token:april",
+        "token:leader",
+        "token:project",
+        "token:revision",
+        "token:summary",
+        "token:team"
+      ]
     }
   },
   "exact_index": {
+    "09ccd58bd69688dd342ca7710eb65d7ac1ad94edfcafec457e491426f0635e5e": "6bfa98d911a52c1e99514aea56676863e16f8886c35d734ffafad0acb5c122ff",
+    "1f5a88c1491e0d0349ca03c673dbc7457b1892b409f0f4c9a5fb87f06387e9db": "f37bddf3e86dd0fd8b9d023cd0f71ef38f84e8e6ee9ae2a4e19c89295b57b2c0",
     "2e884a9e48c61d686b116b5f57953dcf673d2a6de08c753c8603271d58111886": "b505ddb004273ef0b1ce38b2f805efc711bf9ca9ea5233a1a7f254214c22fba9",
-    "81faec0803dcb17d125c52388163f951ca2dbc359603baff654d4700ca968487": "f24e015e0003cc866749623ef76012317febbd9518eb5ff1a9032515702c0031"
+    "81faec0803dcb17d125c52388163f951ca2dbc359603baff654d4700ca968487": "f24e015e0003cc866749623ef76012317febbd9518eb5ff1a9032515702c0031",
+    "a4933ae46f794e949e6fd7d1b5a5f4416e8dbf6552483e76885775ec92152856": "52822310166876f5317e5ad1ea1808561c8efbd1a7a5fed55d7ef7471dbfc47f"
   },
   "intent_index": {
+    "52822310166876f5317e5ad1ea1808561c8efbd1a7a5fed55d7ef7471dbfc47f": "52822310166876f5317e5ad1ea1808561c8efbd1a7a5fed55d7ef7471dbfc47f",
+    "6bfa98d911a52c1e99514aea56676863e16f8886c35d734ffafad0acb5c122ff": "6bfa98d911a52c1e99514aea56676863e16f8886c35d734ffafad0acb5c122ff",
     "b505ddb004273ef0b1ce38b2f805efc711bf9ca9ea5233a1a7f254214c22fba9": "b505ddb004273ef0b1ce38b2f805efc711bf9ca9ea5233a1a7f254214c22fba9",
-    "f24e015e0003cc866749623ef76012317febbd9518eb5ff1a9032515702c0031": "f24e015e0003cc866749623ef76012317febbd9518eb5ff1a9032515702c0031"
+    "f24e015e0003cc866749623ef76012317febbd9518eb5ff1a9032515702c0031": "f24e015e0003cc866749623ef76012317febbd9518eb5ff1a9032515702c0031",
+    "f37bddf3e86dd0fd8b9d023cd0f71ef38f84e8e6ee9ae2a4e19c89295b57b2c0": "f37bddf3e86dd0fd8b9d023cd0f71ef38f84e8e6ee9ae2a4e19c89295b57b2c0"
   },
   "version": 1
 }

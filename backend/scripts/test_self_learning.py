@@ -42,6 +42,20 @@ def test_invalid_table_name() -> None:
     assert result.mistakeType == "invalid_table"
 
 
+def test_cte_name_is_not_treated_as_invalid_table() -> None:
+    sql = """
+WITH ProjectTypeCounts AS (
+    SELECT id, project_name
+    FROM projects
+)
+SELECT id, project_name
+FROM ProjectTypeCounts
+LIMIT 10
+    """.strip()
+    result = validate_sql_safety(sql, SCHEMA)
+    assert result.isValid, result
+
+
 def test_user_query_safety_blocks_write_requests_before_schema() -> None:
     result = validate_user_query_safety("Please delete old projects")
     assert not result.is_safe
@@ -90,6 +104,7 @@ if __name__ == "__main__":
         test_dangerous_delete_query,
         test_query_without_limit,
         test_invalid_table_name,
+        test_cte_name_is_not_treated_as_invalid_table,
         test_user_query_safety_blocks_write_requests_before_schema,
         test_user_query_safety_allows_reporting_requests_without_schema,
         test_similar_example_injected_into_prompt_preview,

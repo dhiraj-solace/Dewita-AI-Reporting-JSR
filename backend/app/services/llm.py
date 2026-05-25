@@ -30,6 +30,7 @@ async def generate_sql_with_ai(
     similar_examples: list[dict[str, str]] | None = None,
     mistake_examples: list[dict[str, str]] | None = None,
     provider: str | None = None,
+    report_category: dict[str, Any] | None = None,
 ) -> dict[str, Any] | None:
     extra = None
     if similar_examples or mistake_examples:
@@ -44,8 +45,9 @@ async def generate_sql_with_ai(
             extra["correct_approved_examples"] = _format_correct_examples(similar_examples)
         if mistake_examples:
             extra["past_mistakes_to_avoid"] = _format_mistake_examples(mistake_examples)
+    extra = _merge_category_extra(extra, report_category)
     payload = _build_sql_payload(question, start_date, end_date, extra)
-    return await _generate_sql_payload(payload, question=question, provider=provider)
+    return await _generate_sql_payload(payload, question=question, provider=provider, report_category=report_category)
 
 
 def build_sql_generation_payload_preview(
@@ -54,6 +56,7 @@ def build_sql_generation_payload_preview(
     end_date: str | None,
     similar_examples: list[dict[str, str]] | None = None,
     mistake_examples: list[dict[str, str]] | None = None,
+    report_category: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     extra = None
     if similar_examples or mistake_examples:
@@ -68,6 +71,7 @@ def build_sql_generation_payload_preview(
             extra["correct_approved_examples"] = _format_correct_examples(similar_examples)
         if mistake_examples:
             extra["past_mistakes_to_avoid"] = _format_mistake_examples(mistake_examples)
+    extra = _merge_category_extra(extra, report_category)
     payload = json.loads(_build_sql_payload(question, start_date, end_date, extra))
     examples = payload.get("correct_approved_examples") or []
     mistakes = payload.get("past_mistakes_to_avoid") or []
@@ -78,6 +82,7 @@ def build_sql_generation_payload_preview(
         "requirements_count": len(payload.get("requirements") or []),
         "similar_examples_count": len(examples),
         "mistake_examples_count": len(mistakes),
+        "report_category": payload.get("report_category"),
         "similar_examples_preview": [
             {
                 "user_question": _short_text(str(example.get("user_question") or ""), 120),
@@ -104,12 +109,13 @@ async def generate_sql_repair_with_ai(
     failed_sql: str,
     error_message: str,
     provider: str | None = None,
+    report_category: dict[str, Any] | None = None,
 ) -> dict[str, Any] | None:
     payload = _build_sql_payload(
         question,
         start_date,
         end_date,
-        {
+        _merge_category_extra({
             "repair_mode": True,
             "failed_sql": failed_sql,
             "error_message": error_message,
@@ -119,9 +125,9 @@ async def generate_sql_repair_with_ai(
                 "Use the supplied schema catalog and error_message to choose valid tables, columns, aliases, and joins.",
                 "If error_message names a missing column, find the correct column/table in the schema catalog before rewriting.",
             ],
-        },
+        }, report_category),
     )
-    return await _generate_sql_payload(payload, question=question, provider=provider)
+    return await _generate_sql_payload(payload, question=question, provider=provider, report_category=report_category)
 
 
 def _format_correct_examples(examples: list[dict[str, str]]) -> list[dict[str, str]]:
@@ -150,6 +156,34 @@ def _format_mistake_examples(examples: list[dict[str, str]]) -> list[dict[str, s
     ]
 
 
+def _merge_category_extra(extra: dict[str, Any] | None, report_category: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not report_category or report_category.get("id") == "custom":
+        return extra
+    merged = dict(extra or {})
+    requirements = list(merged.get("requirements") or [])
+    strict_mode = bool(report_category.get("strict_mode", False))
+    requirements.extend(
+        [
+            "Use the selected report category as guidance for choosing relevant tables, metrics, filters, and formulas.",
+            "If the report category is not enough to answer the question, still satisfy the user question using the schema catalog.",
+        ]
+    )
+    if strict_mode:
+        requirements.append("Strict category mode is enabled: use only the allowed_tables listed in report_category.")
+    merged["requirements"] = requirements
+    merged["report_category"] = {
+        "id": report_category.get("id"),
+        "label": report_category.get("label"),
+        "preferred_tables": report_category.get("preferred_tables", []),
+        "allowed_tables": report_category.get("allowed_tables", []),
+        "metrics": report_category.get("metrics", []),
+        "filters": report_category.get("filters", []),
+        "templates": report_category.get("templates", []),
+        "strict_mode": strict_mode,
+    }
+    return merged
+
+
 async def generate_sql_validation_retry_with_ai(
     question: str,
     start_date: str | None,
@@ -158,12 +192,13 @@ async def generate_sql_validation_retry_with_ai(
     validation_errors: list[dict[str, Any]],
     retry_prompt: str,
     provider: str | None = None,
+    report_category: dict[str, Any] | None = None,
 ) -> dict[str, Any] | None:
     payload = _build_sql_payload(
         question,
         start_date,
         end_date,
-        {
+        _merge_category_extra({
             "validation_retry_mode": True,
             "failed_sql": failed_output.get("sql") if isinstance(failed_output, dict) else failed_output,
             "validation_errors": validation_errors,
@@ -174,9 +209,9 @@ async def generate_sql_validation_retry_with_ai(
                 "Do not repeat unsafe SQL or invalid schema references.",
                 "Do not return clarification_needed when the issue is only a missing top/limit count; use the safe app LIMIT instead.",
             ],
-        },
+        }, report_category),
     )
-    return await _generate_sql_payload(payload, question=question, provider=provider)
+    return await _generate_sql_payload(payload, question=question, provider=provider, report_category=report_category)
 
 
 def _build_sql_payload(
@@ -214,6 +249,7 @@ async def _generate_sql_payload(
     payload: str,
     question: str | None = None,
     provider: str | None = None,
+    report_category: dict[str, Any] | None = None,
 ) -> dict[str, Any] | None:
     settings = get_settings()
     if not settings.ai_sql_enabled:
@@ -223,7 +259,7 @@ async def _generate_sql_payload(
     prompt = (Path(__file__).resolve().parents[1] / "prompts" / "sql_system.md").read_text(encoding="utf-8")
 
     provider = (provider or settings.ai_provider).lower()
-    context = catalog_context()
+    context = catalog_context(report_category)
 
     if provider == "openrouter":
         if not settings.openrouter_api_key:

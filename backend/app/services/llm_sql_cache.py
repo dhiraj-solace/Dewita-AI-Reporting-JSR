@@ -76,6 +76,7 @@ def build_cache_identity(
     end_date: str | None,
     limit: int,
     schema_snapshot: dict[str, Any],
+    report_category: str | None = None,
 ) -> dict[str, Any]:
     normalized = normalize_query(question)
     canonical_tokens = _canonical_tokens(normalized)
@@ -83,6 +84,7 @@ def build_cache_identity(
         "start_date": start_date,
         "end_date": end_date,
         "limit": limit,
+        "report_category": report_category or "custom",
         "schema_version": schema_version(schema_snapshot),
     }
     return {
@@ -106,11 +108,12 @@ def get_cached_sql(
     end_date: str | None,
     limit: int,
     schema_snapshot: dict[str, Any],
+    report_category: str | None = None,
 ) -> tuple[dict[str, Any] | None, str]:
     if not get_settings().llm_sql_cache_enabled:
         return None, "disabled"
 
-    identity = build_cache_identity(question, start_date, end_date, limit, schema_snapshot)
+    identity = build_cache_identity(question, start_date, end_date, limit, schema_snapshot, report_category)
     cache = _load_cache()
     now = _now()
     exact_key = generate_cache_key(identity["exact"])
@@ -144,6 +147,7 @@ def set_cached_sql(
     schema_snapshot: dict[str, Any],
     generated: dict[str, Any],
     tags: list[str] | None = None,
+    report_category: str | None = None,
 ) -> dict[str, Any] | None:
     if not get_settings().llm_sql_cache_enabled:
         return None
@@ -152,7 +156,7 @@ def set_cached_sql(
         return None
 
     settings = get_settings()
-    identity = build_cache_identity(question, start_date, end_date, limit, schema_snapshot)
+    identity = build_cache_identity(question, start_date, end_date, limit, schema_snapshot, report_category)
     exact_key = generate_cache_key(identity["exact"])
     intent_key = generate_cache_key(identity["intent"])
     entry_key = intent_key
@@ -176,6 +180,7 @@ def set_cached_sql(
             "start_date": start_date,
             "end_date": end_date,
             "limit": limit,
+            "report_category": report_category or "custom",
         },
         "response": {
             "title": generated.get("title") or "SQL Report",

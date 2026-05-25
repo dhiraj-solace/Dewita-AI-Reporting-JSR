@@ -10,7 +10,7 @@ ROOT_ENV = Path(__file__).resolve().parents[3] / ".env"
 class Settings(BaseSettings):
     app_name: str = "Devita AI Reporting"
     environment: str = "local"
-    cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
+    cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000,http://192.168.1.7:3000"
 
     database_url: str | None = None
     db_host: str | None = None

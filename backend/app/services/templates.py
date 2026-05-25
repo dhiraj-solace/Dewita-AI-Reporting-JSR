@@ -7,6 +7,7 @@ class QueryTemplate:
     keywords: tuple[str, ...]
     sql: str
     explanation: str
+    categories: tuple[str, ...] = ()
 
 
 TEMPLATES: tuple[QueryTemplate, ...] = (
@@ -27,8 +28,9 @@ LEFT JOIN users u ON u.id = a.user_id
 WHERE (:start_date IS NULL OR a.date >= :start_date)
   AND (:end_date IS NULL OR a.date <= :end_date)
 ORDER BY a.date DESC, u.name
-""".strip(),
+        """.strip(),
         explanation="Attendance with calculated work hours from check-in and check-out.",
+        categories=("attendance",),
     ),
     QueryTemplate(
         title="Team Timesheet Report",
@@ -49,8 +51,9 @@ LEFT JOIN projects p ON p.id = tr.project_id
 WHERE (:start_date IS NULL OR tr.date >= :start_date)
   AND (:end_date IS NULL OR tr.date <= :end_date)
 ORDER BY tr.date DESC, employee_name, p.project_name
-""".strip(),
+        """.strip(),
         explanation="Time entries joined to employee and project context.",
+        categories=("timesheet",),
     ),
     QueryTemplate(
         title="Week Five Report",
@@ -77,8 +80,9 @@ WHERE p.project_status != 'Completed'
   AND (:end_date IS NULL OR DATE(p.created_at) <= :end_date)
 GROUP BY ptype.name, p.project_mfg_type
 ORDER BY total_projects DESC, project_type
-""".strip(),
+        """.strip(),
         explanation="Five-week planning summary grouped by project type and manufacturing type for active non-DAI CAD/BIM projects.",
+        categories=("project",),
     ),
     QueryTemplate(
         title="Project Summary Report",
@@ -107,8 +111,9 @@ WHERE (:start_date IS NULL OR p.start_date >= :start_date)
   AND (:end_date IS NULL OR p.start_date <= :end_date)
 GROUP BY p.id
 ORDER BY p.start_date DESC, p.project_name
-""".strip(),
+        """.strip(),
         explanation="Project-level status, budgeted vs actual hours, and task volume.",
+        categories=("project", "finance"),
     ),
     QueryTemplate(
         title="Post Error Report",
@@ -132,8 +137,9 @@ LEFT JOIN users assignee ON assignee.id = tbm.bug_assigned_to
 WHERE (:start_date IS NULL OR DATE(tbm.created_at) >= :start_date)
   AND (:end_date IS NULL OR DATE(tbm.created_at) <= :end_date)
 ORDER BY tbm.created_at DESC, tbm.severity
-""".strip(),
+        """.strip(),
         explanation="Bug/error records with project, severity, status, and ownership.",
+        categories=("quality",),
     ),
     QueryTemplate(
         title="Revision Summary by Project and Team Leader",
@@ -162,16 +168,19 @@ WHERE (:start_date IS NULL OR cr.date >= :start_date)
   AND (:end_date IS NULL OR cr.date <= :end_date)
 GROUP BY p.id, p.project_name, primary_tl.name
 ORDER BY total_revisions DESC, p.project_name
-""".strip(),
+        """.strip(),
         explanation="Counts change requests as revisions, grouped by project and project team leader for the requested period.",
+        categories=("revision",),
     ),
 )
 
-def find_template(question: str) -> QueryTemplate | None:
+def find_template(question: str, category_id: str | None = None) -> QueryTemplate | None:
     normalized = question.lower().replace("-", " ")
     scored: list[tuple[int, QueryTemplate]] = []
     for template in TEMPLATES:
         score = sum(1 for keyword in template.keywords if keyword in normalized)
+        if category_id and category_id in template.categories:
+            score += 3
         if score:
             scored.append((score, template))
     if not scored:

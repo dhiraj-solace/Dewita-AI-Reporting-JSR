@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import get_settings
 from app.db import get_engine
 from app.models import AiSqlAttempt, AiSqlAttemptPreview, AiSqlAttemptReviewRequest, GeneratedReport, ReportRequest, SqlMistakeExample
-from app.services.catalog import load_report_catalog, load_schema_catalog
+from app.services.catalog import load_report_catalog, load_report_categories, load_schema_catalog
 from app.services.ai_sql_attempt_store import get_attempt, list_attempts, review_attempt
 from app.services.admin_attempt_preview import preview_attempt_rows
 from app.services.sql_mistake_store import list_mistake_examples
@@ -66,6 +66,11 @@ def refresh_schema() -> dict:
 @app.get("/api/reports/catalog")
 def report_catalog() -> dict:
     return load_report_catalog()
+
+
+@app.get("/api/reports/categories")
+def report_categories() -> dict:
+    return load_report_categories()
 
 
 @app.post("/api/reports/query", response_model=GeneratedReport)

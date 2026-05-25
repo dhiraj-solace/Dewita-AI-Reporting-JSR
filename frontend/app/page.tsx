@@ -24,7 +24,7 @@ import {
   User,
   Users
 } from "lucide-react";
-import {ApiError, GeneratedReport, Health, RetryAttempt, getHealth, runReport} from "@/lib/api";
+import {ApiError, GeneratedReport, Health, ReportCategory, RetryAttempt, getHealth, listReportCategories, runReport} from "@/lib/api";
 
 const monthOptions = ["January", "February", "March", "April", "May", "June"];
 const examples = [
@@ -75,6 +75,22 @@ const sqlProviderOptions = [
   {label: "Local Qwen", value: "ollama"}
 ] as const;
 type SqlGenerationProvider = (typeof sqlProviderOptions)[number]["value"];
+
+const fallbackReportCategories: ReportCategory[] = [
+  {id: "auto", label: "Auto Detect"},
+  {id: "custom", label: "Custom Report"},
+  {id: "project", label: "Project Report"},
+  {id: "task", label: "Task Report"},
+  {id: "attendance", label: "Attendance Report"},
+  {id: "timesheet", label: "Timesheet Report"},
+  {id: "revision", label: "Revision / Change Request Report"},
+  {id: "quality", label: "Bug / Post Error Report"},
+  {id: "product", label: "Product / Manufacturing Report"},
+  {id: "team_employee", label: "Team / Employee Report"},
+  {id: "bsl", label: "BSL Report"},
+  {id: "checklist", label: "Checklist Report"},
+  {id: "markup", label: "Markup / Drawing Report"}
+];
 
 function humanizeColumn(column: string) {
   const knownLabels: Record<string, string> = {
@@ -191,6 +207,8 @@ export default function Home() {
   const [question, setQuestion] = useState(examples[0]);
   const [month, setMonth] = useState("April");
   const [year, setYear] = useState("2026");
+  const [reportCategory, setReportCategory] = useState("custom");
+  const [reportCategories, setReportCategories] = useState<ReportCategory[]>(fallbackReportCategories);
   const [sqlProvider, setSqlProvider] = useState<SqlGenerationProvider>("openrouter");
   const [report, setReport] = useState<GeneratedReport | null>(null);
   const [status, setStatus] = useState<Health | null>(null);
@@ -205,6 +223,11 @@ export default function Home() {
 
   useEffect(() => {
     getHealth().then(setStatus).catch(() => setStatus(null));
+    listReportCategories()
+      .then((categories) => {
+        if (categories.length > 0) setReportCategories(categories);
+      })
+      .catch(() => setReportCategories(fallbackReportCategories));
   }, []);
 
   const visibleRows = useMemo(() => report?.rows.slice(0, 100) ?? [], [report]);
@@ -223,6 +246,7 @@ export default function Home() {
     try {
       const result = await runReport({
         question: nextQuestion,
+        report_category: reportCategory,
         limit: 500,
         dry_run: false,
         sql_generation_provider: sqlProvider
@@ -311,6 +335,14 @@ export default function Home() {
         <section className="content">
           <section className="filter-card">
             <div className="filter-grid">
+              <label>
+                <span>Report Category</span>
+                <select value={reportCategory} onChange={(event) => setReportCategory(event.target.value)}>
+                  {reportCategories.map((category) => (
+                    <option key={category.id} value={category.id}>{category.label}</option>
+                  ))}
+                </select>
+              </label>
               <label>
                 <span>Month</span>
                 <select value={month} onChange={(event) => setMonth(event.target.value)}>

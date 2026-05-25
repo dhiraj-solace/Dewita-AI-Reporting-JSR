@@ -8,6 +8,7 @@ from pydantic import ValidationError
 
 from app.core.config import get_settings
 from app.models import ValidationResult
+from app.services.schema_validator import extract_cte_names
 
 logger = logging.getLogger(__name__)
 
@@ -195,8 +196,11 @@ def _compact_schema(schema: dict[str, Any], sql: str) -> dict[str, Any]:
 
 def _referenced_table_names(sql: str, tables_by_name: dict[str, dict[str, Any]]) -> set[str]:
     names: set[str] = set()
+    cte_names = extract_cte_names(sql)
     for match in re.finditer(r"\b(?:from|join)\s+`?([A-Za-z_][\w]*)`?", sql, re.IGNORECASE):
         raw_name = match.group(1)
+        if raw_name.lower() in cte_names:
+            continue
         table = tables_by_name.get(raw_name.lower())
         names.add(table["name"] if table else raw_name)
     return names

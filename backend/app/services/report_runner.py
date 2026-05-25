@@ -10,6 +10,7 @@ from app.db import fetch_rows
 from app.models import GeneratedReport, ReportRequest, RetryAttempt
 from app.services.ai_sql_attempt_store import create_attempt, similar_gold_examples, update_attempt
 from app.services.date_resolver import resolve_date_range
+from app.services.catalog import resolve_report_category
 from app.services.llm import (
     AiSqlGenerationError,
     build_sql_generation_payload_preview,
@@ -78,6 +79,11 @@ async def build_report(request: ReportRequest) -> GeneratedReport:
 
     warnings: list[str] = []
     retry_attempts: list[RetryAttempt] = []
+    report_category = resolve_report_category(request.report_category, request.question)
+    category_id = str(report_category.get("id") or "custom") if report_category else "custom"
+    category_label = str(report_category.get("label") or "Custom Report") if report_category else "Custom Report"
+    if request.report_category and not report_category:
+        warnings.append(f"Unknown report category '{request.report_category}' was ignored.")
     resolved_dates = resolve_date_range(request.question, request.start_date, request.end_date)
     schema_snapshot = _safe_schema()
     attempt_id = create_attempt(request.question, schema_snapshot)
@@ -86,6 +92,7 @@ async def build_report(request: ReportRequest) -> GeneratedReport:
     cache_entry: dict[str, Any] | None = None
     generated_source: str | None = None
     _console_attempt_log(attempt_id, "request", f"received user question: {_short_reason(request.question)}")
+    _console_attempt_log(attempt_id, "category", f"using report category: {category_label} ({category_id})")
     _console_attempt_log(attempt_id, "schema", f"loaded schema with {_schema_table_count(schema_snapshot)} table(s)")
     _console_attempt_log(attempt_id, "start", "request started")
     _console_validation_log("request started")
@@ -97,6 +104,7 @@ async def build_report(request: ReportRequest) -> GeneratedReport:
             resolved_dates.end_date,
             request.limit,
             schema_snapshot,
+            category_id,
         )
         if cache_entry:
             generated = {
@@ -166,6 +174,7 @@ async def build_report(request: ReportRequest) -> GeneratedReport:
                     resolved_dates.end_date,
                     examples,
                     mistake_examples,
+                    report_category,
                 ),
             )
             _console_attempt_log(attempt_id, "generation", "calling first AI model")
@@ -176,6 +185,7 @@ async def build_report(request: ReportRequest) -> GeneratedReport:
                 examples,
                 mistake_examples,
                 request.sql_generation_provider,
+                report_category,
             )
             generated_source = "ai" if generated is not None else None
     except AiSqlGenerationError as exc:
@@ -189,7 +199,7 @@ async def build_report(request: ReportRequest) -> GeneratedReport:
         logger.warning("AI SQL generation failed.")
         logger.info("Falling back to template-based report generation")
         
-        template = find_template(request.question)
+        template = find_template(request.question, category_id)
         if template is None:
             logger.warning("No exact template match found, using Project Summary as default")
             template = find_template("project summary")
@@ -248,6 +258,7 @@ async def build_report(request: ReportRequest) -> GeneratedReport:
                 request.limit,
                 schema_snapshot,
                 {**generated, "sql": sql},
+                report_category=category_id,
             )
     params = {"start_date": resolved_dates.start_date, "end_date": resolved_dates.end_date}
 
@@ -545,6 +556,7 @@ async def _validate_generated_output_with_retries(
         }
         _console_validation_detail("data passed to llm1 retry", llm1_retry_payload)
         try:
+            report_category = resolve_report_category(request.report_category, request.question)
             regenerated = await generate_sql_validation_retry_with_ai(
                 llm1_retry_payload["user_query"],
                 llm1_retry_payload["start_date"],
@@ -553,6 +565,7 @@ async def _validate_generated_output_with_retries(
                 llm1_retry_payload["validation_errors"],
                 llm1_retry_payload["validation_reason_from_llm2"],
                 request.sql_generation_provider,
+                report_category,
             )
         except AiSqlGenerationError as exc:
             raise _ai_report_error(exc, []) from exc
@@ -942,7 +955,9 @@ async def _execute_with_schema_retries(
 
 
 def _fallback_sql(request: ReportRequest, max_rows: int, warnings: list[str]) -> str:
-    template = find_template(request.question) or find_template("project summary")
+    report_category = resolve_report_category(request.report_category, request.question)
+    category_id = str(report_category.get("id") or "custom") if report_category else "custom"
+    template = find_template(request.question, category_id) or find_template("project summary")
     warnings.append("Generated SQL did not match the live schema, so a safe built-in template was retried.")
     resolved_dates = resolve_date_range(request.question, request.start_date, request.end_date)
     return _prepare_sql(template.sql, max_rows, warnings, resolved_dates.start_date, resolved_dates.end_date)
@@ -956,6 +971,7 @@ async def _repair_generated_sql(
     warnings: list[str],
 ) -> str | None:
     resolved_dates = resolve_date_range(request.question, request.start_date, request.end_date)
+    report_category = resolve_report_category(request.report_category, request.question)
     repaired = await generate_sql_repair_with_ai(
         request.question,
         resolved_dates.start_date,
@@ -963,6 +979,7 @@ async def _repair_generated_sql(
         failed_sql,
         error_message,
         request.sql_generation_provider,
+        report_category,
     )
     if repaired is None:
         return None

@@ -26,6 +26,7 @@ SQL_KEYWORDS = {
     "having",
     "union",
 }
+IDENTIFIER = re.compile(r"`?(?P<name>[A-Za-z_][\w]*)`?")
 
 
 @dataclass
@@ -99,6 +100,7 @@ def validate_sql_against_schema(sql: str, schema: dict[str, Any]) -> list[str]:
     if not index:
         return warnings + ["Schema index is empty; skipped SQL schema validation."]
 
+    cte_names = extract_cte_names(sql)
     alias_to_table: dict[str, str] = {}
     for match in TABLE_REF.finditer(sql):
         table = match.group("table")
@@ -107,6 +109,8 @@ def validate_sql_against_schema(sql: str, schema: dict[str, Any]) -> list[str]:
             alias = table
         entry = index.get(table.lower())
         if entry is None:
+            if table.lower() in cte_names:
+                continue
             raise SchemaValidationError(_diagnose_missing_table(table, index))
         alias_to_table[alias.lower()] = entry["name"]
         alias_to_table[table.lower()] = entry["name"]
@@ -122,6 +126,77 @@ def validate_sql_against_schema(sql: str, schema: dict[str, Any]) -> list[str]:
             raise SchemaValidationError(_diagnose_missing_column(column, table_name, entry, index))
 
     return warnings
+
+
+def extract_cte_names(sql: str) -> set[str]:
+    cleaned = sql.strip()
+    if not re.match(r"^with\b", cleaned, re.IGNORECASE):
+        return set()
+
+    pos = 4
+    length = len(cleaned)
+    names: set[str] = set()
+
+    pos = _skip_whitespace(cleaned, pos)
+    if cleaned[pos : pos + 9].lower() == "recursive":
+        pos = _skip_whitespace(cleaned, pos + 9)
+
+    while pos < length:
+        match = IDENTIFIER.match(cleaned, pos)
+        if not match:
+            break
+        names.add(match.group("name").lower())
+        pos = _skip_whitespace(cleaned, match.end())
+
+        if pos < length and cleaned[pos] == "(":
+            pos = _skip_balanced_parentheses(cleaned, pos)
+            pos = _skip_whitespace(cleaned, pos)
+
+        if cleaned[pos : pos + 2].lower() != "as":
+            break
+        pos = _skip_whitespace(cleaned, pos + 2)
+        if pos >= length or cleaned[pos] != "(":
+            break
+        pos = _skip_balanced_parentheses(cleaned, pos)
+        pos = _skip_whitespace(cleaned, pos)
+
+        if pos < length and cleaned[pos] == ",":
+            pos = _skip_whitespace(cleaned, pos + 1)
+            continue
+        break
+
+    return names
+
+
+def _skip_whitespace(value: str, pos: int) -> int:
+    length = len(value)
+    while pos < length and value[pos].isspace():
+        pos += 1
+    return pos
+
+
+def _skip_balanced_parentheses(value: str, pos: int) -> int:
+    depth = 0
+    quote: str | None = None
+    length = len(value)
+    while pos < length:
+        char = value[pos]
+        if quote:
+            if char == quote:
+                if pos + 1 < length and value[pos + 1] == quote:
+                    pos += 2
+                    continue
+                quote = None
+        elif char in ("'", '"', "`"):
+            quote = char
+        elif char == "(":
+            depth += 1
+        elif char == ")":
+            depth -= 1
+            if depth == 0:
+                return pos + 1
+        pos += 1
+    return pos
 
 
 def diagnose_database_error(error: Exception, schema: dict[str, Any]) -> SchemaDiagnosis | None:
