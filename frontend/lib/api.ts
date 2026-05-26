@@ -1,6 +1,7 @@
 export type ReportRequest = {
   question: string;
   report_category?: string | null;
+  current_user_role?: string | null;
   start_date?: string | null;
   end_date?: string | null;
   limit: number;
@@ -18,6 +19,7 @@ export type GeneratedReport = {
   attempt_id?: string | null;
   saved_report_id?: string | null;
   generated_source?: string | null;
+  report_category?: string | null;
   title: string;
   question: string;
   sql: string;
@@ -35,6 +37,7 @@ export type SavedReportSummary = {
   id: string;
   title: string;
   question: string;
+  report_category?: string | null;
   row_count: number;
   created_at: string;
 };
@@ -54,10 +57,34 @@ export type Health = {
   ai_enabled: boolean;
 };
 
+export type RoleReportPermission = {
+  role_name: string;
+  report_category: string;
+  can_view: boolean;
+  can_create: boolean;
+  can_export: boolean;
+  can_save: boolean;
+  can_view_saved: boolean;
+  data_scope: "all" | "role" | "team" | "project" | "self" | "none";
+};
+
+export type ReportPermissionsMatrix = {
+  roles: string[];
+  categories: ReportCategory[];
+  permissions: RoleReportPermission[];
+  scopes: RoleReportPermission["data_scope"][];
+};
+
 export type AiSqlAttempt = {
   id: string;
   user_question: string;
   schema_snapshot?: string | null;
+  generation_provider?: string | null;
+  generation_model?: string | null;
+  generation_elapsed_ms?: number | null;
+  validator_elapsed_ms?: number | null;
+  execution_elapsed_ms?: number | null;
+  total_elapsed_ms?: number | null;
   generated_sql?: string | null;
   validator_status?: string | null;
   validator_feedback?: string | null;
@@ -163,24 +190,47 @@ export async function listReportCategories(): Promise<ReportCategory[]> {
   return payload.categories || [];
 }
 
-export async function listSavedReports(): Promise<SavedReportSummary[]> {
-  const response = await fetch(`${API_URL}/api/reports/saved?limit=25`, {cache: "no-store"});
+export async function listReportPermissions(): Promise<ReportPermissionsMatrix> {
+  const response = await fetch(`${API_URL}/api/admin/report-permissions`, {cache: "no-store"});
+  if (!response.ok) {
+    throw new ApiError("Unable to load report permissions");
+  }
+  return response.json();
+}
+
+export async function updateReportPermissions(permissions: RoleReportPermission[]): Promise<ReportPermissionsMatrix> {
+  const response = await fetch(`${API_URL}/api/admin/report-permissions`, {
+    method: "PUT",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({permissions})
+  });
+  if (!response.ok) {
+    throw new ApiError("Unable to update report permissions");
+  }
+  return response.json();
+}
+
+export async function listSavedReports(role = "Super Admin"): Promise<SavedReportSummary[]> {
+  const params = new URLSearchParams({limit: "25", role});
+  const response = await fetch(`${API_URL}/api/reports/saved?${params.toString()}`, {cache: "no-store"});
   if (!response.ok) {
     throw new ApiError("Unable to load saved reports");
   }
   return response.json();
 }
 
-export async function getSavedReport(reportId: string): Promise<GeneratedReport> {
-  const response = await fetch(`${API_URL}/api/reports/saved/${reportId}`, {cache: "no-store"});
+export async function getSavedReport(reportId: string, role = "Super Admin"): Promise<GeneratedReport> {
+  const params = new URLSearchParams({role});
+  const response = await fetch(`${API_URL}/api/reports/saved/${reportId}?${params.toString()}`, {cache: "no-store"});
   if (!response.ok) {
     throw new ApiError("Unable to load saved report");
   }
   return response.json();
 }
 
-export function savedReportExportUrl(reportId: string, format: "pdf" | "xlsx"): string {
-  return `${API_URL}/api/reports/saved/${reportId}/export/${format}`;
+export function savedReportExportUrl(reportId: string, format: "pdf" | "xlsx", role = "Super Admin"): string {
+  const params = new URLSearchParams({role});
+  return `${API_URL}/api/reports/saved/${reportId}/export/${format}?${params.toString()}`;
 }
 
 export async function listAiSqlAttempts(goldOnly = false): Promise<AiSqlAttempt[]> {

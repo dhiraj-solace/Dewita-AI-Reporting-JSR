@@ -1,6 +1,7 @@
 "use client";
 
 import {useEffect, useMemo, useState} from "react";
+import Link from "next/link";
 import {
   BarChart3,
   Bot,
@@ -32,11 +33,13 @@ import {
   GeneratedReport,
   Health,
   ReportCategory,
+  RoleReportPermission,
   RetryAttempt,
   SavedReportSummary,
   getHealth,
   getSavedReport,
   listReportCategories,
+  listReportPermissions,
   listSavedReports,
   runReport,
   savedReportExportUrl
@@ -91,6 +94,7 @@ const sqlProviderOptions = [
   {label: "Local Qwen", value: "ollama"}
 ] as const;
 type SqlGenerationProvider = (typeof sqlProviderOptions)[number]["value"];
+const roleOptions = ["Super Admin", "HR", "Project Manager", "Team Leader", "Team Member"];
 
 const fallbackReportCategories: ReportCategory[] = [
   {id: "auto", label: "Auto Detect"},
@@ -224,7 +228,9 @@ export default function Home() {
   const [month, setMonth] = useState("April");
   const [year, setYear] = useState("2026");
   const [reportCategory, setReportCategory] = useState("custom");
+  const [currentRole, setCurrentRole] = useState("Super Admin");
   const [reportCategories, setReportCategories] = useState<ReportCategory[]>(fallbackReportCategories);
+  const [rolePermissions, setRolePermissions] = useState<RoleReportPermission[]>([]);
   const [sqlProvider, setSqlProvider] = useState<SqlGenerationProvider>("openrouter");
   const [report, setReport] = useState<GeneratedReport | null>(null);
   const [status, setStatus] = useState<Health | null>(null);
@@ -246,18 +252,44 @@ export default function Home() {
         if (categories.length > 0) setReportCategories(categories);
       })
       .catch(() => setReportCategories(fallbackReportCategories));
-    refreshSavedReports();
+    listReportPermissions()
+      .then((payload) => {
+        if (payload.categories.length > 0) setReportCategories(payload.categories);
+        setRolePermissions(payload.permissions);
+      })
+      .catch(() => setRolePermissions([]));
   }, []);
+
+  useEffect(() => {
+    refreshSavedReports();
+    setReport(null);
+  }, [currentRole]);
 
   const visibleRows = useMemo(() => report?.rows.slice(0, 100) ?? [], [report]);
   const summaryItems = useMemo(() => report ? buildSummaryItems(report) : [], [report]);
   const retrySummary = useMemo(() => validationSummary(retryAttempts), [retryAttempts]);
   const activeSavedReportId = report?.saved_report_id ?? null;
+  const visibleReportCategories = useMemo(() => {
+    const allowed = new Set(
+      rolePermissions
+        .filter((permission) => permission.role_name === currentRole && permission.can_create && permission.data_scope !== "none")
+        .map((permission) => permission.report_category)
+    );
+    if (allowed.size === 0 && rolePermissions.length > 0) return [];
+    return reportCategories.filter((category) => category.id !== "auto" && (allowed.size === 0 || allowed.has(category.id)));
+  }, [currentRole, reportCategories, rolePermissions]);
+
+  useEffect(() => {
+    if (visibleReportCategories.length === 0) return;
+    if (!visibleReportCategories.some((category) => category.id === reportCategory)) {
+      setReportCategory(visibleReportCategories[0].id);
+    }
+  }, [reportCategory, visibleReportCategories]);
 
   async function refreshSavedReports() {
     setSavedLoading(true);
     try {
-      setSavedReports(await listSavedReports());
+      setSavedReports(await listSavedReports(currentRole));
     } catch {
       setSavedReports([]);
     } finally {
@@ -272,7 +304,7 @@ export default function Home() {
     setErrorSolution("");
     setErrorStatusCode(null);
     try {
-      const saved = await getSavedReport(reportId);
+      const saved = await getSavedReport(reportId, currentRole);
       setReport(saved);
       setQuestion(saved.question);
       setRetryAttempts(saved.retry_attempts ?? []);
@@ -289,7 +321,7 @@ export default function Home() {
 
   function downloadSavedReport(format: "pdf" | "xlsx") {
     if (!activeSavedReportId) return;
-    window.location.href = savedReportExportUrl(activeSavedReportId, format);
+    window.location.href = savedReportExportUrl(activeSavedReportId, format, currentRole);
   }
 
   async function submit(nextQuestion = question) {
@@ -305,6 +337,7 @@ export default function Home() {
       const result = await runReport({
         question: nextQuestion,
         report_category: reportCategory,
+        current_user_role: currentRole,
         limit: 500,
         dry_run: false,
         sql_generation_provider: sqlProvider
@@ -364,7 +397,9 @@ export default function Home() {
         <div className="utility-nav">
           <div className="nav-row"><Users size={21} /><span>Employee Summary</span></div>
           <div className="nav-row"><CheckSquare size={21} /><span>Checklist Management</span></div>
-          <div className="nav-row"><Settings size={21} /><span>Settings</span></div>
+          <Link className="nav-row role-admin-link" href="/admin/report-permissions">
+            <Settings size={21} /><span>Report Permissions</span>
+          </Link>
           <div className="nav-row help"><HelpCircle size={21} /><span>Help Section</span></div>
         </div>
 
@@ -387,7 +422,12 @@ export default function Home() {
             </span>
             <button className="icon-button" title="Fullscreen"><Expand size={23} /></button>
             <User size={24} />
-            <span>Yogesh Tamhankar | Project Manager</span>
+            <label className="role-switcher">
+              <span>Active Role</span>
+              <select value={currentRole} onChange={(event) => setCurrentRole(event.target.value)}>
+                {roleOptions.map((role) => <option key={role} value={role}>{role}</option>)}
+              </select>
+            </label>
           </div>
         </header>
 
@@ -396,8 +436,13 @@ export default function Home() {
             <div className="filter-grid">
               <label>
                 <span>Report Category</span>
-                <select value={reportCategory} onChange={(event) => setReportCategory(event.target.value)}>
-                  {reportCategories.map((category) => (
+                <select
+                  value={visibleReportCategories.some((category) => category.id === reportCategory) ? reportCategory : ""}
+                  onChange={(event) => setReportCategory(event.target.value)}
+                  disabled={visibleReportCategories.length === 0}
+                >
+                  {visibleReportCategories.length === 0 && <option value="">No permitted reports</option>}
+                  {visibleReportCategories.map((category) => (
                     <option key={category.id} value={category.id}>{category.label}</option>
                   ))}
                 </select>
@@ -443,7 +488,7 @@ export default function Home() {
               <div className="searchbar">
                 <Search size={28} />
                 <input value={question} onChange={(event) => setQuestion(event.target.value)} />
-                <button onClick={() => submit()} disabled={loading}>
+                <button onClick={() => submit()} disabled={loading || visibleReportCategories.length === 0}>
                   {loading ? <Loader2 className="spin" size={22} /> : <Send size={23} />}
                   <span>{loading ? "Generating" : "Generate"}</span>
                 </button>
@@ -451,7 +496,7 @@ export default function Home() {
 
               <div className="chips">
                 {examples.map((example) => (
-                  <button key={example} onClick={() => submit(example)}>{example}</button>
+                  <button disabled={visibleReportCategories.length === 0} key={example} onClick={() => submit(example)}>{example}</button>
                 ))}
               </div>
             </div>

@@ -37,6 +37,12 @@ function formatValue(value: unknown) {
   return String(value);
 }
 
+function formatMs(value?: number | null) {
+  if (value === null || value === undefined) return "-";
+  if (value >= 1000) return `${(value / 1000).toFixed(1)}s`;
+  return `${value}ms`;
+}
+
 function countByStatus(attempts: AiSqlAttempt[], status: string) {
   return attempts.filter((attempt) => (attempt.execution_status || "pending").toLowerCase() === status).length;
 }
@@ -219,6 +225,12 @@ export default function AiSqlAttemptsAdminPage() {
                 <span className={statusClass(selected.validator_status)}>Validator: {selected.validator_status || "pending"}</span>
                 <span className={statusClass(selected.execution_status)}>Execution: {selected.execution_status || "pending"}</span>
                 <span><Database size={15} /> Rows: {selected.result_row_count ?? "-"}</span>
+                <span>Provider: {selected.generation_provider || "-"}</span>
+                <span>Model: {selected.generation_model || "-"}</span>
+                <span>Generation: {formatMs(selected.generation_elapsed_ms)}</span>
+                <span>Validator: {formatMs(selected.validator_elapsed_ms)}</span>
+                <span>SQL: {formatMs(selected.execution_elapsed_ms)}</span>
+                <span>Total: {formatMs(selected.total_elapsed_ms)}</span>
                 <span>Feedback: {selected.user_feedback_status || "pending"}</span>
                 <span>{selected.admin_approved ? "Admin approved" : "Not approved"}</span>
                 <span>{selected.is_gold_example ? "Gold example" : "Not gold"}</span>

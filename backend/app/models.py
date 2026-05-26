@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field
 class ReportRequest(BaseModel):
     question: str = Field(..., min_length=3)
     report_category: str | None = None
+    current_user_role: str | None = "Super Admin"
     start_date: str | None = None
     end_date: str | None = None
     limit: int = Field(default=100, ge=1, le=1000)
@@ -38,6 +39,7 @@ class GeneratedReport(BaseModel):
     attempt_id: str | None = None
     saved_report_id: str | None = None
     generated_source: str | None = None
+    report_category: str | None = None
     title: str
     question: str
     sql: str
@@ -55,14 +57,36 @@ class SavedReportSummary(BaseModel):
     id: str
     title: str
     question: str
+    report_category: str | None = None
     row_count: int
     created_at: Any
+
+
+class RoleReportPermission(BaseModel):
+    role_name: str
+    report_category: str
+    can_view: bool = False
+    can_create: bool = False
+    can_export: bool = False
+    can_save: bool = False
+    can_view_saved: bool = False
+    data_scope: str = Field(default="self", pattern="^(all|role|team|project|self|none)$")
+
+
+class RoleReportPermissionsPayload(BaseModel):
+    permissions: list[RoleReportPermission]
 
 
 class AiSqlAttempt(BaseModel):
     id: str
     user_question: str
     schema_snapshot: str | None = None
+    generation_provider: str | None = None
+    generation_model: str | None = None
+    generation_elapsed_ms: int | None = None
+    validator_elapsed_ms: int | None = None
+    execution_elapsed_ms: int | None = None
+    total_elapsed_ms: int | None = None
     generated_sql: str | None = None
     validator_status: str | None = None
     validator_feedback: str | None = None

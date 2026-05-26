@@ -4,10 +4,11 @@ from fastapi.responses import Response
 
 from app.core.config import get_settings
 from app.db import get_engine
-from app.models import AiSqlAttempt, AiSqlAttemptPreview, AiSqlAttemptReviewRequest, GeneratedReport, ReportRequest, SavedReportSummary, SqlMistakeExample
+from app.models import AiSqlAttempt, AiSqlAttemptPreview, AiSqlAttemptReviewRequest, GeneratedReport, ReportRequest, RoleReportPermissionsPayload, SavedReportSummary, SqlMistakeExample
 from app.services.catalog import load_report_catalog, load_report_categories, load_schema_catalog
 from app.services.ai_sql_attempt_store import get_attempt, list_attempts, review_attempt
 from app.services.admin_attempt_preview import preview_attempt_rows
+from app.services.report_permissions import ReportPermissionError, assert_report_permission, list_role_report_permissions, replace_role_report_permissions
 from app.services.report_exporter import export_filename, export_report_pdf, export_report_xlsx
 from app.services.saved_report_store import get_saved_report, list_saved_reports, save_generated_report
 from app.services.sql_mistake_store import list_mistake_examples
@@ -76,11 +77,33 @@ def report_categories() -> dict:
     return load_report_categories()
 
 
+@app.get("/api/admin/report-permissions")
+def admin_report_permissions() -> dict:
+    try:
+        return list_role_report_permissions()
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@app.put("/api/admin/report-permissions")
+def admin_update_report_permissions(payload: RoleReportPermissionsPayload) -> dict:
+    try:
+        return replace_role_report_permissions([item.model_dump() for item in payload.permissions])
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
 @app.post("/api/reports/query", response_model=GeneratedReport)
 async def query_report(request: ReportRequest) -> GeneratedReport:
     try:
         report = await build_report(request)
         if report.generated_source == "cache":
+            return report
+        try:
+            assert_report_permission(request.current_user_role, report.report_category or "custom", "save")
+        except ReportPermissionError:
             return report
         saved_report_id = save_generated_report(report)
         return report.model_copy(update={"saved_report_id": saved_report_id})
@@ -101,19 +124,26 @@ async def query_report(request: ReportRequest) -> GeneratedReport:
 
 
 @app.get("/api/reports/saved", response_model=list[SavedReportSummary])
-def saved_reports(limit: int = Query(default=50, ge=1, le=200)) -> list[SavedReportSummary]:
+def saved_reports(
+    limit: int = Query(default=50, ge=1, le=200),
+    role: str | None = Query(default="Super Admin"),
+) -> list[SavedReportSummary]:
     try:
-        return [SavedReportSummary.model_validate(report) for report in list_saved_reports(limit)]
+        return [SavedReportSummary.model_validate(report) for report in list_saved_reports(limit, role)]
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
 @app.get("/api/reports/saved/{report_id}", response_model=GeneratedReport)
-def saved_report(report_id: str) -> GeneratedReport:
+def saved_report(report_id: str, role: str | None = Query(default="Super Admin")) -> GeneratedReport:
     try:
         report = get_saved_report(report_id)
         if report is None:
             raise HTTPException(status_code=404, detail="Saved report was not found.")
+        try:
+            assert_report_permission(role, report.report_category or "custom", "view_saved")
+        except ReportPermissionError as exc:
+            raise HTTPException(status_code=403, detail=str(exc)) from exc
         return report
     except HTTPException:
         raise
@@ -122,11 +152,19 @@ def saved_report(report_id: str) -> GeneratedReport:
 
 
 @app.get("/api/reports/saved/{report_id}/export/{format}")
-def export_saved_report(report_id: str, format: str) -> Response:
+def export_saved_report(
+    report_id: str,
+    format: str,
+    role: str | None = Query(default="Super Admin"),
+) -> Response:
     try:
         report = get_saved_report(report_id)
         if report is None:
             raise HTTPException(status_code=404, detail="Saved report was not found.")
+        try:
+            assert_report_permission(role, report.report_category or "custom", "export")
+        except ReportPermissionError as exc:
+            raise HTTPException(status_code=403, detail=str(exc)) from exc
         normalized_format = format.lower()
         if normalized_format == "pdf":
             content = export_report_pdf(report)

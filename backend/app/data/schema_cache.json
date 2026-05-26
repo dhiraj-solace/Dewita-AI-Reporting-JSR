@@ -2,10 +2,10 @@
   "source_files": [
     "live_database"
   ],
-  "fetched_at": "2026-05-25T12:30:26.313682",
+  "fetched_at": "2026-05-26T13:21:44.101519",
   "notes": [
     "Schema fetched from live database",
-    "Last updated: 2026-05-25T12:30:26.313682",
+    "Last updated: 2026-05-26T13:21:44.101519",
     "Static schema metadata preserved where available"
   ],
   "relationships": [
@@ -3307,6 +3307,88 @@
       "aliases": [
         "roles_user"
       ]
+    },
+    {
+      "name": "saved_reports",
+      "columns": [
+        {
+          "name": "id",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "attempt_id",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "title",
+          "type": "text",
+          "description": ""
+        },
+        {
+          "name": "question",
+          "type": "text",
+          "description": ""
+        },
+        {
+          "name": "sql_text",
+          "type": "longtext",
+          "description": ""
+        },
+        {
+          "name": "explanation",
+          "type": "longtext",
+          "description": ""
+        },
+        {
+          "name": "assumptions",
+          "type": "longtext",
+          "description": ""
+        },
+        {
+          "name": "columns_json",
+          "type": "longtext",
+          "description": ""
+        },
+        {
+          "name": "rows_json",
+          "type": "longtext",
+          "description": ""
+        },
+        {
+          "name": "row_count",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "dry_run",
+          "type": "tinyint",
+          "description": ""
+        },
+        {
+          "name": "warnings",
+          "type": "longtext",
+          "description": ""
+        },
+        {
+          "name": "retry_attempts",
+          "type": "longtext",
+          "description": ""
+        },
+        {
+          "name": "created_at",
+          "type": "datetime",
+          "description": ""
+        },
+        {
+          "name": "updated_at",
+          "type": "datetime",
+          "description": ""
+        }
+      ],
+      "description": "",
+      "aliases": []
     },
     {
       "name": "settings",

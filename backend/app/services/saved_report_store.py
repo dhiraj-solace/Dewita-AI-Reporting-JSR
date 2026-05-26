@@ -4,15 +4,17 @@ from decimal import Decimal
 from typing import Any
 from uuid import uuid4
 
-from sqlalchemy import text
+from sqlalchemy import bindparam, text
 
 from app.db import get_engine
 from app.models import GeneratedReport
+from app.services.report_permissions import list_allowed_report_categories
 
 
 SAVED_REPORT_FIELDS = (
     "id",
     "attempt_id",
+    "report_category",
     "title",
     "question",
     "sql",
@@ -34,6 +36,7 @@ def ensure_saved_reports_table() -> None:
     CREATE TABLE IF NOT EXISTS saved_reports (
         id VARCHAR(36) PRIMARY KEY,
         attempt_id VARCHAR(36) NULL,
+        report_category VARCHAR(100) NULL,
         title TEXT NOT NULL,
         question TEXT NOT NULL,
         sql_text LONGTEXT NOT NULL,
@@ -53,18 +56,48 @@ def ensure_saved_reports_table() -> None:
     """
     with get_engine().begin() as conn:
         conn.execute(text(ddl))
+        _ensure_saved_report_columns(conn)
+
+
+def _ensure_saved_report_columns(conn: Any) -> None:
+    exists = conn.execute(
+        text(
+            """
+            SELECT COUNT(*) FROM information_schema.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = 'saved_reports'
+              AND COLUMN_NAME = 'report_category'
+            """
+        )
+    ).scalar()
+    if not exists:
+        conn.execute(text("ALTER TABLE saved_reports ADD COLUMN report_category VARCHAR(100) NULL AFTER attempt_id"))
 
 
 def save_generated_report(report: GeneratedReport) -> str:
     ensure_saved_reports_table()
+    report_category = report.report_category or "custom"
     existing_id = find_existing_saved_report(report.question, report.sql)
     if existing_id:
+        with get_engine().begin() as conn:
+            conn.execute(
+                text(
+                    """
+                    UPDATE saved_reports
+                    SET report_category = COALESCE(report_category, :report_category),
+                        updated_at = :updated_at
+                    WHERE id = :id
+                    """
+                ),
+                {"id": existing_id, "report_category": report_category, "updated_at": _now()},
+            )
         return existing_id
     report_id = report.saved_report_id or str(uuid4())
     now = _now()
     payload = {
         "id": report_id,
         "attempt_id": report.attempt_id,
+        "report_category": report_category,
         "title": report.title,
         "question": report.question,
         "sql_text": report.sql,
@@ -84,11 +117,11 @@ def save_generated_report(report: GeneratedReport) -> str:
             text(
                 """
                 INSERT INTO saved_reports (
-                    id, attempt_id, title, question, sql_text, explanation, assumptions,
+                    id, attempt_id, report_category, title, question, sql_text, explanation, assumptions,
                     columns_json, rows_json, row_count, dry_run, warnings, retry_attempts,
                     created_at, updated_at
                 ) VALUES (
-                    :id, :attempt_id, :title, :question, :sql_text, :explanation, :assumptions,
+                    :id, :attempt_id, :report_category, :title, :question, :sql_text, :explanation, :assumptions,
                     :columns_json, :rows_json, :row_count, :dry_run, :warnings, :retry_attempts,
                     :created_at, :updated_at
                 )
@@ -117,19 +150,24 @@ def find_existing_saved_report(question: str, sql: str) -> str | None:
     return str(row["id"]) if row else None
 
 
-def list_saved_reports(limit: int = 50) -> list[dict[str, Any]]:
+def list_saved_reports(limit: int = 50, role_name: str | None = None) -> list[dict[str, Any]]:
     ensure_saved_reports_table()
+    allowed_categories = list_allowed_report_categories(role_name, "view_saved")
+    if not allowed_categories:
+        return []
     with get_engine().connect() as conn:
-        rows = conn.execute(
-            text(
+        stmt = text(
                 """
-                SELECT id, title, question, row_count, created_at
+                SELECT id, title, question, COALESCE(report_category, 'custom') AS report_category, row_count, created_at
                 FROM saved_reports
+                WHERE COALESCE(report_category, 'custom') IN :allowed_categories
                 ORDER BY created_at DESC
                 LIMIT :limit
                 """
-            ),
-            {"limit": limit},
+            ).bindparams(bindparam("allowed_categories", expanding=True))
+        rows = conn.execute(
+            stmt,
+            {"limit": limit, "allowed_categories": tuple(allowed_categories)},
         ).mappings().all()
     return [dict(row) for row in rows]
 
@@ -150,6 +188,7 @@ def _row_to_report(row: dict[str, Any]) -> GeneratedReport:
     return GeneratedReport(
         saved_report_id=row["id"],
         attempt_id=row.get("attempt_id"),
+        report_category=row.get("report_category") or "custom",
         title=row["title"],
         question=row["question"],
         sql=row["sql_text"],

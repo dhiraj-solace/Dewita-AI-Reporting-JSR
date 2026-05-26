@@ -17,6 +17,12 @@ ATTEMPT_FIELDS = (
     "id",
     "user_question",
     "schema_snapshot",
+    "generation_provider",
+    "generation_model",
+    "generation_elapsed_ms",
+    "validator_elapsed_ms",
+    "execution_elapsed_ms",
+    "total_elapsed_ms",
     "generated_sql",
     "validator_status",
     "validator_feedback",
@@ -42,6 +48,12 @@ def ensure_ai_sql_attempts_table() -> None:
         id VARCHAR(36) PRIMARY KEY,
         user_question TEXT NOT NULL,
         schema_snapshot LONGTEXT NULL,
+        generation_provider VARCHAR(50) NULL,
+        generation_model VARCHAR(255) NULL,
+        generation_elapsed_ms INT NULL,
+        validator_elapsed_ms INT NULL,
+        execution_elapsed_ms INT NULL,
+        total_elapsed_ms INT NULL,
         generated_sql LONGTEXT NULL,
         validator_status VARCHAR(50) NULL,
         validator_feedback LONGTEXT NULL,
@@ -59,6 +71,32 @@ def ensure_ai_sql_attempts_table() -> None:
     """
     with get_engine().begin() as conn:
         conn.execute(text(ddl))
+        _ensure_attempt_columns(conn)
+
+
+def _ensure_attempt_columns(conn: Any) -> None:
+    columns = {
+        "generation_provider": "VARCHAR(50) NULL",
+        "generation_model": "VARCHAR(255) NULL",
+        "generation_elapsed_ms": "INT NULL",
+        "validator_elapsed_ms": "INT NULL",
+        "execution_elapsed_ms": "INT NULL",
+        "total_elapsed_ms": "INT NULL",
+    }
+    for name, definition in columns.items():
+        exists = conn.execute(
+            text(
+                """
+                SELECT COUNT(*) FROM information_schema.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE()
+                  AND TABLE_NAME = 'ai_sql_attempts'
+                  AND COLUMN_NAME = :name
+                """
+            ),
+            {"name": name},
+        ).scalar()
+        if not exists:
+            conn.execute(text(f"ALTER TABLE ai_sql_attempts ADD COLUMN {name} {definition}"))
 
 
 def create_attempt(user_question: str, schema_snapshot: dict[str, Any]) -> str:

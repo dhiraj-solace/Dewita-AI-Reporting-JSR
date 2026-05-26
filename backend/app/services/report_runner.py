@@ -39,6 +39,7 @@ from app.services.sql_mistake_store import (
 )
 from app.services.sql_safety_validator import SafetyValidationResult, validate_sql_safety
 from app.services.query_safety import validate_user_query_safety
+from app.services.report_permissions import ReportPermissionError, assert_report_permission
 from app.services.templates import find_template
 
 logger = logging.getLogger(__name__)
@@ -80,18 +81,32 @@ async def build_report(request: ReportRequest) -> GeneratedReport:
 
     warnings: list[str] = []
     retry_attempts: list[RetryAttempt] = []
+    request_started = perf_counter()
     report_category = resolve_report_category(request.report_category, request.question)
     category_id = str(report_category.get("id") or "custom") if report_category else "custom"
     category_label = str(report_category.get("label") or "Custom Report") if report_category else "Custom Report"
     if request.report_category and not report_category:
         warnings.append(f"Unknown report category '{request.report_category}' was ignored.")
+    try:
+        assert_report_permission(request.current_user_role, category_id, "create")
+    except ReportPermissionError as exc:
+        raise ReportBuildError(
+            str(exc),
+            [],
+            title="Report permission denied",
+            solution="Ask an admin to enable this report category for your role.",
+            status_code=403,
+        ) from exc
     resolved_dates = resolve_date_range(request.question, request.start_date, request.end_date)
     schema_snapshot = _safe_schema()
     attempt_id = create_attempt(request.question, schema_snapshot)
+    provider, model = _model_tracking_context(request.sql_generation_provider)
+    update_attempt(attempt_id, generation_provider=provider, generation_model=model)
     generated: dict[str, Any] | None = None
     cached_sql: str | None = None
     cache_entry: dict[str, Any] | None = None
     generated_source: str | None = None
+    generation_elapsed_ms = 0
     _console_attempt_log(attempt_id, "request", f"received user question: {_short_reason(request.question)}")
     _console_attempt_log(attempt_id, "category", f"using report category: {category_label} ({category_id})")
     _console_attempt_log(attempt_id, "schema", f"loaded schema with {_schema_table_count(schema_snapshot)} table(s)")
@@ -179,6 +194,7 @@ async def build_report(request: ReportRequest) -> GeneratedReport:
                 ),
             )
             _console_attempt_log(attempt_id, "generation", "calling first AI model")
+            generation_started = perf_counter()
             generated = await generate_sql_with_ai(
                 request.question,
                 resolved_dates.start_date,
@@ -188,9 +204,16 @@ async def build_report(request: ReportRequest) -> GeneratedReport:
                 request.sql_generation_provider,
                 report_category,
             )
+            generation_elapsed_ms = int((perf_counter() - generation_started) * 1000)
+            update_attempt(attempt_id, generation_elapsed_ms=generation_elapsed_ms)
             generated_source = "ai" if generated is not None else None
     except AiSqlGenerationError as exc:
-        update_attempt(attempt_id, execution_status="failed", execution_error=str(exc))
+        update_attempt(
+            attempt_id,
+            execution_status="failed",
+            execution_error=str(exc),
+            total_elapsed_ms=int((perf_counter() - request_started) * 1000),
+        )
         _console_attempt_log(attempt_id, "generation", f"failed: {_short_reason(str(exc))}")
         error = _ai_report_error(exc, [])
         error.attempt_id = attempt_id
@@ -246,9 +269,15 @@ async def build_report(request: ReportRequest) -> GeneratedReport:
                 warnings,
                 retry_attempts,
                 attempt_id,
+                generation_elapsed_ms,
             )
         except ReportBuildError as exc:
-            update_attempt(attempt_id, execution_status="failed", execution_error=str(exc))
+            update_attempt(
+                attempt_id,
+                execution_status="failed",
+                execution_error=str(exc),
+                total_elapsed_ms=int((perf_counter() - request_started) * 1000),
+            )
             exc.attempt_id = attempt_id
             raise
         if generated_source == "ai":
@@ -293,6 +322,7 @@ async def build_report(request: ReportRequest) -> GeneratedReport:
                 execution_status="success",
                 execution_error=None,
                 result_row_count=len(rows),
+                execution_elapsed_ms=execution_elapsed_ms,
             )
             update_attempt_mistakes_with_final_sql(attempt_id, sql)
             _console_attempt_detail(
@@ -306,6 +336,7 @@ async def build_report(request: ReportRequest) -> GeneratedReport:
                 f"SQL execution completed row_count={len(rows)} elapsed_ms={execution_elapsed_ms}",
             )
         except Exception as exc:
+            execution_elapsed_ms = int((perf_counter() - execution_started) * 1000)
             _console_validation_detail("sql execution error", {"error": str(exc)})
             update_attempt(
                 attempt_id,
@@ -313,6 +344,8 @@ async def build_report(request: ReportRequest) -> GeneratedReport:
                 execution_status="failed",
                 execution_error=str(exc),
                 result_row_count=0,
+                execution_elapsed_ms=execution_elapsed_ms,
+                total_elapsed_ms=int((perf_counter() - request_started) * 1000),
             )
             _console_attempt_log(attempt_id, "execution", f"failed: {_short_reason(str(exc))}")
             _console_attempt_log(attempt_id, "execution", f"execution error: {_short_reason(str(exc))}")
@@ -327,12 +360,15 @@ async def build_report(request: ReportRequest) -> GeneratedReport:
             execution_status="dry_run",
             execution_error=None,
             result_row_count=0,
+            execution_elapsed_ms=0,
         )
         _console_attempt_log(attempt_id, "execution", "dry run skipped SQL execution")
 
+    update_attempt(attempt_id, total_elapsed_ms=int((perf_counter() - request_started) * 1000))
     return GeneratedReport(
         attempt_id=attempt_id,
         generated_source=generated_source,
+        report_category=category_id,
         title=generated.get("title") or "SQL Report",
         question=request.question,
         sql=sql,
@@ -355,6 +391,7 @@ async def _validate_generated_output_with_retries(
     warnings: list[str],
     retry_attempts: list[RetryAttempt],
     attempt_id: str,
+    generation_elapsed_ms: int = 0,
 ) -> tuple[dict, str]:
     settings = get_settings()
     max_retries = min(MAX_VALIDATOR_RETRIES, max(1, settings.llm_validator_max_retries))
@@ -365,6 +402,7 @@ async def _validate_generated_output_with_retries(
     last_error_message = "Generated report output did not pass validation."
     llm1_outputs = 1
     llm2_calls = 0
+    validator_elapsed_ms = 0
 
     for attempt in range(1, max_retries + 1):
         validation_errors: list[dict] = []
@@ -430,6 +468,7 @@ async def _validate_generated_output_with_retries(
         else:
             try:
                 llm2_calls += 1
+                validator_started = perf_counter()
                 _console_validation_log(f"llm2 smollm call {llm2_calls} started for output {llm1_outputs}")
                 validation_payload = build_validation_payload(
                     question=request.question,
@@ -445,9 +484,12 @@ async def _validate_generated_output_with_retries(
                     schema=schema,
                     generated_sql=prepared_sql,
                 )
+                validator_elapsed_ms += int((perf_counter() - validator_started) * 1000)
+                update_attempt(attempt_id, validator_elapsed_ms=validator_elapsed_ms)
                 _console_validation_detail("llm2 validation response", validation.model_dump())
                 _console_attempt_detail(attempt_id, "validator", validation.model_dump())
             except OutputValidationError as exc:
+                validator_elapsed_ms += int((perf_counter() - validator_started) * 1000)
                 fallback_message = (
                     "Local Smollm validator returned an unusable response, so backend safety and schema "
                     "validation were used as the final check."
@@ -458,6 +500,7 @@ async def _validate_generated_output_with_retries(
                     validator_status="success",
                     validator_feedback=fallback_message,
                     final_sql=prepared_sql,
+                    validator_elapsed_ms=validator_elapsed_ms,
                 )
                 retry_attempts.append(
                     _validator_attempt(attempt, "success", fallback_message)
@@ -476,6 +519,7 @@ async def _validate_generated_output_with_retries(
                         validator_status="success",
                         validator_feedback=validation.reason or f"Validator accepted output on attempt {attempt}.",
                         final_sql=prepared_sql,
+                        validator_elapsed_ms=validator_elapsed_ms,
                     )
                     retry_attempts.append(
                         _validator_attempt(attempt, "success", f"Validator accepted output on attempt {attempt}.")
@@ -494,6 +538,7 @@ async def _validate_generated_output_with_retries(
                         validator_status="success",
                         validator_feedback="Backend overrode validator LIMIT false positive; SQL LIMIT matches user request.",
                         final_sql=prepared_sql,
+                        validator_elapsed_ms=validator_elapsed_ms,
                     )
                     retry_attempts.append(
                         _validator_attempt(
@@ -558,6 +603,7 @@ async def _validate_generated_output_with_retries(
         }
         _console_validation_detail("data passed to llm1 retry", llm1_retry_payload)
         try:
+            retry_generation_started = perf_counter()
             report_category = resolve_report_category(request.report_category, request.question)
             regenerated = await generate_sql_validation_retry_with_ai(
                 llm1_retry_payload["user_query"],
@@ -569,6 +615,8 @@ async def _validate_generated_output_with_retries(
                 request.sql_generation_provider,
                 report_category,
             )
+            generation_elapsed_ms += int((perf_counter() - retry_generation_started) * 1000)
+            update_attempt(attempt_id, generation_elapsed_ms=generation_elapsed_ms)
         except AiSqlGenerationError as exc:
             raise _ai_report_error(exc, []) from exc
 
@@ -993,6 +1041,18 @@ def _safe_schema() -> dict:
         return schema_service.get_schema(force_refresh=False)
     except Exception:
         return {}
+
+
+def _model_tracking_context(provider_override: str | None) -> tuple[str, str]:
+    settings = get_settings()
+    provider = (provider_override or settings.ai_provider).lower()
+    model_by_provider = {
+        "openrouter": settings.openrouter_model,
+        "ollama": settings.ollama_sql_model,
+        "gemini": settings.gemini_model,
+        "openai": settings.openai_model,
+    }
+    return provider, model_by_provider.get(provider, "")
 
 
 def _failed_attempt(
