@@ -36,6 +36,12 @@ The main purpose is to provide an AI-assisted reporting layer over the existing 
 - Query execution against MySQL through SQLAlchemy.
 - Frontend table rendering, summary cards, warnings, retry details, and generated SQL viewer.
 - Admin dashboard for reviewing AI SQL attempts.
+- Admin role-report permission management screen.
+- Role-based report category filtering and backend permission enforcement.
+- Saved reports with report category and creator-role metadata.
+- Saved report list/open/export permission checks.
+- Report audit log for saved-report events and role-permission changes.
+- Model performance tracking on AI SQL attempts.
 - Gold-example learning system using approved SQL attempts.
 - SQL mistake storage so future prompts can avoid known bad patterns.
 - Lightweight Chroma vector store using hash embeddings for similar approved examples.
@@ -67,6 +73,7 @@ Main screens:
 
 - `frontend/app/page.tsx`: Main reporting interface where users enter report questions, select categories/providers, run reports, view results, warnings, retry attempts, and generated SQL.
 - `frontend/app/admin/ai-sql-attempts/page.tsx`: Admin review dashboard for AI SQL attempts, gold-example approval, mistake review, and result preview.
+- `frontend/app/admin/report-permissions/page.tsx`: Admin role-report permission matrix for assigning categories, actions, and data scopes to roles.
 - `frontend/lib/api.ts`: Typed API client for backend endpoints.
 
 ### Backend Role
@@ -89,7 +96,7 @@ Main responsibilities:
 MySQL is used for two purposes:
 
 - Business data source: projects, tasks, users, attendance, timesheets, change requests, bugs, markup, BSL, checklist, and related tables.
-- Application learning/audit storage: backend-created tables such as `ai_sql_attempts` and `sql_mistake_examples`.
+- Application learning/audit storage: backend-created tables such as `ai_sql_attempts`, `sql_mistake_examples`, `saved_reports`, `role_report_permissions`, and `report_audit_logs`.
 
 ### AI Model Role
 
@@ -119,6 +126,7 @@ sequenceDiagram
   U->>F: Enters natural-language report question
   F->>B: POST /api/reports/query
   B->>V: Validate user question safety
+  B->>B: Check role permission for report creation
   B->>S: Load live/cached/static schema
   B->>B: Resolve category and date range
   B->>A: Ask AI to generate SELECT SQL
@@ -170,6 +178,12 @@ Important endpoints:
 - `GET /api/reports/catalog`: Returns report catalog.
 - `GET /api/reports/categories`: Returns report categories.
 - `POST /api/reports/query`: Runs the main report generation flow through `build_report()`.
+- `GET /api/reports/saved`: Lists saved reports filtered by active role and report category permission.
+- `GET /api/reports/saved/{report_id}`: Loads one saved report after checking role permission.
+- `GET /api/reports/saved/{report_id}/export/{format}`: Exports a saved report after checking export permission.
+- `GET /api/admin/report-permissions`: Returns role/report permission matrix.
+- `PUT /api/admin/report-permissions`: Replaces role/report permissions and writes audit log entries for changed permissions.
+- `GET /api/admin/report-audit-logs`: Lists saved-report and permission-change audit log events.
 - `GET /api/admin/ai-sql-attempts`: Lists generated SQL attempts.
 - `POST /api/admin/ai-sql-attempts/{attempt_id}/review`: Reviews/approves attempts.
 - `GET /api/admin/ai-sql-attempts/{attempt_id}/preview`: Executes a limited preview of final SQL.
@@ -190,7 +204,12 @@ Defines Pydantic data contracts shared by API endpoints.
 Important models:
 
 - `ReportRequest`: User input, category, date filters, limit, dry-run flag, provider selection.
-- `GeneratedReport`: Final response containing title, SQL, explanation, columns, rows, warnings, and retry attempts.
+- `ReportRequest.current_user_role`: Temporary development-time role selector used until real auth/session context is added.
+- `GeneratedReport`: Final response containing category, creator role, title, SQL, explanation, columns, rows, warnings, and retry attempts.
+- `SavedReportSummary`: Saved report list item including category and creator role.
+- `RoleReportPermission`: Role-to-report action and scope configuration.
+- `RoleReportPermissionsPayload`: Bulk permission update payload for the admin matrix.
+- `ReportAuditLog`: Audit log row returned by the admin audit endpoint.
 - `RetryAttempt`: Tracks validation/execution attempts.
 - `ValidationResult`: Local LLM validator response shape.
 - `AiSqlAttempt`: Admin view of stored SQL generation attempts.
@@ -455,6 +474,89 @@ Important functions:
 
 Gold examples are successful, correct, admin-approved, read-only attempts with final SQL and no execution error.
 
+The attempt table also stores model performance tracking fields:
+
+- generation provider
+- generation model
+- generation elapsed milliseconds
+- validator elapsed milliseconds
+- SQL execution elapsed milliseconds
+- total request elapsed milliseconds
+
+#### `backend/app/services/report_permissions.py`
+
+Stores and enforces role-to-report permissions.
+
+Important functions:
+
+- `ensure_role_report_permissions_table()`
+- `list_role_report_permissions()`
+- `replace_role_report_permissions(...)`
+- `get_role_permission(...)`
+- `list_allowed_report_categories(...)`
+- `assert_report_permission(...)`
+
+Default roles are seeded as `Super Admin`, `HR`, `Project Manager`, `Team Leader`, and `Team Member`. Additional role names can be read from the business database `roles` table. Each role/category permission includes:
+
+- `can_view`
+- `can_create`
+- `can_export`
+- `can_save`
+- `can_view_saved`
+- `data_scope`: `all`, `role`, `team`, `project`, `self`, or `none`
+
+Current enforcement points:
+
+- report creation checks `can_create`
+- saved-report save checks `can_save`
+- saved-report listing and opening check `can_view_saved`
+- export checks `can_export`
+
+The current implementation stores data scope but does not yet inject row-level SQL filters for `team`, `project`, or `self`. Production hardening should enforce those scopes with authenticated user/project/team context.
+
+#### `backend/app/services/saved_report_store.py`
+
+Stores generated reports for later viewing/export.
+
+Important functions:
+
+- `ensure_saved_reports_table()`
+- `save_generated_report(...)`
+- `list_saved_reports(...)`
+- `get_saved_report(...)`
+
+Saved reports include:
+
+- report ID
+- attempt ID
+- report category/type
+- creator role
+- title/question
+- SQL text
+- columns and rows JSON
+- warnings and retry attempts
+- created/updated timestamps
+
+Saved report listing is filtered by role permissions. Reports with no historical category are treated as `custom`.
+
+#### `backend/app/services/audit_log.py`
+
+Stores report and permission audit events.
+
+Important functions:
+
+- `ensure_audit_log_table()`
+- `create_audit_log(...)`
+- `list_audit_logs(...)`
+
+Logged event types currently include:
+
+- `saved_report_created`
+- `saved_report_reused`
+- `role_report_permission_changed`
+
+Audit rows store actor role, target role, report ID, report category, action, before/after JSON, metadata JSON, and timestamp.
+
 #### `backend/app/services/sql_mistake_store.py`
 
 Stores failed SQL examples in MySQL.
@@ -530,6 +632,12 @@ Important functions:
 - `runReport(payload)`
 - `getHealth()`
 - `listReportCategories()`
+- `listReportPermissions()`
+- `updateReportPermissions(...)`
+- `listReportAuditLogs(...)`
+- `listSavedReports(role)`
+- `getSavedReport(reportId, role)`
+- `savedReportExportUrl(reportId, format, role)`
 - `listAiSqlAttempts(goldOnly)`
 - `reviewAiSqlAttempt(...)`
 - `listSqlMistakeExamples()`
@@ -541,6 +649,10 @@ Main user interface. Responsibilities:
 
 - Shows Devita-style dashboard layout.
 - Loads health and report categories.
+- Loads role/report permissions.
+- Provides a temporary Active Role selector for the no-auth development phase.
+- Filters available report categories by the selected role's `can_create` permission.
+- Filters saved reports by the selected role's `can_view_saved` permission.
 - Lets user type report questions.
 - Lets user choose report category and SQL provider.
 - Calls `runReport()`.
@@ -556,6 +668,17 @@ Admin review screen. Responsibilities:
 - Previews final SQL output.
 - Approves, rejects, marks correct, or marks incorrect.
 - Promotes valid attempts into gold examples.
+
+#### `frontend/app/admin/report-permissions/page.tsx`
+
+Admin role permission screen. Responsibilities:
+
+- Lists roles.
+- Lists report categories.
+- Allows Admin to toggle view/create/export/save/view-saved actions.
+- Allows Admin to set data scope for each role/category.
+- Saves the permission matrix through `PUT /api/admin/report-permissions`.
+- Permission changes are logged in `report_audit_logs`.
 
 #### `frontend/app/globals.css`
 
@@ -621,6 +744,8 @@ Stores each AI SQL generation attempt:
 
 - user question
 - schema snapshot
+- generation provider/model
+- generation, validator, execution, and total elapsed milliseconds
 - generated SQL
 - regenerated SQL
 - final SQL
@@ -629,6 +754,56 @@ Stores each AI SQL generation attempt:
 - row count
 - admin review state
 - gold-example flags
+
+#### `saved_reports`
+
+Stores generated reports:
+
+- saved report ID
+- source attempt ID
+- report category/type
+- creator role
+- question/title
+- SQL text
+- explanation
+- columns/rows JSON
+- row count
+- warnings/retry attempts
+- timestamps
+
+Saved report APIs filter rows by role permission and report category.
+
+#### `role_report_permissions`
+
+Stores Admin-managed role permissions for each report category:
+
+- role name
+- report category
+- `can_view`
+- `can_create`
+- `can_export`
+- `can_save`
+- `can_view_saved`
+- data scope
+- timestamps
+
+This table drives the main page category dropdown and backend permission checks.
+
+#### `report_audit_logs`
+
+Stores operational audit events:
+
+- event type
+- actor role
+- target role
+- report ID
+- report category
+- action
+- before/after JSON
+- metadata JSON
+- created timestamp
+
+It records saved-report create/reuse events and Admin role permission changes.
 
 #### `sql_mistake_examples`
 
@@ -952,6 +1127,21 @@ Frontend displays these in an error card and retry panel.
 
 The system uses regex-based SQL parsing for several checks. This is useful but not as strong as a full SQL parser. Production hardening should add an AST-based SQL parser or database-level read-only permissions.
 
+### Role Permission Safety
+
+The current role permission system is category/action based. It prevents a role from creating, saving, viewing saved reports, or exporting report categories it has not been granted.
+
+Important current behavior:
+
+- The frontend Active Role selector is for development and demo use only.
+- The backend still checks permissions and does not rely only on hidden UI.
+- Saved report APIs are filtered by role and report category.
+- Permission changes are audited.
+
+Important production limitation:
+
+- `data_scope` is stored but not yet applied as row-level SQL filtering. A production implementation should derive the authenticated user, role, team, and project assignments from the session/database and enforce `self`, `team`, and `project` scopes after SQL generation and before execution.
+
 ## 8. Development Planning
 
 This project appears to have been built iteratively with generated code. A planned development approach would look like this:
@@ -1082,25 +1272,26 @@ The most important rule is: AI can suggest SQL, but backend validation decides w
 - Use a read-only MySQL user for report execution.
 - Add database query timeout enforcement at DB/session level.
 - Add row/column export controls and pagination.
-- Add authentication and role-based access control.
+- Replace the temporary Active Role selector with authenticated role/session derivation.
+- Extend role-based access control from category/action checks to row-level `self`, `team`, and `project` data scope enforcement.
 - Protect admin endpoints.
 - Add structured logging with request IDs.
 - Add monitoring for AI provider latency, validation failures, and SQL execution time.
 - Add automated migrations instead of `CREATE TABLE IF NOT EXISTS` inside request paths.
 - Store secrets securely instead of plain `.env` for production.
 - Add rate limiting.
-- Add audit log for report access.
+- Expand audit logs to include report open/export events, not only save/reuse and permission changes.
 - Add test database and CI pipeline.
 - Add input/output redaction for sensitive data.
-- Add support for saved reports and scheduled reports.
-- Add full report export implementation for PDF/Excel.
+- Add scheduled reports.
+- Continue expanding PDF/Excel export formatting and pagination.
 
 ### AI Improvements
 
 - Use a proper embedding model for gold examples instead of hash embeddings.
 - Add benchmark questions with expected SQL.
 - Add prompt versioning.
-- Store model/provider used for each attempt.
+- Continue expanding model/provider performance tracking with token counts and provider cost estimates.
 - Evaluate generated SQL before and after prompt changes.
 - Add confidence scoring and ask-for-clarification behavior for ambiguous questions.
 - Use schema-aware retrieval to include only relevant tables in prompt context.
@@ -1121,4 +1312,3 @@ The most important rule is: AI can suggest SQL, but backend validation decides w
 - Add deployment guide.
 - Add prompt lifecycle/change-management guide.
 - Add troubleshooting guide for AI provider, DB connection, schema refresh, and validator failures.
-

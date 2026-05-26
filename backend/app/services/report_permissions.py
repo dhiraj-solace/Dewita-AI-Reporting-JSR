@@ -4,6 +4,7 @@ from typing import Any
 from sqlalchemy import text
 
 from app.db import get_engine
+from app.services.audit_log import create_audit_log
 from app.services.catalog import load_report_categories
 
 
@@ -98,11 +99,15 @@ def list_role_report_permissions() -> dict[str, Any]:
     }
 
 
-def replace_role_report_permissions(permissions: list[dict[str, Any]]) -> dict[str, Any]:
+def replace_role_report_permissions(
+    permissions: list[dict[str, Any]],
+    actor_role: str | None = "Super Admin",
+) -> dict[str, Any]:
     ensure_role_report_permissions_table()
     categories = _category_ids()
     now = _now()
     normalized = [_normalize_permission(item, categories, now) for item in permissions]
+    before_by_key = _permissions_by_key()
     with get_engine().begin() as conn:
         for item in normalized:
             conn.execute(
@@ -126,6 +131,20 @@ def replace_role_report_permissions(permissions: list[dict[str, Any]]) -> dict[s
                     """
                 ),
                 item,
+            )
+    for item in normalized:
+        key = (item["role_name"], item["report_category"])
+        before = before_by_key.get(key)
+        after = _public_permission(item)
+        if before != after:
+            create_audit_log(
+                event_type="role_report_permission_changed",
+                actor_role=_normalize_role_name(actor_role),
+                target_role=item["role_name"],
+                report_category=item["report_category"],
+                action="update_permission",
+                before=before,
+                after=after,
             )
     return list_role_report_permissions()
 
@@ -273,6 +292,36 @@ def _row_to_permission(row: dict[str, Any]) -> dict[str, Any]:
     for key in ("can_view", "can_create", "can_export", "can_save", "can_view_saved"):
         row[key] = bool(row.get(key))
     return row
+
+
+def _permissions_by_key() -> dict[tuple[str, str], dict[str, Any]]:
+    with get_engine().connect() as conn:
+        rows = conn.execute(
+            text(
+                """
+                SELECT role_name, report_category, can_view, can_create, can_export,
+                       can_save, can_view_saved, data_scope
+                FROM role_report_permissions
+                """
+            )
+        ).mappings().all()
+    return {
+        (str(row["role_name"]), str(row["report_category"])): _row_to_permission(dict(row))
+        for row in rows
+    }
+
+
+def _public_permission(item: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "role_name": item["role_name"],
+        "report_category": item["report_category"],
+        "can_view": bool(item["can_view"]),
+        "can_create": bool(item["can_create"]),
+        "can_export": bool(item["can_export"]),
+        "can_save": bool(item["can_save"]),
+        "can_view_saved": bool(item["can_view_saved"]),
+        "data_scope": item["data_scope"],
+    }
 
 
 def _now() -> datetime:

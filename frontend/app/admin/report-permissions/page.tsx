@@ -102,7 +102,7 @@ export default function ReportPermissionsAdminPage() {
     setError("");
     try {
       const payload = roles.flatMap((role) => categories.map((category) => getPermission(role, category.id)));
-      const updated = await updateReportPermissions(payload);
+      const updated = await updateReportPermissions(payload, "Super Admin");
       setMatrix(updated);
       setPermissions(Object.fromEntries(updated.permissions.map((item) => [permissionKey(item.role_name, item.report_category), item])));
       setSavedMessage("Permissions saved.");

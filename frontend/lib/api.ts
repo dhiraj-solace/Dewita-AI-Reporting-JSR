@@ -20,6 +20,7 @@ export type GeneratedReport = {
   saved_report_id?: string | null;
   generated_source?: string | null;
   report_category?: string | null;
+  created_by_role?: string | null;
   title: string;
   question: string;
   sql: string;
@@ -38,7 +39,22 @@ export type SavedReportSummary = {
   title: string;
   question: string;
   report_category?: string | null;
+  created_by_role?: string | null;
   row_count: number;
+  created_at: string;
+};
+
+export type ReportAuditLog = {
+  id: string;
+  event_type: string;
+  actor_role?: string | null;
+  target_role?: string | null;
+  report_id?: string | null;
+  report_category?: string | null;
+  action?: string | null;
+  before_json?: string | null;
+  after_json?: string | null;
+  metadata_json?: string | null;
   created_at: string;
 };
 
@@ -198,14 +214,27 @@ export async function listReportPermissions(): Promise<ReportPermissionsMatrix> 
   return response.json();
 }
 
-export async function updateReportPermissions(permissions: RoleReportPermission[]): Promise<ReportPermissionsMatrix> {
-  const response = await fetch(`${API_URL}/api/admin/report-permissions`, {
+export async function updateReportPermissions(
+  permissions: RoleReportPermission[],
+  actorRole = "Super Admin"
+): Promise<ReportPermissionsMatrix> {
+  const params = new URLSearchParams({actor_role: actorRole});
+  const response = await fetch(`${API_URL}/api/admin/report-permissions?${params.toString()}`, {
     method: "PUT",
     headers: {"Content-Type": "application/json"},
     body: JSON.stringify({permissions})
   });
   if (!response.ok) {
     throw new ApiError("Unable to update report permissions");
+  }
+  return response.json();
+}
+
+export async function listReportAuditLogs(limit = 100): Promise<ReportAuditLog[]> {
+  const params = new URLSearchParams({limit: String(limit)});
+  const response = await fetch(`${API_URL}/api/admin/report-audit-logs?${params.toString()}`, {cache: "no-store"});
+  if (!response.ok) {
+    throw new ApiError("Unable to load report audit logs");
   }
   return response.json();
 }

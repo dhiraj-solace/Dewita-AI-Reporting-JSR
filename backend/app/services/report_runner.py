@@ -369,6 +369,7 @@ async def build_report(request: ReportRequest) -> GeneratedReport:
         attempt_id=attempt_id,
         generated_source=generated_source,
         report_category=category_id,
+        created_by_role=request.current_user_role,
         title=generated.get("title") or "SQL Report",
         question=request.question,
         sql=sql,

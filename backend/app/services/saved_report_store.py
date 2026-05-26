@@ -8,6 +8,7 @@ from sqlalchemy import bindparam, text
 
 from app.db import get_engine
 from app.models import GeneratedReport
+from app.services.audit_log import create_audit_log
 from app.services.report_permissions import list_allowed_report_categories
 
 
@@ -15,6 +16,7 @@ SAVED_REPORT_FIELDS = (
     "id",
     "attempt_id",
     "report_category",
+    "created_by_role",
     "title",
     "question",
     "sql",
@@ -37,6 +39,7 @@ def ensure_saved_reports_table() -> None:
         id VARCHAR(36) PRIMARY KEY,
         attempt_id VARCHAR(36) NULL,
         report_category VARCHAR(100) NULL,
+        created_by_role VARCHAR(100) NULL,
         title TEXT NOT NULL,
         question TEXT NOT NULL,
         sql_text LONGTEXT NOT NULL,
@@ -60,23 +63,30 @@ def ensure_saved_reports_table() -> None:
 
 
 def _ensure_saved_report_columns(conn: Any) -> None:
-    exists = conn.execute(
-        text(
-            """
-            SELECT COUNT(*) FROM information_schema.COLUMNS
-            WHERE TABLE_SCHEMA = DATABASE()
-              AND TABLE_NAME = 'saved_reports'
-              AND COLUMN_NAME = 'report_category'
-            """
-        )
-    ).scalar()
-    if not exists:
-        conn.execute(text("ALTER TABLE saved_reports ADD COLUMN report_category VARCHAR(100) NULL AFTER attempt_id"))
+    columns = {
+        "report_category": "VARCHAR(100) NULL AFTER attempt_id",
+        "created_by_role": "VARCHAR(100) NULL AFTER report_category",
+    }
+    for name, definition in columns.items():
+        exists = conn.execute(
+            text(
+                """
+                SELECT COUNT(*) FROM information_schema.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE()
+                  AND TABLE_NAME = 'saved_reports'
+                  AND COLUMN_NAME = :name
+                """
+            ),
+            {"name": name},
+        ).scalar()
+        if not exists:
+            conn.execute(text(f"ALTER TABLE saved_reports ADD COLUMN {name} {definition}"))
 
 
 def save_generated_report(report: GeneratedReport) -> str:
     ensure_saved_reports_table()
     report_category = report.report_category or "custom"
+    created_by_role = report.created_by_role or "Super Admin"
     existing_id = find_existing_saved_report(report.question, report.sql)
     if existing_id:
         with get_engine().begin() as conn:
@@ -85,12 +95,26 @@ def save_generated_report(report: GeneratedReport) -> str:
                     """
                     UPDATE saved_reports
                     SET report_category = COALESCE(report_category, :report_category),
+                        created_by_role = COALESCE(created_by_role, :created_by_role),
                         updated_at = :updated_at
                     WHERE id = :id
                     """
                 ),
-                {"id": existing_id, "report_category": report_category, "updated_at": _now()},
+                {
+                    "id": existing_id,
+                    "report_category": report_category,
+                    "created_by_role": created_by_role,
+                    "updated_at": _now(),
+                },
             )
+        create_audit_log(
+            event_type="saved_report_reused",
+            actor_role=created_by_role,
+            report_id=existing_id,
+            report_category=report_category,
+            action="save",
+            metadata={"question": report.question, "row_count": report.row_count},
+        )
         return existing_id
     report_id = report.saved_report_id or str(uuid4())
     now = _now()
@@ -98,6 +122,7 @@ def save_generated_report(report: GeneratedReport) -> str:
         "id": report_id,
         "attempt_id": report.attempt_id,
         "report_category": report_category,
+        "created_by_role": created_by_role,
         "title": report.title,
         "question": report.question,
         "sql_text": report.sql,
@@ -117,11 +142,11 @@ def save_generated_report(report: GeneratedReport) -> str:
             text(
                 """
                 INSERT INTO saved_reports (
-                    id, attempt_id, report_category, title, question, sql_text, explanation, assumptions,
+                    id, attempt_id, report_category, created_by_role, title, question, sql_text, explanation, assumptions,
                     columns_json, rows_json, row_count, dry_run, warnings, retry_attempts,
                     created_at, updated_at
                 ) VALUES (
-                    :id, :attempt_id, :report_category, :title, :question, :sql_text, :explanation, :assumptions,
+                    :id, :attempt_id, :report_category, :created_by_role, :title, :question, :sql_text, :explanation, :assumptions,
                     :columns_json, :rows_json, :row_count, :dry_run, :warnings, :retry_attempts,
                     :created_at, :updated_at
                 )
@@ -129,6 +154,19 @@ def save_generated_report(report: GeneratedReport) -> str:
             ),
             payload,
         )
+    create_audit_log(
+        event_type="saved_report_created",
+        actor_role=created_by_role,
+        report_id=report_id,
+        report_category=report_category,
+        action="save",
+        after={
+            "title": report.title,
+            "question": report.question,
+            "row_count": report.row_count,
+            "dry_run": report.dry_run,
+        },
+    )
     return report_id
 
 
@@ -158,7 +196,8 @@ def list_saved_reports(limit: int = 50, role_name: str | None = None) -> list[di
     with get_engine().connect() as conn:
         stmt = text(
                 """
-                SELECT id, title, question, COALESCE(report_category, 'custom') AS report_category, row_count, created_at
+                SELECT id, title, question, COALESCE(report_category, 'custom') AS report_category,
+                       created_by_role, row_count, created_at
                 FROM saved_reports
                 WHERE COALESCE(report_category, 'custom') IN :allowed_categories
                 ORDER BY created_at DESC
@@ -189,6 +228,7 @@ def _row_to_report(row: dict[str, Any]) -> GeneratedReport:
         saved_report_id=row["id"],
         attempt_id=row.get("attempt_id"),
         report_category=row.get("report_category") or "custom",
+        created_by_role=row.get("created_by_role"),
         title=row["title"],
         question=row["question"],
         sql=row["sql_text"],

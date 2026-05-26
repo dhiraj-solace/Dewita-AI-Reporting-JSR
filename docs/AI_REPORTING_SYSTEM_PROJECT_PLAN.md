@@ -48,6 +48,11 @@ The system should include:
 - Generated SQL preview.
 - Error and retry handling.
 - Admin review dashboard.
+- Admin role-to-report permission management.
+- Role-based report category access.
+- Saved report access by role and report category.
+- Audit logging for saved-report events and permission changes.
+- Model/provider performance tracking.
 - Storage of successful and failed AI SQL attempts.
 - Reusable report templates.
 - Export options such as CSV, Excel, or PDF.
@@ -68,6 +73,8 @@ flowchart LR
   DB --> Result["Report Result"]
   Result --> UI
   API --> Audit["Attempt / Feedback Storage"]
+  API --> RBAC["Role Report Permissions"]
+  API --> Saved["Saved Reports"]
 ```
 
 ## 6. Recommended Technology Stack
@@ -181,6 +188,12 @@ Recommended endpoints:
 - `GET /api/reports/catalog`
 - `GET /api/reports/categories`
 - `POST /api/reports/query`
+- `GET /api/reports/saved`
+- `GET /api/reports/saved/{id}`
+- `GET /api/reports/saved/{id}/export/{format}`
+- `GET /api/admin/report-permissions`
+- `PUT /api/admin/report-permissions`
+- `GET /api/admin/report-audit-logs`
 - `GET /api/admin/ai-sql-attempts`
 - `POST /api/admin/ai-sql-attempts/{id}/review`
 - `GET /api/admin/sql-mistake-examples`
@@ -216,14 +229,17 @@ The planned flow should be:
 1. Receive user question.
 2. Validate user question is report-related.
 3. Detect report category.
-4. Resolve date filters.
-5. Load relevant schema.
-6. Build AI prompt.
-7. Generate SQL.
-8. Validate SQL.
-9. Retry if invalid.
-10. Execute SQL if valid.
-11. Return report.
+4. Check the active role has permission to create that report category.
+5. Resolve date filters.
+6. Load relevant schema.
+7. Build AI prompt.
+8. Generate SQL.
+9. Validate SQL.
+10. Retry if invalid.
+11. Execute SQL if valid.
+12. Save report if the role has save permission.
+13. Log save/audit metadata.
+14. Return report.
 
 ## 8. Safety Planning
 
@@ -257,6 +273,30 @@ Generated SQL must be checked for:
 ### Database Permission Safety
 
 Use a read-only database user for report execution. Even if validation fails, the database user should not have permission to modify data.
+
+### Role-Based Report Permission Safety
+
+Plan role-based permissions as Admin-managed role-to-report-category assignments, not hardcoded role logic.
+
+Each role/category permission should define:
+
+- can view
+- can create
+- can export
+- can save
+- can view saved reports
+- data scope: `all`, `role`, `team`, `project`, `self`, or `none`
+
+The backend should enforce permissions at these points:
+
+1. Before AI SQL generation: `can_create`.
+2. Before saving: `can_save`.
+3. Before listing/opening saved reports: `can_view_saved`.
+4. Before export: `can_export`.
+
+Do not rely only on frontend hiding. The backend must check permissions.
+
+For production, do not trust a frontend-selected role. The backend should derive the role from authenticated session/JWT data.
 
 ## 9. Validation Planning
 
@@ -345,6 +385,8 @@ The frontend should include:
 - Generated SQL toggle.
 - Retry/validation status.
 - Export button.
+- Active role indicator or user profile role display.
+- Saved reports list filtered by the user's role permissions.
 
 Admin frontend should include:
 
@@ -355,6 +397,10 @@ Admin frontend should include:
 - Validator feedback.
 - Approve/reject buttons.
 - Mistake examples list.
+- Role-report permission matrix.
+- Permission action toggles: view, create, export, save, view saved.
+- Data scope selector for each role/category.
+- Audit log viewer for report saves and permission changes.
 
 ## 13. Database Table Planning for App Metadata
 
@@ -369,6 +415,12 @@ Columns:
 - `id`
 - `user_question`
 - `schema_snapshot`
+- `generation_provider`
+- `generation_model`
+- `generation_elapsed_ms`
+- `validator_elapsed_ms`
+- `execution_elapsed_ms`
+- `total_elapsed_ms`
 - `generated_sql`
 - `validator_status`
 - `validator_feedback`
@@ -382,6 +434,66 @@ Columns:
 - `is_gold_example`
 - `created_at`
 - `updated_at`
+
+### `saved_reports`
+
+Stores generated reports that can be reopened/exported later.
+
+Columns:
+
+- `id`
+- `attempt_id`
+- `report_category`
+- `created_by_role`
+- `title`
+- `question`
+- `sql_text`
+- `explanation`
+- `assumptions`
+- `columns_json`
+- `rows_json`
+- `row_count`
+- `dry_run`
+- `warnings`
+- `retry_attempts`
+- `created_at`
+- `updated_at`
+
+### `role_report_permissions`
+
+Stores Admin-managed report permissions by role and report category.
+
+Columns:
+
+- `id`
+- `role_name`
+- `report_category`
+- `can_view`
+- `can_create`
+- `can_export`
+- `can_save`
+- `can_view_saved`
+- `data_scope`
+- `created_at`
+- `updated_at`
+
+### `report_audit_logs`
+
+Stores audit events for saved reports and permission changes.
+
+Columns:
+
+- `id`
+- `event_type`
+- `actor_role`
+- `target_role`
+- `report_id`
+- `report_category`
+- `action`
+- `before_json`
+- `after_json`
+- `metadata_json`
+- `created_at`
 
 ### `sql_mistake_examples`
 
@@ -413,6 +525,10 @@ Test:
 - date resolver
 - report category detection
 - cache key generation
+- role permission lookup
+- denied report category creation
+- saved report filtering by role
+- audit log creation for saved reports and permission changes
 
 ### Integration Tests
 
@@ -423,6 +539,8 @@ Test:
 - SQL execution against test database
 - schema refresh
 - admin review flow
+- report permission update flow
+- saved report open/export permission checks
 
 ### AI Tests
 
@@ -445,6 +563,9 @@ Test:
 - table rendering
 - SQL toggle
 - admin approval flow
+- active role category filtering
+- report permissions admin screen
+- saved report list filtering by role
 
 ## 15. Deployment Planning
 
@@ -474,28 +595,16 @@ Before production:
 - Block unsafe user intent.
 - Log all generated SQL.
 - Store AI attempts for audit.
+- Store saved-report audit events.
+- Store role-permission change audit events.
+- Enforce role report permissions on backend, not only in UI.
 - Avoid exposing secrets in frontend.
 - Limit returned rows.
 - Add query timeout.
 - Review prompts for injection risks.
 
-## 17. Production Improvement Checklist
 
-Recommended improvements:
-
-- Use a real SQL parser instead of regex-only validation.
-- Add pagination.
-- Add saved reports.
-- Add scheduled reports.
-- Add export to Excel/PDF.
-- Add role-based report access.
-- Add prompt versioning.
-- Add model performance tracking.
-- Add automated schema sync.
-- Add CI/CD pipeline.
-- Add automated test coverage.
-
-## 18. Simple Explanation for Stakeholders
+## 17. Simple Explanation for Stakeholders
 
 This system works like a translator.
 
@@ -503,7 +612,7 @@ The user asks a business question in English. The AI converts that question into
 
 The AI does not directly control the database. The backend is the gatekeeper.
 
-## 19. Recommended Build Order
+## 18. Recommended Build Order
 
 Build the system in this order:
 
@@ -522,7 +631,7 @@ Build the system in this order:
 13. Gold-example learning.
 14. Export and production hardening.
 
-## 20. Final Notes
+## 19. Final Notes
 
 An AI reporting system should never be planned as "AI directly talks to the database."
 
@@ -531,4 +640,3 @@ It should be planned as:
 > User question -> AI-generated SQL -> backend validation -> safe execution -> report output
 
 That architecture keeps the system useful, understandable, and safer for production.
-

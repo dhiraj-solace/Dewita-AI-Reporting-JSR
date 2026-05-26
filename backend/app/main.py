@@ -4,10 +4,11 @@ from fastapi.responses import Response
 
 from app.core.config import get_settings
 from app.db import get_engine
-from app.models import AiSqlAttempt, AiSqlAttemptPreview, AiSqlAttemptReviewRequest, GeneratedReport, ReportRequest, RoleReportPermissionsPayload, SavedReportSummary, SqlMistakeExample
+from app.models import AiSqlAttempt, AiSqlAttemptPreview, AiSqlAttemptReviewRequest, GeneratedReport, ReportAuditLog, ReportRequest, RoleReportPermissionsPayload, SavedReportSummary, SqlMistakeExample
 from app.services.catalog import load_report_catalog, load_report_categories, load_schema_catalog
 from app.services.ai_sql_attempt_store import get_attempt, list_attempts, review_attempt
 from app.services.admin_attempt_preview import preview_attempt_rows
+from app.services.audit_log import list_audit_logs
 from app.services.report_permissions import ReportPermissionError, assert_report_permission, list_role_report_permissions, replace_role_report_permissions
 from app.services.report_exporter import export_filename, export_report_pdf, export_report_xlsx
 from app.services.saved_report_store import get_saved_report, list_saved_reports, save_generated_report
@@ -86,11 +87,25 @@ def admin_report_permissions() -> dict:
 
 
 @app.put("/api/admin/report-permissions")
-def admin_update_report_permissions(payload: RoleReportPermissionsPayload) -> dict:
+def admin_update_report_permissions(
+    payload: RoleReportPermissionsPayload,
+    actor_role: str | None = Query(default="Super Admin"),
+) -> dict:
     try:
-        return replace_role_report_permissions([item.model_dump() for item in payload.permissions])
+        return replace_role_report_permissions(
+            [item.model_dump() for item in payload.permissions],
+            actor_role=actor_role,
+        )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@app.get("/api/admin/report-audit-logs", response_model=list[ReportAuditLog])
+def admin_report_audit_logs(limit: int = Query(default=100, ge=1, le=300)) -> list[ReportAuditLog]:
+    try:
+        return [ReportAuditLog.model_validate(item) for item in list_audit_logs(limit)]
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 

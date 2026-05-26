@@ -40,6 +40,7 @@ class GeneratedReport(BaseModel):
     saved_report_id: str | None = None
     generated_source: str | None = None
     report_category: str | None = None
+    created_by_role: str | None = None
     title: str
     question: str
     sql: str
@@ -58,6 +59,7 @@ class SavedReportSummary(BaseModel):
     title: str
     question: str
     report_category: str | None = None
+    created_by_role: str | None = None
     row_count: int
     created_at: Any
 
@@ -75,6 +77,20 @@ class RoleReportPermission(BaseModel):
 
 class RoleReportPermissionsPayload(BaseModel):
     permissions: list[RoleReportPermission]
+
+
+class ReportAuditLog(BaseModel):
+    id: str
+    event_type: str
+    actor_role: str | None = None
+    target_role: str | None = None
+    report_id: str | None = None
+    report_category: str | None = None
+    action: str | None = None
+    before_json: str | None = None
+    after_json: str | None = None
+    metadata_json: str | None = None
+    created_at: Any
 
 
 class AiSqlAttempt(BaseModel):
