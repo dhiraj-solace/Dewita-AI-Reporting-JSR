@@ -16,6 +16,8 @@ export type ReportCategory = {
 
 export type GeneratedReport = {
   attempt_id?: string | null;
+  saved_report_id?: string | null;
+  generated_source?: string | null;
   title: string;
   question: string;
   sql: string;
@@ -27,6 +29,14 @@ export type GeneratedReport = {
   dry_run: boolean;
   warnings: string[];
   retry_attempts: RetryAttempt[];
+};
+
+export type SavedReportSummary = {
+  id: string;
+  title: string;
+  question: string;
+  row_count: number;
+  created_at: string;
 };
 
 export type RetryAttempt = {
@@ -151,6 +161,26 @@ export async function listReportCategories(): Promise<ReportCategory[]> {
   }
   const payload = await response.json();
   return payload.categories || [];
+}
+
+export async function listSavedReports(): Promise<SavedReportSummary[]> {
+  const response = await fetch(`${API_URL}/api/reports/saved?limit=25`, {cache: "no-store"});
+  if (!response.ok) {
+    throw new ApiError("Unable to load saved reports");
+  }
+  return response.json();
+}
+
+export async function getSavedReport(reportId: string): Promise<GeneratedReport> {
+  const response = await fetch(`${API_URL}/api/reports/saved/${reportId}`, {cache: "no-store"});
+  if (!response.ok) {
+    throw new ApiError("Unable to load saved report");
+  }
+  return response.json();
+}
+
+export function savedReportExportUrl(reportId: string, format: "pdf" | "xlsx"): string {
+  return `${API_URL}/api/reports/saved/${reportId}/export/${format}`;
 }
 
 export async function listAiSqlAttempts(goldOnly = false): Promise<AiSqlAttempt[]> {

@@ -46,6 +46,7 @@ logger = logging.getLogger(__name__)
 VALIDATION_FALLBACK_MESSAGE = (
     "ERROR: Unable to generate a valid SQL query after multiple attempts. Please refine your query."
 )
+MAX_VALIDATOR_RETRIES = 10
 
 
 class ReportBuildError(Exception):
@@ -331,6 +332,7 @@ async def build_report(request: ReportRequest) -> GeneratedReport:
 
     return GeneratedReport(
         attempt_id=attempt_id,
+        generated_source=generated_source,
         title=generated.get("title") or "SQL Report",
         question=request.question,
         sql=sql,
@@ -355,7 +357,7 @@ async def _validate_generated_output_with_retries(
     attempt_id: str,
 ) -> tuple[dict, str]:
     settings = get_settings()
-    max_retries = min(2, max(1, settings.llm_validator_max_retries))
+    max_retries = min(MAX_VALIDATOR_RETRIES, max(1, settings.llm_validator_max_retries))
     max_rows = min(request.limit, settings.max_rows)
     requested_result_limit = _requested_result_limit(request.question)
     sql_limit = min(max_rows, requested_result_limit) if requested_result_limit else max_rows

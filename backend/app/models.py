@@ -36,6 +36,8 @@ class ValidationResult(BaseModel):
 
 class GeneratedReport(BaseModel):
     attempt_id: str | None = None
+    saved_report_id: str | None = None
+    generated_source: str | None = None
     title: str
     question: str
     sql: str
@@ -47,6 +49,14 @@ class GeneratedReport(BaseModel):
     dry_run: bool = False
     warnings: list[str] = []
     retry_attempts: list[RetryAttempt] = []
+
+
+class SavedReportSummary(BaseModel):
+    id: str
+    title: str
+    question: str
+    row_count: int
+    created_at: Any
 
 
 class AiSqlAttempt(BaseModel):

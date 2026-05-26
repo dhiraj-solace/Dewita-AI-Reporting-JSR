@@ -62,8 +62,35 @@ def test_user_query_safety_blocks_write_requests_before_schema() -> None:
     assert result.blocked_operation == "DELETE"
 
 
+def test_user_query_safety_blocks_plain_language_write_intent() -> None:
+    result = validate_user_query_safety("Change project status to completed")
+    assert not result.is_safe
+    assert result.blocked_operation == "CHANGE"
+
+
+def test_user_query_safety_blocks_sensitive_credential_requests() -> None:
+    result = validate_user_query_safety("Show user passwords")
+    assert not result.is_safe
+    assert result.blocked_operation == "PASSWORDS"
+
+
+def test_user_query_safety_allows_change_request_reports() -> None:
+    result = validate_user_query_safety("Change request approval rate report")
+    assert result.is_safe
+
+
 def test_user_query_safety_allows_reporting_requests_without_schema() -> None:
     result = validate_user_query_safety("Show week 5 project totals grouped by type")
+    assert result.is_safe
+
+
+def test_user_query_safety_allows_project_filter_noun_phrase() -> None:
+    result = validate_user_query_safety("Projects where actual revision hours are greater than assigned hours")
+    assert result.is_safe
+
+
+def test_user_query_safety_allows_top_team_leader_ranking() -> None:
+    result = validate_user_query_safety("Top team leaders by equivalent new tickets this year")
     assert result.is_safe
 
 
@@ -106,7 +133,12 @@ if __name__ == "__main__":
         test_invalid_table_name,
         test_cte_name_is_not_treated_as_invalid_table,
         test_user_query_safety_blocks_write_requests_before_schema,
+        test_user_query_safety_blocks_plain_language_write_intent,
+        test_user_query_safety_blocks_sensitive_credential_requests,
+        test_user_query_safety_allows_change_request_reports,
         test_user_query_safety_allows_reporting_requests_without_schema,
+        test_user_query_safety_allows_project_filter_noun_phrase,
+        test_user_query_safety_allows_top_team_leader_ranking,
         test_similar_example_injected_into_prompt_preview,
         test_gold_db_path_available_or_skipped,
     ]

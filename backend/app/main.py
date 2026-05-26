@@ -1,12 +1,15 @@
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import Response
 
 from app.core.config import get_settings
 from app.db import get_engine
-from app.models import AiSqlAttempt, AiSqlAttemptPreview, AiSqlAttemptReviewRequest, GeneratedReport, ReportRequest, SqlMistakeExample
+from app.models import AiSqlAttempt, AiSqlAttemptPreview, AiSqlAttemptReviewRequest, GeneratedReport, ReportRequest, SavedReportSummary, SqlMistakeExample
 from app.services.catalog import load_report_catalog, load_report_categories, load_schema_catalog
 from app.services.ai_sql_attempt_store import get_attempt, list_attempts, review_attempt
 from app.services.admin_attempt_preview import preview_attempt_rows
+from app.services.report_exporter import export_filename, export_report_pdf, export_report_xlsx
+from app.services.saved_report_store import get_saved_report, list_saved_reports, save_generated_report
 from app.services.sql_mistake_store import list_mistake_examples
 from app.services.report_runner import ReportBuildError, build_report
 
@@ -76,7 +79,11 @@ def report_categories() -> dict:
 @app.post("/api/reports/query", response_model=GeneratedReport)
 async def query_report(request: ReportRequest) -> GeneratedReport:
     try:
-        return await build_report(request)
+        report = await build_report(request)
+        if report.generated_source == "cache":
+            return report
+        saved_report_id = save_generated_report(report)
+        return report.model_copy(update={"saved_report_id": saved_report_id})
     except ReportBuildError as exc:
         raise HTTPException(
             status_code=400,
@@ -91,6 +98,55 @@ async def query_report(request: ReportRequest) -> GeneratedReport:
         ) from exc
     except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.get("/api/reports/saved", response_model=list[SavedReportSummary])
+def saved_reports(limit: int = Query(default=50, ge=1, le=200)) -> list[SavedReportSummary]:
+    try:
+        return [SavedReportSummary.model_validate(report) for report in list_saved_reports(limit)]
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@app.get("/api/reports/saved/{report_id}", response_model=GeneratedReport)
+def saved_report(report_id: str) -> GeneratedReport:
+    try:
+        report = get_saved_report(report_id)
+        if report is None:
+            raise HTTPException(status_code=404, detail="Saved report was not found.")
+        return report
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@app.get("/api/reports/saved/{report_id}/export/{format}")
+def export_saved_report(report_id: str, format: str) -> Response:
+    try:
+        report = get_saved_report(report_id)
+        if report is None:
+            raise HTTPException(status_code=404, detail="Saved report was not found.")
+        normalized_format = format.lower()
+        if normalized_format == "pdf":
+            content = export_report_pdf(report)
+            media_type = "application/pdf"
+            filename = export_filename(report, "pdf")
+        elif normalized_format in {"xlsx", "excel"}:
+            content = export_report_xlsx(report)
+            media_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            filename = export_filename(report, "xlsx")
+        else:
+            raise HTTPException(status_code=400, detail="Export format must be pdf or xlsx.")
+        return Response(
+            content=content,
+            media_type=media_type,
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        )
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
 @app.get("/api/admin/ai-sql-attempts", response_model=list[AiSqlAttempt])

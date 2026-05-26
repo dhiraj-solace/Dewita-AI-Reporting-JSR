@@ -13,8 +13,11 @@ import {
   Database,
   Download,
   Expand,
+  FileSpreadsheet,
+  FileText,
   Filter,
   HelpCircle,
+  History,
   LayoutDashboard,
   Loader2,
   Menu,
@@ -24,7 +27,20 @@ import {
   User,
   Users
 } from "lucide-react";
-import {ApiError, GeneratedReport, Health, ReportCategory, RetryAttempt, getHealth, listReportCategories, runReport} from "@/lib/api";
+import {
+  ApiError,
+  GeneratedReport,
+  Health,
+  ReportCategory,
+  RetryAttempt,
+  SavedReportSummary,
+  getHealth,
+  getSavedReport,
+  listReportCategories,
+  listSavedReports,
+  runReport,
+  savedReportExportUrl
+} from "@/lib/api";
 
 const monthOptions = ["January", "February", "March", "April", "May", "June"];
 const examples = [
@@ -220,6 +236,8 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [showSql, setShowSql] = useState(false);
   const [generatedAt, setGeneratedAt] = useState<string | null>(null);
+  const [savedReports, setSavedReports] = useState<SavedReportSummary[]>([]);
+  const [savedLoading, setSavedLoading] = useState(false);
 
   useEffect(() => {
     getHealth().then(setStatus).catch(() => setStatus(null));
@@ -228,11 +246,51 @@ export default function Home() {
         if (categories.length > 0) setReportCategories(categories);
       })
       .catch(() => setReportCategories(fallbackReportCategories));
+    refreshSavedReports();
   }, []);
 
   const visibleRows = useMemo(() => report?.rows.slice(0, 100) ?? [], [report]);
   const summaryItems = useMemo(() => report ? buildSummaryItems(report) : [], [report]);
   const retrySummary = useMemo(() => validationSummary(retryAttempts), [retryAttempts]);
+  const activeSavedReportId = report?.saved_report_id ?? null;
+
+  async function refreshSavedReports() {
+    setSavedLoading(true);
+    try {
+      setSavedReports(await listSavedReports());
+    } catch {
+      setSavedReports([]);
+    } finally {
+      setSavedLoading(false);
+    }
+  }
+
+  async function loadSavedReport(reportId: string) {
+    setLoading(true);
+    setError("");
+    setErrorTitle("");
+    setErrorSolution("");
+    setErrorStatusCode(null);
+    try {
+      const saved = await getSavedReport(reportId);
+      setReport(saved);
+      setQuestion(saved.question);
+      setRetryAttempts(saved.retry_attempts ?? []);
+      setGeneratedAt(dateFormatter.format(new Date()));
+      setShowSql(false);
+    } catch (err) {
+      setReport(null);
+      setError(err instanceof Error ? err.message : "Unable to load saved report");
+      setErrorTitle("Unable to load saved report");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function downloadSavedReport(format: "pdf" | "xlsx") {
+    if (!activeSavedReportId) return;
+    window.location.href = savedReportExportUrl(activeSavedReportId, format);
+  }
 
   async function submit(nextQuestion = question) {
     setQuestion(nextQuestion);
@@ -255,6 +313,7 @@ export default function Home() {
       setRetryAttempts(result.retry_attempts ?? []);
       setGeneratedAt(dateFormatter.format(new Date()));
       setShowSql(false);
+      refreshSavedReports();
     } catch (err) {
       setReport(null);
       if (err instanceof ApiError) {
@@ -401,7 +460,12 @@ export default function Home() {
           <div className="report-actions">
             <label><input type="checkbox" defaultChecked /> Show CR Detailer</label>
             <label><input type="checkbox" defaultChecked /> Show CR Checker</label>
-            <button><Download size={20} />Export PDF</button>
+            <button disabled={!activeSavedReportId} onClick={() => downloadSavedReport("pdf")}>
+              <FileText size={20} />Export PDF
+            </button>
+            <button disabled={!activeSavedReportId} onClick={() => downloadSavedReport("xlsx")}>
+              <FileSpreadsheet size={20} />Export Excel
+            </button>
           </div>
 
           <section className="result-card">
@@ -518,6 +582,33 @@ export default function Home() {
                 {showSql && <pre className="sql-box">{report.sql}</pre>}
               </>
             )}
+          </section>
+
+          <section className="saved-reports-panel">
+            <div className="saved-reports-header">
+              <div>
+                <h2><History size={22} />Saved Reports</h2>
+                <p>{savedLoading ? "Loading saved reports" : `${savedReports.length} recent reports`}</p>
+              </div>
+              <button onClick={refreshSavedReports} disabled={savedLoading}>
+                {savedLoading ? <Loader2 className="spin" size={18} /> : <Download size={18} />}
+                Refresh
+              </button>
+            </div>
+            <div className="saved-report-list">
+              {savedReports.length === 0 && <span className="saved-empty">No saved reports yet.</span>}
+              {savedReports.map((item) => (
+                <button
+                  className={item.id === activeSavedReportId ? "saved-report-row active" : "saved-report-row"}
+                  key={item.id}
+                  onClick={() => loadSavedReport(item.id)}
+                >
+                  <strong>{item.title}</strong>
+                  <span>{item.question}</span>
+                  <em>{numberFormatter.format(item.row_count)} rows</em>
+                </button>
+              ))}
+            </div>
           </section>
         </section>
       </section>

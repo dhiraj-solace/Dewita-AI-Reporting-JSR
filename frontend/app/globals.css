@@ -375,7 +375,7 @@ p {
   min-height: 82px;
   display: flex;
   align-items: center;
-  gap: 68px;
+  gap: 16px;
   padding: 0 18px;
 }
 
@@ -392,10 +392,18 @@ p {
   accent-color: var(--gold);
 }
 
+.report-actions label:nth-of-type(2) {
+  margin-right: auto;
+}
+
 .report-actions button {
-  margin-left: auto;
-  width: 182px;
+  width: 164px;
   background: var(--danger);
+}
+
+.report-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 
 .result-card {
@@ -658,6 +666,105 @@ tr:nth-child(even) td {
   padding: 20px;
   font-size: 14px;
   line-height: 1.45;
+}
+
+.saved-reports-panel {
+  border: 1px solid #dbe5f3;
+  border-top: 0;
+  background: #fff;
+  padding: 18px;
+}
+
+.saved-reports-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.saved-reports-header h2 {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 22px;
+}
+
+.saved-reports-header p {
+  color: #6c7895;
+  font-size: 14px;
+  margin-top: 3px;
+}
+
+.saved-reports-header button {
+  min-height: 38px;
+  border: 1px solid #cbd9ec;
+  border-radius: 6px;
+  background: #fff;
+  color: #243955;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  font-weight: 800;
+}
+
+.saved-report-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.saved-report-row {
+  min-height: 104px;
+  border: 1px solid #dbe5f3;
+  border-radius: 6px;
+  background: #fbfdff;
+  color: #132236;
+  text-align: left;
+  padding: 12px;
+  display: grid;
+  gap: 7px;
+}
+
+.saved-report-row.active {
+  border-color: #4f73dc;
+  background: #eef4ff;
+}
+
+.saved-report-row strong,
+.saved-report-row span {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+}
+
+.saved-report-row strong {
+  color: #142a46;
+  font-size: 15px;
+  -webkit-line-clamp: 1;
+}
+
+.saved-report-row span {
+  color: #53647d;
+  font-size: 13px;
+  line-height: 1.35;
+  -webkit-line-clamp: 2;
+}
+
+.saved-report-row em,
+.saved-empty {
+  color: #4f73dc;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.saved-empty {
+  border: 1px dashed #cbd9ec;
+  border-radius: 6px;
+  padding: 18px;
 }
 
 .empty-state {
@@ -1266,7 +1373,8 @@ tr:nth-child(even) td {
   .filter-grid,
   .searchbar,
   .retry-panel,
-  .summary-grid {
+  .summary-grid,
+  .saved-report-list {
     grid-template-columns: 1fr;
   }
 
