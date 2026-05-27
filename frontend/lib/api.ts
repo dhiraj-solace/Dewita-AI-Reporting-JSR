@@ -91,6 +91,47 @@ export type ReportPermissionsMatrix = {
   scopes: RoleReportPermission["data_scope"][];
 };
 
+export type ScheduledReportPayload = {
+  name: string;
+  report_category: string;
+  question: string;
+  frequency: "daily" | "weekly" | "monthly";
+  schedule_time: string;
+  timezone: string;
+  filters: Record<string, unknown>;
+  recipients: Record<string, unknown>;
+  current_user_role: string;
+  sql_generation_provider?: "openrouter" | "ollama" | "gemini" | "openai" | null;
+  limit: number;
+  dry_run: boolean;
+  export_formats: string[];
+  execution_settings: Record<string, unknown>;
+  is_active: boolean;
+};
+
+export type ScheduledReport = ScheduledReportPayload & {
+  id: string;
+  next_run_at?: string | null;
+  last_run_at?: string | null;
+  last_status?: string | null;
+  last_error?: string | null;
+  created_by_role?: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type ScheduledReportRun = {
+  id: string;
+  scheduled_report_id: string;
+  saved_report_id?: string | null;
+  status: string;
+  started_at?: string | null;
+  finished_at?: string | null;
+  error_message?: string | null;
+  generated_row_count?: number | null;
+  metadata_json?: string | null;
+};
+
 export type AiSqlAttempt = {
   id: string;
   user_question: string;
@@ -164,6 +205,28 @@ export class ApiError extends Error {
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:7000";
 
+async function apiError(response: Response, fallback: string): Promise<ApiError> {
+  const body = await response.json().catch(() => ({}));
+  const detail = body.detail;
+  if (Array.isArray(detail)) {
+    const messages = detail.map((item) => {
+      const field = Array.isArray(item.loc) ? item.loc.filter((part: unknown) => part !== "body").join(".") : "";
+      return field ? `${field}: ${item.msg}` : item.msg;
+    });
+    return new ApiError(messages.join("; ") || fallback);
+  }
+  if (detail && typeof detail === "object") {
+    return new ApiError(
+      detail.message || fallback,
+      detail.retry_attempts || [],
+      detail.title || fallback,
+      detail.solution,
+      detail.status_code
+    );
+  }
+  return new ApiError(detail || fallback);
+}
+
 export async function runReport(payload: ReportRequest): Promise<GeneratedReport> {
   const response = await fetch(`${API_URL}/api/reports/query`, {
     method: "POST",
@@ -172,18 +235,7 @@ export async function runReport(payload: ReportRequest): Promise<GeneratedReport
   });
 
   if (!response.ok) {
-    const detail = await response.json().catch(() => ({}));
-    const payload = detail.detail;
-    if (payload && typeof payload === "object") {
-      throw new ApiError(
-        payload.message || "Unable to run report",
-        payload.retry_attempts || [],
-        payload.title || "Unable to run report",
-        payload.solution,
-        payload.status_code
-      );
-    }
-    throw new ApiError(payload || "Unable to run report");
+    throw await apiError(response, "Unable to run report");
   }
 
   return response.json();
@@ -235,6 +287,70 @@ export async function listReportAuditLogs(limit = 100): Promise<ReportAuditLog[]
   const response = await fetch(`${API_URL}/api/admin/report-audit-logs?${params.toString()}`, {cache: "no-store"});
   if (!response.ok) {
     throw new ApiError("Unable to load report audit logs");
+  }
+  return response.json();
+}
+
+export async function listScheduledReports(actorRole = "Super Admin"): Promise<ScheduledReport[]> {
+  const params = new URLSearchParams({actor_role: actorRole});
+  const response = await fetch(`${API_URL}/api/admin/scheduled-reports?${params.toString()}`, {cache: "no-store"});
+  if (!response.ok) {
+    throw new ApiError("Unable to load scheduled reports");
+  }
+  return response.json();
+}
+
+export async function createScheduledReport(payload: ScheduledReportPayload, actorRole = "Super Admin"): Promise<ScheduledReport> {
+  const params = new URLSearchParams({actor_role: actorRole});
+  const response = await fetch(`${API_URL}/api/admin/scheduled-reports?${params.toString()}`, {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify(payload)
+  });
+  if (!response.ok) {
+    throw await apiError(response, "Unable to create scheduled report");
+  }
+  return response.json();
+}
+
+export async function updateScheduledReport(id: string, payload: ScheduledReportPayload, actorRole = "Super Admin"): Promise<ScheduledReport> {
+  const params = new URLSearchParams({actor_role: actorRole});
+  const response = await fetch(`${API_URL}/api/admin/scheduled-reports/${id}?${params.toString()}`, {
+    method: "PUT",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify(payload)
+  });
+  if (!response.ok) {
+    throw await apiError(response, "Unable to update scheduled report");
+  }
+  return response.json();
+}
+
+export async function setScheduledReportStatus(id: string, isActive: boolean, actorRole = "Super Admin"): Promise<ScheduledReport> {
+  const params = new URLSearchParams({is_active: String(isActive), actor_role: actorRole});
+  const response = await fetch(`${API_URL}/api/admin/scheduled-reports/${id}/status?${params.toString()}`, {
+    method: "PATCH"
+  });
+  if (!response.ok) {
+    throw new ApiError("Unable to update scheduled report status");
+  }
+  return response.json();
+}
+
+export async function runScheduledReportNow(id: string, actorRole = "Super Admin"): Promise<ScheduledReportRun> {
+  const params = new URLSearchParams({actor_role: actorRole});
+  const response = await fetch(`${API_URL}/api/admin/scheduled-reports/${id}/run-now?${params.toString()}`, {method: "POST"});
+  if (!response.ok) {
+    throw new ApiError("Unable to run scheduled report");
+  }
+  return response.json();
+}
+
+export async function listScheduledReportRuns(id: string, actorRole = "Super Admin"): Promise<ScheduledReportRun[]> {
+  const params = new URLSearchParams({limit: "50", actor_role: actorRole});
+  const response = await fetch(`${API_URL}/api/admin/scheduled-reports/${id}/runs?${params.toString()}`, {cache: "no-store"});
+  if (!response.ok) {
+    throw new ApiError("Unable to load scheduled report runs");
   }
   return response.json();
 }

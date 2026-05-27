@@ -79,6 +79,55 @@ class RoleReportPermissionsPayload(BaseModel):
     permissions: list[RoleReportPermission]
 
 
+class ScheduledReportBase(BaseModel):
+    name: str = Field(..., min_length=2)
+    report_category: str = "custom"
+    question: str = Field(..., min_length=3)
+    frequency: str = Field(..., pattern="^(daily|weekly|monthly)$")
+    schedule_time: str = Field(..., pattern=r"^\d{2}:\d{2}$")
+    timezone: str = "Asia/Calcutta"
+    filters: dict[str, Any] = {}
+    recipients: dict[str, Any] = {}
+    current_user_role: str = "Super Admin"
+    sql_generation_provider: str | None = Field(default=None, pattern="^(openrouter|ollama|gemini|openai)$")
+    limit: int = Field(default=500, ge=1, le=1000)
+    dry_run: bool = False
+    export_formats: list[str] = []
+    execution_settings: dict[str, Any] = {}
+    is_active: bool = True
+
+
+class ScheduledReportCreate(ScheduledReportBase):
+    pass
+
+
+class ScheduledReportUpdate(ScheduledReportBase):
+    pass
+
+
+class ScheduledReport(ScheduledReportBase):
+    id: str
+    next_run_at: Any | None = None
+    last_run_at: Any | None = None
+    last_status: str | None = None
+    last_error: str | None = None
+    created_by_role: str | None = None
+    created_at: Any
+    updated_at: Any
+
+
+class ScheduledReportRun(BaseModel):
+    id: str
+    scheduled_report_id: str
+    saved_report_id: str | None = None
+    status: str
+    started_at: Any | None = None
+    finished_at: Any | None = None
+    error_message: str | None = None
+    generated_row_count: int | None = None
+    metadata_json: str | None = None
+
+
 class ReportAuditLog(BaseModel):
     id: str
     event_type: str

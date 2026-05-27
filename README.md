@@ -17,6 +17,8 @@ FastAPI + Next.js scaffold for natural-language database reporting.
 - Saved report access filtering by role and report category.
 - Report audit logging for saved reports and Admin permission changes.
 - Model performance tracking for provider/model, generation time, validator time, SQL execution time, and total request time.
+- Scheduled report auto-generation for daily, weekly, and monthly reports.
+- Super Admin-only scheduled report management with email notifications and report attachments.
 
 ## Important Database Note
 
@@ -30,6 +32,18 @@ For development AI SQL generation, Gemini is the default provider:
 AI_PROVIDER=gemini
 GEMINI_API_KEY=your_gemini_key
 GEMINI_MODEL=gemini-1.5-flash
+```
+
+Optional SMTP settings for scheduled report email delivery:
+
+```env
+SMTP_HOST=smtp.example.com
+SMTP_PORT=587
+SMTP_USERNAME=reporting@example.com
+SMTP_PASSWORD=your_password
+SMTP_FROM_EMAIL=reporting@example.com
+SMTP_FROM_NAME=Devita AI Reporting
+SMTP_USE_TLS=true
 ```
 
 ## Backend
@@ -63,6 +77,12 @@ Open `http://localhost:3000`.
 - `GET /api/admin/report-permissions`
 - `PUT /api/admin/report-permissions`
 - `GET /api/admin/report-audit-logs`
+- `GET /api/admin/scheduled-reports?actor_role=Super%20Admin`
+- `POST /api/admin/scheduled-reports?actor_role=Super%20Admin`
+- `PUT /api/admin/scheduled-reports/{id}?actor_role=Super%20Admin`
+- `PATCH /api/admin/scheduled-reports/{id}/status?actor_role=Super%20Admin`
+- `POST /api/admin/scheduled-reports/{id}/run-now?actor_role=Super%20Admin`
+- `GET /api/admin/scheduled-reports/{id}/runs?actor_role=Super%20Admin`
 - `GET /api/admin/ai-sql-attempts`
 
 Example request:
@@ -106,6 +126,34 @@ The backend creates application tables for operational tracking:
 - `saved_reports`: saved report data, report category, and creator role.
 - `role_report_permissions`: Admin-managed role-to-report permission matrix.
 - `report_audit_logs`: saved report events and role permission changes.
+- `scheduled_reports`: dynamic report schedules, filters, recipients, and execution settings.
+- `scheduled_report_runs`: run history for automatic/manual schedule executions.
+
+## Scheduled Reports
+
+Only Super Admin can manage scheduled reports at:
+
+```text
+http://localhost:3000/admin/scheduled-reports
+```
+
+Schedules are database-driven and support:
+
+- daily, weekly, and monthly frequencies
+- schedule time
+- report category/type
+- natural-language report question
+- dynamic date presets such as current month, previous month, current week, and previous week
+- run-as role
+- recipient emails and roles metadata
+- email delivery with Excel and PDF attachments when SMTP is configured
+- enable/disable
+- manual Run Now verification
+- run history
+
+A date preset is a dynamic date filter. For example, `current_month` is resolved on the day the schedule runs, so a monthly schedule in May uses May dates and the same schedule in June uses June dates without editing the schedule.
+
+The backend starts a lightweight polling scheduler on FastAPI startup. It checks active due schedules, runs the normal safe `build_report()` pipeline, saves successful reports, emails configured recipients, records run history, and writes audit log events.
 
 ## Next Step Before Production
 

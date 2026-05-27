@@ -2,10 +2,10 @@
   "source_files": [
     "live_database"
   ],
-  "fetched_at": "2026-05-26T13:21:44.101519",
+  "fetched_at": "2026-05-27T15:46:07.952777",
   "notes": [
     "Schema fetched from live database",
-    "Last updated: 2026-05-26T13:21:44.101519",
+    "Last updated: 2026-05-27T15:46:07.952777",
     "Static schema metadata preserved where available"
   ],
   "relationships": [
@@ -184,6 +184,36 @@
         {
           "name": "updated_at",
           "type": "datetime",
+          "description": ""
+        },
+        {
+          "name": "generation_provider",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "generation_model",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "generation_elapsed_ms",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "validator_elapsed_ms",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "execution_elapsed_ms",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "total_elapsed_ms",
+          "type": "int",
           "description": ""
         }
       ],
@@ -3275,6 +3305,68 @@
       "aliases": []
     },
     {
+      "name": "role_report_permissions",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "description": ""
+        },
+        {
+          "name": "role_name",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "report_category",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "can_view",
+          "type": "tinyint",
+          "description": ""
+        },
+        {
+          "name": "can_create",
+          "type": "tinyint",
+          "description": ""
+        },
+        {
+          "name": "can_export",
+          "type": "tinyint",
+          "description": ""
+        },
+        {
+          "name": "can_save",
+          "type": "tinyint",
+          "description": ""
+        },
+        {
+          "name": "can_view_saved",
+          "type": "tinyint",
+          "description": ""
+        },
+        {
+          "name": "data_scope",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "created_at",
+          "type": "datetime",
+          "description": ""
+        },
+        {
+          "name": "updated_at",
+          "type": "datetime",
+          "description": ""
+        }
+      ],
+      "description": "",
+      "aliases": []
+    },
+    {
       "name": "role_user",
       "columns": [
         {
@@ -3318,6 +3410,16 @@
         },
         {
           "name": "attempt_id",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "report_category",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "created_by_role",
           "type": "varchar",
           "description": ""
         },
@@ -3384,6 +3486,180 @@
         {
           "name": "updated_at",
           "type": "datetime",
+          "description": ""
+        }
+      ],
+      "description": "",
+      "aliases": []
+    },
+    {
+      "name": "scheduled_reports",
+      "columns": [
+        {
+          "name": "id",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "name",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "report_category",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "question",
+          "type": "text",
+          "description": ""
+        },
+        {
+          "name": "frequency",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "schedule_time",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "timezone",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "filters_json",
+          "type": "longtext",
+          "description": ""
+        },
+        {
+          "name": "recipients_json",
+          "type": "longtext",
+          "description": ""
+        },
+        {
+          "name": "current_user_role",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "sql_generation_provider",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "result_limit",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "dry_run",
+          "type": "tinyint",
+          "description": ""
+        },
+        {
+          "name": "export_formats_json",
+          "type": "longtext",
+          "description": ""
+        },
+        {
+          "name": "execution_settings_json",
+          "type": "longtext",
+          "description": ""
+        },
+        {
+          "name": "is_active",
+          "type": "tinyint",
+          "description": ""
+        },
+        {
+          "name": "next_run_at",
+          "type": "datetime",
+          "description": ""
+        },
+        {
+          "name": "last_run_at",
+          "type": "datetime",
+          "description": ""
+        },
+        {
+          "name": "last_status",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "last_error",
+          "type": "longtext",
+          "description": ""
+        },
+        {
+          "name": "created_by_role",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "created_at",
+          "type": "datetime",
+          "description": ""
+        },
+        {
+          "name": "updated_at",
+          "type": "datetime",
+          "description": ""
+        }
+      ],
+      "description": "",
+      "aliases": []
+    },
+    {
+      "name": "scheduled_report_runs",
+      "columns": [
+        {
+          "name": "id",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "scheduled_report_id",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "saved_report_id",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "status",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "started_at",
+          "type": "datetime",
+          "description": ""
+        },
+        {
+          "name": "finished_at",
+          "type": "datetime",
+          "description": ""
+        },
+        {
+          "name": "error_message",
+          "type": "longtext",
+          "description": ""
+        },
+        {
+          "name": "generated_row_count",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "metadata_json",
+          "type": "longtext",
           "description": ""
         }
       ],

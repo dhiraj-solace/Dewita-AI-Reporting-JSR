@@ -46,6 +46,14 @@ class Settings(BaseSettings):
     max_rows: int = 500
     query_timeout_seconds: int = 60
 
+    smtp_host: str | None = None
+    smtp_port: int = 587
+    smtp_username: str | None = None
+    smtp_password: str | None = None
+    smtp_from_email: str | None = None
+    smtp_from_name: str = "Devita AI Reporting"
+    smtp_use_tls: bool = True
+
     model_config = SettingsConfigDict(
         env_file=ROOT_ENV,
         env_file_encoding="utf-8",

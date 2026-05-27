@@ -42,6 +42,9 @@ The main purpose is to provide an AI-assisted reporting layer over the existing 
 - Saved report list/open/export permission checks.
 - Report audit log for saved-report events and role-permission changes.
 - Model performance tracking on AI SQL attempts.
+- Scheduled report auto-generation with dynamic DB configuration.
+- Super Admin-only schedule management and manual run access.
+- Scheduled report email notifications with PDF/Excel attachments when SMTP is configured.
 - Gold-example learning system using approved SQL attempts.
 - SQL mistake storage so future prompts can avoid known bad patterns.
 - Lightweight Chroma vector store using hash embeddings for similar approved examples.
@@ -74,6 +77,7 @@ Main screens:
 - `frontend/app/page.tsx`: Main reporting interface where users enter report questions, select categories/providers, run reports, view results, warnings, retry attempts, and generated SQL.
 - `frontend/app/admin/ai-sql-attempts/page.tsx`: Admin review dashboard for AI SQL attempts, gold-example approval, mistake review, and result preview.
 - `frontend/app/admin/report-permissions/page.tsx`: Admin role-report permission matrix for assigning categories, actions, and data scopes to roles.
+- `frontend/app/admin/scheduled-reports/page.tsx`: Super Admin scheduled report manager for creating, editing, enabling/disabling, running, emailing, and reviewing scheduled report jobs.
 - `frontend/lib/api.ts`: Typed API client for backend endpoints.
 
 ### Backend Role
@@ -184,6 +188,12 @@ Important endpoints:
 - `GET /api/admin/report-permissions`: Returns role/report permission matrix.
 - `PUT /api/admin/report-permissions`: Replaces role/report permissions and writes audit log entries for changed permissions.
 - `GET /api/admin/report-audit-logs`: Lists saved-report and permission-change audit log events.
+- `GET /api/admin/scheduled-reports`: Lists configured scheduled reports. Requires `actor_role=Super Admin`.
+- `POST /api/admin/scheduled-reports`: Creates a scheduled report. Requires `actor_role=Super Admin`.
+- `PUT /api/admin/scheduled-reports/{schedule_id}`: Updates a scheduled report. Requires `actor_role=Super Admin`.
+- `PATCH /api/admin/scheduled-reports/{schedule_id}/status`: Enables/disables a schedule. Requires `actor_role=Super Admin`.
+- `POST /api/admin/scheduled-reports/{schedule_id}/run-now`: Runs a schedule immediately for verification. Requires `actor_role=Super Admin`.
+- `GET /api/admin/scheduled-reports/{schedule_id}/runs`: Lists run history. Requires `actor_role=Super Admin`.
 - `GET /api/admin/ai-sql-attempts`: Lists generated SQL attempts.
 - `POST /api/admin/ai-sql-attempts/{attempt_id}/review`: Reviews/approves attempts.
 - `GET /api/admin/ai-sql-attempts/{attempt_id}/preview`: Executes a limited preview of final SQL.
@@ -210,6 +220,8 @@ Important models:
 - `RoleReportPermission`: Role-to-report action and scope configuration.
 - `RoleReportPermissionsPayload`: Bulk permission update payload for the admin matrix.
 - `ReportAuditLog`: Audit log row returned by the admin audit endpoint.
+- `ScheduledReportCreate`, `ScheduledReportUpdate`, `ScheduledReport`: Scheduled report configuration contracts.
+- `ScheduledReportRun`: Scheduled execution history row.
 - `RetryAttempt`: Tracks validation/execution attempts.
 - `ValidationResult`: Local LLM validator response shape.
 - `AiSqlAttempt`: Admin view of stored SQL generation attempts.
@@ -228,6 +240,7 @@ Important settings:
 - Validator: local validator URL/model/retry settings
 - Query limits and timeout
 - CORS origins
+- Email delivery: `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_FROM_EMAIL`, `SMTP_FROM_NAME`, `SMTP_USE_TLS`
 
 The `resolved_database_url` property builds a MySQL SQLAlchemy URL when individual DB fields are provided.
 
@@ -483,6 +496,17 @@ The attempt table also stores model performance tracking fields:
 - SQL execution elapsed milliseconds
 - total request elapsed milliseconds
 
+#### `backend/app/services/email_service.py`
+
+Sends scheduled report notifications and attachments.
+
+Important functions:
+
+- `is_email_configured()`
+- `send_report_email(...)`
+
+The service uses standard SMTP settings from `.env`. When SMTP is not configured, scheduled runs still generate and save reports; the run metadata records email delivery as skipped. When recipient emails are configured and SMTP is available, the service sends a generated notification email with selected `xlsx` and/or `pdf` attachments.
+
 #### `backend/app/services/report_permissions.py`
 
 Stores and enforces role-to-report permissions.
@@ -556,6 +580,38 @@ Logged event types currently include:
 - `role_report_permission_changed`
 
 Audit rows store actor role, target role, report ID, report category, action, before/after JSON, metadata JSON, and timestamp.
+
+#### `backend/app/services/scheduled_reports.py`
+
+Stores and runs scheduled report jobs.
+
+Important functions:
+
+- `ensure_scheduled_report_tables()`
+- `list_scheduled_reports()`
+- `create_scheduled_report(...)`
+- `update_scheduled_report(...)`
+- `set_scheduled_report_status(...)`
+- `run_scheduled_report_now(...)`
+- `run_due_scheduled_reports(...)`
+- `start_scheduler_loop()`
+- `stop_scheduler_loop()`
+
+The scheduler is database-driven. FastAPI startup starts a lightweight polling loop that checks active rows where `next_run_at <= now`. When a schedule is due, it:
+
+1. Builds a `ReportRequest` from the schedule.
+2. Resolves dynamic filters such as current month, previous month, current week, and previous week.
+3. Checks role permissions through the normal report permission service.
+4. Calls `build_report()`.
+5. Saves the generated report if the role has save permission.
+6. Sends email notifications and selected report attachments when recipients and SMTP are configured.
+7. Writes a `scheduled_report_runs` row.
+8. Updates `last_run_at`, `last_status`, `last_error`, and `next_run_at`.
+9. Writes an audit log event.
+
+Recipient settings are stored as JSON metadata. Email delivery result is stored in run metadata, so a generated report can still be marked successful if SMTP is missing or an email send fails. The schedule management APIs are restricted to `Super Admin`; automatic due runs are system-triggered and do not require a manual actor.
+
+A date preset is a dynamic date range stored in `filters.date_preset`. For example, `current_month` resolves to the first and last day of the month on the actual run date, while `previous_week` resolves to the prior Monday-Sunday range. This avoids hard-coding dates into long-lived schedules.
 
 #### `backend/app/services/sql_mistake_store.py`
 
@@ -635,6 +691,12 @@ Important functions:
 - `listReportPermissions()`
 - `updateReportPermissions(...)`
 - `listReportAuditLogs(...)`
+- `listScheduledReports()`
+- `createScheduledReport(...)`
+- `updateScheduledReport(...)`
+- `setScheduledReportStatus(...)`
+- `runScheduledReportNow(...)`
+- `listScheduledReportRuns(...)`
 - `listSavedReports(role)`
 - `getSavedReport(reportId, role)`
 - `savedReportExportUrl(reportId, format, role)`
@@ -679,6 +741,18 @@ Admin role permission screen. Responsibilities:
 - Allows Admin to set data scope for each role/category.
 - Saves the permission matrix through `PUT /api/admin/report-permissions`.
 - Permission changes are logged in `report_audit_logs`.
+
+#### `frontend/app/admin/scheduled-reports/page.tsx`
+
+Admin scheduled-report screen. Responsibilities:
+
+- Lists schedules.
+- Creates and edits dynamic report schedules.
+- Supports daily, weekly, and monthly frequency.
+- Captures report category, question, schedule time, run-as role, dynamic date preset, recipients, provider, and limit.
+- Enables/disables schedules.
+- Runs a schedule immediately for verification.
+- Displays run history with saved report ID, status, error, and generated row count.
 
 #### `frontend/app/globals.css`
 
@@ -804,6 +878,42 @@ Stores operational audit events:
 - created timestamp
 
 It records saved-report create/reuse events and Admin role permission changes.
+
+#### `scheduled_reports`
+
+Stores dynamic scheduled report configuration:
+
+- schedule ID
+- name
+- report category/type
+- natural-language report question
+- frequency: daily, weekly, or monthly
+- schedule time and timezone
+- filters JSON
+- recipients JSON
+- run-as role
+- SQL provider
+- row limit and dry-run flag
+- export formats JSON
+- execution settings JSON
+- active flag
+- next/last run timestamps
+- last status/error
+- creator role
+- timestamps
+
+#### `scheduled_report_runs`
+
+Stores execution history for manual and automatic scheduled report runs:
+
+- run ID
+- schedule ID
+- saved report ID
+- status
+- started/finished timestamps
+- error message
+- generated row count
+- metadata JSON
 
 #### `sql_mistake_examples`
 

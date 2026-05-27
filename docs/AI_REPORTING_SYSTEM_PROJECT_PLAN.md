@@ -53,6 +53,9 @@ The system should include:
 - Saved report access by role and report category.
 - Audit logging for saved-report events and permission changes.
 - Model/provider performance tracking.
+- Scheduled report auto-generation.
+- Super Admin-only schedule management and manual execution.
+- Scheduled report email notifications with PDF/Excel attachments.
 - Storage of successful and failed AI SQL attempts.
 - Reusable report templates.
 - Export options such as CSV, Excel, or PDF.
@@ -75,6 +78,8 @@ flowchart LR
   API --> Audit["Attempt / Feedback Storage"]
   API --> RBAC["Role Report Permissions"]
   API --> Saved["Saved Reports"]
+  API --> Scheduler["Scheduled Report Worker"]
+  Scheduler --> Email["SMTP Email Delivery"]
 ```
 
 ## 6. Recommended Technology Stack
@@ -194,6 +199,12 @@ Recommended endpoints:
 - `GET /api/admin/report-permissions`
 - `PUT /api/admin/report-permissions`
 - `GET /api/admin/report-audit-logs`
+- `GET /api/admin/scheduled-reports`
+- `POST /api/admin/scheduled-reports`
+- `PUT /api/admin/scheduled-reports/{id}`
+- `PATCH /api/admin/scheduled-reports/{id}/status`
+- `POST /api/admin/scheduled-reports/{id}/run-now`
+- `GET /api/admin/scheduled-reports/{id}/runs`
 - `GET /api/admin/ai-sql-attempts`
 - `POST /api/admin/ai-sql-attempts/{id}/review`
 - `GET /api/admin/sql-mistake-examples`
@@ -298,6 +309,8 @@ Do not rely only on frontend hiding. The backend must check permissions.
 
 For production, do not trust a frontend-selected role. The backend should derive the role from authenticated session/JWT data.
 
+Scheduled report management is stricter than normal report generation. Only `Super Admin` should be able to create schedules, edit schedules, enable/disable schedules, view schedule runs, and manually run schedules. Automatic due runs are system-triggered, but the schedule still uses the configured run-as role for report permission checks.
+
 ## 9. Validation Planning
 
 Use multiple validation layers:
@@ -401,6 +414,12 @@ Admin frontend should include:
 - Permission action toggles: view, create, export, save, view saved.
 - Data scope selector for each role/category.
 - Audit log viewer for report saves and permission changes.
+- Scheduled report manager.
+- Schedule create/edit form.
+- Schedule enable/disable control.
+- Manual Run Now action.
+- Recipient email and report attachment format controls.
+- Scheduled run history.
 
 ## 13. Database Table Planning for App Metadata
 
@@ -495,6 +514,54 @@ Columns:
 - `metadata_json`
 - `created_at`
 
+### `scheduled_reports`
+
+Stores dynamic scheduled report configuration.
+
+Columns:
+
+- `id`
+- `name`
+- `report_category`
+- `question`
+- `frequency`
+- `schedule_time`
+- `timezone`
+- `filters_json`
+- `recipients_json`
+- `current_user_role`
+- `sql_generation_provider`
+- `result_limit`
+- `dry_run`
+- `export_formats_json`
+- `execution_settings_json`
+- `is_active`
+- `next_run_at`
+- `last_run_at`
+- `last_status`
+- `last_error`
+- `created_by_role`
+- `created_at`
+- `updated_at`
+
+### `scheduled_report_runs`
+
+Stores manual and automatic schedule execution history.
+
+Columns:
+
+- `id`
+- `scheduled_report_id`
+- `saved_report_id`
+- `status`
+- `started_at`
+- `finished_at`
+- `error_message`
+- `generated_row_count`
+- `metadata_json`
+
+Run metadata should include the trigger source, recipient metadata, and delivery result. Delivery result can be `sent`, `skipped`, or `failed`; email failure should be visible without hiding the fact that the report itself was generated.
+
 ### `sql_mistake_examples`
 
 Stores invalid SQL examples.
@@ -529,6 +596,8 @@ Test:
 - denied report category creation
 - saved report filtering by role
 - audit log creation for saved reports and permission changes
+- scheduled report next-run calculation
+- dynamic date preset resolution
 
 ### Integration Tests
 
@@ -541,6 +610,11 @@ Test:
 - admin review flow
 - report permission update flow
 - saved report open/export permission checks
+- scheduled report create/update/status flow
+- scheduled report run-now flow
+- automatic due schedule execution
+- scheduled report email delivery with SMTP mocked
+- Super Admin-only enforcement on schedule APIs
 
 ### AI Tests
 
@@ -566,6 +640,8 @@ Test:
 - active role category filtering
 - report permissions admin screen
 - saved report list filtering by role
+- scheduled reports admin screen
+- run history display
 
 ## 15. Deployment Planning
 

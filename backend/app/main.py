@@ -4,7 +4,7 @@ from fastapi.responses import Response
 
 from app.core.config import get_settings
 from app.db import get_engine
-from app.models import AiSqlAttempt, AiSqlAttemptPreview, AiSqlAttemptReviewRequest, GeneratedReport, ReportAuditLog, ReportRequest, RoleReportPermissionsPayload, SavedReportSummary, SqlMistakeExample
+from app.models import AiSqlAttempt, AiSqlAttemptPreview, AiSqlAttemptReviewRequest, GeneratedReport, ReportAuditLog, ReportRequest, RoleReportPermissionsPayload, SavedReportSummary, ScheduledReport, ScheduledReportCreate, ScheduledReportRun, ScheduledReportUpdate, SqlMistakeExample
 from app.services.catalog import load_report_catalog, load_report_categories, load_schema_catalog
 from app.services.ai_sql_attempt_store import get_attempt, list_attempts, review_attempt
 from app.services.admin_attempt_preview import preview_attempt_rows
@@ -12,6 +12,17 @@ from app.services.audit_log import list_audit_logs
 from app.services.report_permissions import ReportPermissionError, assert_report_permission, list_role_report_permissions, replace_role_report_permissions
 from app.services.report_exporter import export_filename, export_report_pdf, export_report_xlsx
 from app.services.saved_report_store import get_saved_report, list_saved_reports, save_generated_report
+from app.services.scheduled_reports import (
+    create_scheduled_report,
+    get_scheduled_report,
+    list_scheduled_report_runs,
+    list_scheduled_reports,
+    run_scheduled_report_now,
+    set_scheduled_report_status,
+    start_scheduler_loop,
+    stop_scheduler_loop,
+    update_scheduled_report,
+)
 from app.services.sql_mistake_store import list_mistake_examples
 from app.services.report_runner import ReportBuildError, build_report
 
@@ -25,6 +36,21 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+def _require_super_admin(actor_role: str | None) -> None:
+    if (actor_role or "").strip().lower() != "super admin":
+        raise HTTPException(status_code=403, detail="Only Super Admin can manage and run scheduled reports.")
+
+
+@app.on_event("startup")
+async def startup() -> None:
+    await start_scheduler_loop()
+
+
+@app.on_event("shutdown")
+async def shutdown() -> None:
+    await stop_scheduler_loop()
 
 
 @app.get("/health")
@@ -106,6 +132,103 @@ def admin_update_report_permissions(
 def admin_report_audit_logs(limit: int = Query(default=100, ge=1, le=300)) -> list[ReportAuditLog]:
     try:
         return [ReportAuditLog.model_validate(item) for item in list_audit_logs(limit)]
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@app.get("/api/admin/scheduled-reports", response_model=list[ScheduledReport])
+def admin_scheduled_reports(actor_role: str | None = Query(default="Super Admin")) -> list[ScheduledReport]:
+    _require_super_admin(actor_role)
+    try:
+        return [ScheduledReport.model_validate(item) for item in list_scheduled_reports()]
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@app.post("/api/admin/scheduled-reports", response_model=ScheduledReport)
+def admin_create_scheduled_report(
+    payload: ScheduledReportCreate,
+    actor_role: str | None = Query(default="Super Admin"),
+) -> ScheduledReport:
+    _require_super_admin(actor_role)
+    try:
+        return ScheduledReport.model_validate(create_scheduled_report(payload.model_dump(), actor_role or "Super Admin"))
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@app.get("/api/admin/scheduled-reports/{schedule_id}", response_model=ScheduledReport)
+def admin_scheduled_report(
+    schedule_id: str,
+    actor_role: str | None = Query(default="Super Admin"),
+) -> ScheduledReport:
+    _require_super_admin(actor_role)
+    try:
+        schedule = get_scheduled_report(schedule_id)
+        if schedule is None:
+            raise HTTPException(status_code=404, detail="Scheduled report was not found.")
+        return ScheduledReport.model_validate(schedule)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@app.put("/api/admin/scheduled-reports/{schedule_id}", response_model=ScheduledReport)
+def admin_update_scheduled_report(
+    schedule_id: str,
+    payload: ScheduledReportUpdate,
+    actor_role: str | None = Query(default="Super Admin"),
+) -> ScheduledReport:
+    _require_super_admin(actor_role)
+    try:
+        return ScheduledReport.model_validate(update_scheduled_report(schedule_id, payload.model_dump(), actor_role or "Super Admin"))
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@app.patch("/api/admin/scheduled-reports/{schedule_id}/status", response_model=ScheduledReport)
+def admin_update_scheduled_report_status(
+    schedule_id: str,
+    is_active: bool,
+    actor_role: str | None = Query(default="Super Admin"),
+) -> ScheduledReport:
+    _require_super_admin(actor_role)
+    try:
+        return ScheduledReport.model_validate(set_scheduled_report_status(schedule_id, is_active, actor_role or "Super Admin"))
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@app.post("/api/admin/scheduled-reports/{schedule_id}/run-now", response_model=ScheduledReportRun)
+async def admin_run_scheduled_report_now(
+    schedule_id: str,
+    actor_role: str | None = Query(default="Super Admin"),
+) -> ScheduledReportRun:
+    _require_super_admin(actor_role)
+    try:
+        return ScheduledReportRun.model_validate(await run_scheduled_report_now(schedule_id))
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@app.get("/api/admin/scheduled-reports/{schedule_id}/runs", response_model=list[ScheduledReportRun])
+def admin_scheduled_report_runs(
+    schedule_id: str,
+    limit: int = Query(default=50, ge=1, le=200),
+    actor_role: str | None = Query(default="Super Admin"),
+) -> list[ScheduledReportRun]:
+    _require_super_admin(actor_role)
+    try:
+        return [ScheduledReportRun.model_validate(item) for item in list_scheduled_report_runs(schedule_id, limit)]
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 

@@ -25,6 +25,7 @@ import {
   Search,
   Send,
   Settings,
+  CalendarClock,
   User,
   Users
 } from "lucide-react";
@@ -397,8 +398,14 @@ export default function Home() {
         <div className="utility-nav">
           <div className="nav-row"><Users size={21} /><span>Employee Summary</span></div>
           <div className="nav-row"><CheckSquare size={21} /><span>Checklist Management</span></div>
+          <Link className="nav-row role-admin-link" href="/admin">
+            <LayoutDashboard size={21} /><span>Admin Console</span>
+          </Link>
           <Link className="nav-row role-admin-link" href="/admin/report-permissions">
             <Settings size={21} /><span>Report Permissions</span>
+          </Link>
+          <Link className="nav-row role-admin-link" href="/admin/scheduled-reports">
+            <CalendarClock size={21} /><span>Scheduled Reports</span>
           </Link>
           <div className="nav-row help"><HelpCircle size={21} /><span>Help Section</span></div>
         </div>

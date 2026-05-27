@@ -944,6 +944,478 @@ tr:nth-child(even) td {
   font-weight: 800;
 }
 
+.admin-link-button {
+  min-height: 42px;
+  border: 1px solid #cbd9ec;
+  border-radius: 6px;
+  background: #fff;
+  color: #243955;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 13px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.admin-portal-shell .sidebar {
+  box-shadow: 1px 0 0 #d0dcef;
+}
+
+.admin-portal-shell {
+  min-height: 100vh;
+  background: var(--page);
+}
+
+.admin-portal-shell .page {
+  min-height: 100vh;
+}
+
+.admin-utility-nav {
+  display: grid;
+  gap: 3px;
+  margin-top: 18px;
+}
+
+.admin-utility-nav .nav-row {
+  min-height: 42px;
+  width: 100%;
+  border-radius: 7px;
+  font-size: 18px;
+}
+
+.admin-utility-nav .nav-row.active,
+.admin-tool-row.active,
+.admin-module-card.active {
+  background: #e7efff;
+  color: #4869ff;
+}
+
+.admin-report-link {
+  min-height: 36px;
+  border: 1px solid #d7e2f2;
+  border-radius: 6px;
+  background: #f8fbff;
+  color: #243955;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 12px;
+  font-size: 14px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.admin-console-content {
+  padding-top: 28px;
+}
+
+.admin-console-hero {
+  border: 1px solid #dbe5f3;
+  border-radius: 7px;
+  background: #fff;
+  margin-bottom: 14px;
+  padding: 22px 24px;
+}
+
+.admin-console-hero span {
+  color: #4f73dc;
+  font-size: 13px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.admin-console-hero h1 {
+  color: #132236;
+  font-size: 32px;
+  line-height: 1.15;
+  margin-top: 5px;
+}
+
+.admin-console-hero p {
+  color: #53647d;
+  font-size: 16px;
+  margin-top: 6px;
+}
+
+.admin-console-status {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.admin-workbench {
+  min-height: 760px;
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.admin-workbench-nav,
+.admin-workbench-window {
+  border: 1px solid #dbe5f3;
+  border-radius: 7px;
+  background: #fff;
+}
+
+.admin-workbench-nav {
+  padding: 10px;
+}
+
+.admin-tool-row {
+  width: 100%;
+  min-height: 78px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: #fff;
+  color: #132236;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 11px;
+  padding: 10px;
+  text-align: left;
+}
+
+.admin-tool-row:hover {
+  border-color: #b9c9ec;
+}
+
+.admin-tool-row strong,
+.admin-tool-row small {
+  display: block;
+}
+
+.admin-tool-row strong {
+  font-size: 14px;
+  line-height: 1.25;
+}
+
+.admin-tool-row small {
+  color: #53647d;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.admin-workbench-window {
+  min-width: 0;
+  overflow: hidden;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.admin-workbench-header {
+  min-height: 82px;
+  border-bottom: 1px solid #e1e9f6;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 14px 16px;
+}
+
+.admin-workbench-header span {
+  color: #4f73dc;
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.admin-workbench-header h2 {
+  color: #132236;
+  font-size: 22px;
+  margin-top: 3px;
+}
+
+.admin-workbench-header p {
+  max-width: 540px;
+  color: #53647d;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.admin-workbench-window iframe {
+  width: 100%;
+  height: 100%;
+  min-height: 676px;
+  border: 0;
+  background: #edf3fc;
+}
+
+.admin-module-grid.compact,
+.admin-console-grid {
+  display: none;
+}
+
+.embedded-admin-shell {
+  min-height: 100vh;
+  background: #fff;
+  padding: 12px;
+  overflow: auto;
+}
+
+.embedded-admin-shell .admin-header {
+  min-height: 56px;
+  align-items: center;
+  border-bottom: 1px solid #e1e9f6;
+  margin: 0 0 10px;
+  padding-bottom: 10px;
+}
+
+.embedded-admin-shell .admin-header h1 {
+  font-size: 22px;
+}
+
+.embedded-admin-shell .admin-header p {
+  display: none;
+}
+
+.embedded-admin-shell .admin-actions button {
+  min-height: 36px;
+}
+
+.embedded-admin-shell.schedule-shell .schedule-layout {
+  height: auto;
+  min-height: 590px;
+  grid-template-columns: 280px minmax(0, 1fr);
+  gap: 0;
+}
+
+.embedded-admin-shell .schedule-list,
+.embedded-admin-shell .schedule-editor {
+  border: 0;
+  border-radius: 0;
+}
+
+.embedded-admin-shell .schedule-list {
+  border-right: 1px solid #e1e9f6;
+  padding: 10px;
+}
+
+.embedded-admin-shell .schedule-editor {
+  padding: 12px 14px;
+}
+
+.embedded-admin-shell .schedule-editor-header {
+  margin-bottom: 12px;
+}
+
+.embedded-admin-shell .schedule-editor-header h2 {
+  font-size: 22px;
+}
+
+.embedded-admin-shell .schedule-form {
+  grid-template-columns: repeat(4, minmax(128px, 1fr));
+  gap: 11px;
+}
+
+.embedded-admin-shell .schedule-form input,
+.embedded-admin-shell .schedule-form select,
+.embedded-admin-shell .schedule-form textarea {
+  min-height: 38px;
+}
+
+.embedded-admin-shell .schedule-form textarea {
+  min-height: 82px;
+}
+
+.embedded-admin-shell .admin-workspace {
+  height: auto;
+  min-height: 600px;
+  grid-template-columns: 280px minmax(0, 1fr) 260px;
+}
+
+.embedded-admin-shell .permission-layout {
+  height: auto;
+  min-height: 600px;
+}
+
+.admin-console-status > div,
+.admin-module-card,
+.admin-console-panel {
+  border: 1px solid #dbe5f3;
+  border-radius: 7px;
+  background: #fff;
+}
+
+.admin-console-status > div {
+  min-height: 118px;
+  padding: 16px;
+}
+
+.admin-console-status span,
+.admin-module-card div,
+.admin-console-panel-header h2 {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.admin-console-status span {
+  color: #53647d;
+  font-size: 13px;
+  font-weight: 800;
+  margin-bottom: 9px;
+}
+
+.admin-console-status strong {
+  display: block;
+  color: #142a46;
+  font-size: 24px;
+  line-height: 1.2;
+}
+
+.admin-console-status p,
+.admin-module-card p,
+.admin-schedule-list small,
+.admin-audit-list small {
+  color: #53647d;
+  font-size: 13px;
+  line-height: 1.4;
+  margin-top: 7px;
+}
+
+.admin-module-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.admin-module-grid.compact {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.admin-module-card {
+  width: 100%;
+  border: 1px solid #dbe5f3;
+  min-height: 184px;
+  color: #132236;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 12px;
+  padding: 18px;
+  text-decoration: none;
+  text-align: left;
+}
+
+.admin-module-card:hover {
+  border-color: #b9c9ec;
+  background: #fbfdff;
+}
+
+.admin-module-card div {
+  color: #4f73dc;
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.admin-module-card p {
+  font-size: 14px;
+  margin-top: 0;
+}
+
+.admin-module-card footer {
+  border-top: 1px solid #e7edf7;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding-top: 12px;
+}
+
+.admin-module-card footer strong {
+  color: #142a46;
+  font-size: 28px;
+}
+
+.admin-module-card footer span {
+  color: #53647d;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.admin-console-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  gap: 14px;
+}
+
+.admin-console-panel {
+  min-height: 260px;
+  padding: 15px;
+}
+
+.admin-console-panel.audit-panel {
+  grid-column: 1 / -1;
+}
+
+.admin-console-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.admin-console-panel-header h2 {
+  color: #142a46;
+  font-size: 18px;
+  margin: 0;
+}
+
+.admin-console-panel-header a {
+  color: #4f73dc;
+  font-size: 13px;
+  font-weight: 900;
+  text-decoration: none;
+}
+
+.admin-role-list,
+.admin-schedule-list,
+.admin-audit-list {
+  display: grid;
+  gap: 8px;
+}
+
+.admin-role-list div,
+.admin-schedule-list div,
+.admin-audit-list div {
+  border: 1px solid #e1e9f6;
+  border-radius: 6px;
+  background: #fbfdff;
+  padding: 11px;
+}
+
+.admin-role-list div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.admin-role-list span,
+.admin-audit-list span {
+  color: #53647d;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.admin-role-list strong,
+.admin-schedule-list strong,
+.admin-audit-list strong {
+  display: block;
+  color: #142a46;
+  font-size: 14px;
+}
+
+.admin-schedule-list .schedule-status {
+  display: inline-flex;
+  margin-bottom: 7px;
+}
+
 .admin-kpis {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -1466,6 +1938,269 @@ tr:nth-child(even) td {
   font-weight: 800;
 }
 
+.schedule-shell {
+  overflow: auto;
+}
+
+.schedule-layout {
+  height: calc(100vh - 132px);
+  min-height: 640px;
+  display: grid;
+  grid-template-columns: 360px minmax(0, 1fr);
+  gap: 14px;
+}
+
+.schedule-list,
+.schedule-editor {
+  min-height: 0;
+  border: 1px solid #dbe5f3;
+  border-radius: 7px;
+  background: #fff;
+}
+
+.schedule-list {
+  overflow: auto;
+  padding: 10px;
+}
+
+.schedule-row {
+  width: 100%;
+  min-height: 118px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: #132236;
+  text-align: left;
+  padding: 11px;
+  display: grid;
+  gap: 7px;
+  margin-bottom: 7px;
+}
+
+.schedule-row.active {
+  border-color: #b9c9ec;
+  background: #eef4ff;
+}
+
+.schedule-row div,
+.schedule-editor-header,
+.schedule-toolbar,
+.schedule-runs-header,
+.run-row div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.schedule-row strong {
+  font-size: 15px;
+  line-height: 1.3;
+}
+
+.schedule-row small,
+.schedule-row em {
+  color: #53647d;
+  font-size: 13px;
+  font-style: normal;
+}
+
+.schedule-status {
+  border-radius: 999px;
+  background: #fff6f6;
+  color: #9b1c1c;
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.schedule-status.active {
+  background: #d9f3e7;
+  color: #176044;
+}
+
+.schedule-editor {
+  overflow: auto;
+  padding: 18px;
+}
+
+.schedule-editor-header {
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.schedule-editor-header span {
+  color: #4f73dc;
+  font-size: 13px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.schedule-editor-header h2 {
+  font-size: 26px;
+  margin-top: 3px;
+}
+
+.schedule-toolbar button {
+  min-height: 38px;
+  border: 1px solid #cbd9ec;
+  border-radius: 6px;
+  background: #fff;
+  color: #243955;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  font-weight: 800;
+}
+
+.schedule-toolbar button:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
+
+.schedule-form {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(160px, 1fr));
+  gap: 13px;
+}
+
+.schedule-form label span {
+  display: block;
+  color: #53647d;
+  font-size: 13px;
+  font-weight: 800;
+  margin-bottom: 6px;
+}
+
+.schedule-help {
+  display: block;
+  color: #6b7b91;
+  font-size: 12px;
+  line-height: 1.35;
+  margin-top: 6px;
+}
+
+.schedule-form input,
+.schedule-form select,
+.schedule-form textarea {
+  width: 100%;
+  min-height: 42px;
+  border: 1px solid #cbd9ec;
+  border-radius: 5px;
+  background: #fff;
+  color: #132236;
+  padding: 0 11px;
+}
+
+.schedule-form textarea {
+  min-height: 96px;
+  padding: 10px 11px;
+  resize: vertical;
+}
+
+.schedule-wide {
+  grid-column: 1 / -1;
+}
+
+.schedule-check {
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-top: 19px;
+}
+
+.schedule-check.inline {
+  min-height: 28px;
+  margin-top: 0;
+}
+
+.schedule-check input {
+  width: 18px;
+  min-height: 18px;
+  accent-color: #4f73dc;
+}
+
+.schedule-check span {
+  margin: 0;
+}
+
+.schedule-format-group {
+  min-height: 42px;
+  margin-top: 19px;
+}
+
+.schedule-format-group > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: #53647d;
+  font-size: 13px;
+  font-weight: 800;
+  margin-bottom: 6px;
+}
+
+.schedule-runs {
+  border: 1px solid #dbe5f3;
+  border-radius: 6px;
+  background: #fbfdff;
+  margin-top: 16px;
+  padding: 13px;
+}
+
+.schedule-runs-header {
+  margin-bottom: 10px;
+}
+
+.schedule-runs-header h3 {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 17px;
+}
+
+.schedule-runs-header span {
+  color: #53647d;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.run-row {
+  border: 1px solid #dbe5f3;
+  border-radius: 6px;
+  background: #fff;
+  padding: 11px;
+  margin-top: 8px;
+}
+
+.run-row.success {
+  border-color: #b7dfce;
+  background: #f0fbf6;
+}
+
+.run-row.failed {
+  border-color: #ffc9c9;
+  background: #fff6f6;
+}
+
+.run-row strong {
+  text-transform: uppercase;
+}
+
+.run-row span,
+.run-row p,
+.run-row small {
+  color: #53647d;
+  font-size: 13px;
+}
+
+.run-row p {
+  margin-top: 6px;
+}
+
 .spin {
   animation: spin 1s linear infinite;
 }
@@ -1577,8 +2312,12 @@ tr:nth-child(even) td {
   }
 
   .admin-kpis,
+  .admin-console-status,
+  .admin-module-grid,
+  .admin-console-grid,
   .admin-workspace,
-  .permission-layout {
+  .permission-layout,
+  .schedule-layout {
     grid-template-columns: 1fr;
   }
 

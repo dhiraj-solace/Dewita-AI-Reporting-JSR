@@ -1,6 +1,7 @@
 "use client";
 
 import {useEffect, useMemo, useState} from "react";
+import {useSearchParams} from "next/navigation";
 import {RefreshCw, Save, ShieldCheck} from "lucide-react";
 import {
   ReportCategory,
@@ -48,6 +49,8 @@ function categoryLabel(category: ReportCategory) {
 }
 
 export default function ReportPermissionsAdminPage() {
+  const searchParams = useSearchParams();
+  const embedded = searchParams.get("embedded") === "1";
   const [matrix, setMatrix] = useState<ReportPermissionsMatrix | null>(null);
   const [permissions, setPermissions] = useState<Record<string, RoleReportPermission>>({});
   const [selectedRole, setSelectedRole] = useState("");
@@ -125,7 +128,7 @@ export default function ReportPermissionsAdminPage() {
   }
 
   return (
-    <main className="admin-shell permission-shell">
+    <main className={embedded ? "admin-shell permission-shell embedded-admin-shell" : "admin-shell permission-shell"}>
       <header className="admin-header">
         <div>
           <h1>Report Role Permissions</h1>
