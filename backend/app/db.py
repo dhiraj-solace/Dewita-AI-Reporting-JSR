@@ -1,13 +1,10 @@
 from collections.abc import Mapping, Sequence
 from typing import Any
-
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import Engine
-
 from app.core.config import get_settings
 
 _engine: Engine | None = None
-
 
 def get_engine() -> Engine:
     global _engine
@@ -25,7 +22,6 @@ def get_engine() -> Engine:
             connect_args={"read_timeout": timeout, "write_timeout": timeout},
         )
     return _engine
-
 
 def fetch_rows(sql: str, params: Mapping[str, Any] | None = None) -> tuple[list[str], list[dict[str, Any]]]:
     with get_engine().connect() as conn:

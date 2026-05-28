@@ -1,7 +1,6 @@
 "use client";
 
 import {useEffect, useMemo, useState} from "react";
-import {useSearchParams} from "next/navigation";
 import {CalendarClock, Mail, Play, RefreshCw, Save, ToggleLeft, ToggleRight} from "lucide-react";
 import {
   ReportCategory,
@@ -86,8 +85,7 @@ function toForm(schedule: ScheduledReport): ScheduledReportPayload {
 }
 
 export default function ScheduledReportsAdminPage() {
-  const searchParams = useSearchParams();
-  const embedded = searchParams.get("embedded") === "1";
+  const [embedded, setEmbedded] = useState(false);
   const [schedules, setSchedules] = useState<ScheduledReport[]>([]);
   const [runs, setRuns] = useState<ScheduledReportRun[]>([]);
   const [categories, setCategories] = useState<ReportCategory[]>(fallbackCategories);
@@ -107,6 +105,10 @@ export default function ScheduledReportsAdminPage() {
     () => schedules.find((schedule) => schedule.id === selectedId) || null,
     [schedules, selectedId]
   );
+
+  useEffect(() => {
+    setEmbedded(new URLSearchParams(window.location.search).get("embedded") === "1");
+  }, []);
 
   useEffect(() => {
     load();

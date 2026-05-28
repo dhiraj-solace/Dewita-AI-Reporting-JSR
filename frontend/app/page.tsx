@@ -43,7 +43,8 @@ import {
   listReportPermissions,
   listSavedReports,
   runReport,
-  savedReportExportUrl
+  savedReportExportUrl,
+  shareSavedReport
 } from "@/lib/api";
 
 const monthOptions = ["January", "February", "March", "April", "May", "June"];
@@ -245,6 +246,12 @@ export default function Home() {
   const [generatedAt, setGeneratedAt] = useState<string | null>(null);
   const [savedReports, setSavedReports] = useState<SavedReportSummary[]>([]);
   const [savedLoading, setSavedLoading] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
+  const [shareEmail, setShareEmail] = useState("");
+  const [shareMessage, setShareMessage] = useState("");
+  const [shareFormats, setShareFormats] = useState<Array<"pdf" | "xlsx">>(["xlsx"]);
+  const [shareSaving, setShareSaving] = useState(false);
+  const [shareStatus, setShareStatus] = useState("");
 
   useEffect(() => {
     getHealth().then(setStatus).catch(() => setStatus(null));
@@ -323,6 +330,49 @@ export default function Home() {
   function downloadSavedReport(format: "pdf" | "xlsx") {
     if (!activeSavedReportId) return;
     window.location.href = savedReportExportUrl(activeSavedReportId, format, currentRole);
+  }
+
+  function openShareModal() {
+    if (!activeSavedReportId) return;
+    setShareOpen(true);
+    setShareStatus("");
+  }
+
+  function toggleShareFormat(format: "pdf" | "xlsx", checked: boolean) {
+    setShareFormats((current) => {
+      const next = new Set(current);
+      if (checked) next.add(format);
+      else next.delete(format);
+      return Array.from(next);
+    });
+    setShareStatus("");
+  }
+
+  async function submitShare() {
+    if (!activeSavedReportId) return;
+    if (!shareEmail.trim()) {
+      setShareStatus("Recipient email is required.");
+      return;
+    }
+    if (shareFormats.length === 0) {
+      setShareStatus("Select at least one format.");
+      return;
+    }
+    setShareSaving(true);
+    setShareStatus("");
+    try {
+      const result = await shareSavedReport(activeSavedReportId, {
+        recipient_email: shareEmail.trim(),
+        message: shareMessage.trim() || null,
+        formats: shareFormats,
+        current_user_role: currentRole
+      });
+      setShareStatus(result.message);
+    } catch (err) {
+      setShareStatus(err instanceof Error ? err.message : "Unable to share report");
+    } finally {
+      setShareSaving(false);
+    }
   }
 
   async function submit(nextQuestion = question) {
@@ -518,6 +568,9 @@ export default function Home() {
             <button disabled={!activeSavedReportId} onClick={() => downloadSavedReport("xlsx")}>
               <FileSpreadsheet size={20} />Export Excel
             </button>
+            <button disabled={!activeSavedReportId} onClick={openShareModal}>
+              <Send size={20} />Share
+            </button>
           </div>
 
           <section className="result-card">
@@ -662,6 +715,46 @@ export default function Home() {
               ))}
             </div>
           </section>
+
+          {shareOpen && (
+            <div className="share-modal-backdrop" role="presentation">
+              <section className="share-modal" role="dialog" aria-modal="true" aria-label="Share saved report">
+                <div className="share-modal-header">
+                  <div>
+                    <span>Saved Report</span>
+                    <h2>Share Report</h2>
+                  </div>
+                  <button onClick={() => setShareOpen(false)} type="button">Close</button>
+                </div>
+                <label>
+                  <span>Recipient Email</span>
+                  <input value={shareEmail} onChange={(event) => setShareEmail(event.target.value)} placeholder="name@company.com" />
+                </label>
+                <label>
+                  <span>Message</span>
+                  <textarea value={shareMessage} onChange={(event) => setShareMessage(event.target.value)} placeholder="Optional message" />
+                </label>
+                <div className="share-format-row">
+                  <label>
+                    <input checked={shareFormats.includes("xlsx")} onChange={(event) => toggleShareFormat("xlsx", event.target.checked)} type="checkbox" />
+                    <span>Excel</span>
+                  </label>
+                  <label>
+                    <input checked={shareFormats.includes("pdf")} onChange={(event) => toggleShareFormat("pdf", event.target.checked)} type="checkbox" />
+                    <span>PDF</span>
+                  </label>
+                </div>
+                {shareStatus && <div className="share-status">{shareStatus}</div>}
+                <div className="share-actions">
+                  <button onClick={() => setShareOpen(false)} type="button">Cancel</button>
+                  <button className="active" disabled={shareSaving} onClick={submitShare} type="button">
+                    {shareSaving ? <Loader2 className="spin" size={18} /> : <Send size={18} />}
+                    {shareSaving ? "Sharing" : "Share Report"}
+                  </button>
+                </div>
+              </section>
+            </div>
+          )}
         </section>
       </section>
     </main>

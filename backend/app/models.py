@@ -1,7 +1,5 @@
 from typing import Any
-
 from pydantic import BaseModel, Field
-
 
 class ReportRequest(BaseModel):
     question: str = Field(..., min_length=3)
@@ -62,6 +60,19 @@ class SavedReportSummary(BaseModel):
     created_by_role: str | None = None
     row_count: int
     created_at: Any
+
+
+class SavedReportShareRequest(BaseModel):
+    recipient_email: str = Field(..., min_length=3)
+    message: str | None = None
+    formats: list[str] = ["xlsx"]
+    current_user_role: str | None = "Super Admin"
+
+
+class SavedReportShareResponse(BaseModel):
+    status: str
+    message: str
+    delivery: dict[str, Any]
 
 
 class RoleReportPermission(BaseModel):

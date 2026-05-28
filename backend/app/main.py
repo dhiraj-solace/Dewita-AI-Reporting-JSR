@@ -1,14 +1,14 @@
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
-
 from app.core.config import get_settings
 from app.db import get_engine
-from app.models import AiSqlAttempt, AiSqlAttemptPreview, AiSqlAttemptReviewRequest, GeneratedReport, ReportAuditLog, ReportRequest, RoleReportPermissionsPayload, SavedReportSummary, ScheduledReport, ScheduledReportCreate, ScheduledReportRun, ScheduledReportUpdate, SqlMistakeExample
+from app.models import AiSqlAttempt, AiSqlAttemptPreview, AiSqlAttemptReviewRequest, GeneratedReport, ReportAuditLog, ReportRequest, RoleReportPermissionsPayload, SavedReportShareRequest, SavedReportShareResponse, SavedReportSummary, ScheduledReport, ScheduledReportCreate, ScheduledReportRun, ScheduledReportUpdate, SqlMistakeExample
 from app.services.catalog import load_report_catalog, load_report_categories, load_schema_catalog
 from app.services.ai_sql_attempt_store import get_attempt, list_attempts, review_attempt
 from app.services.admin_attempt_preview import preview_attempt_rows
-from app.services.audit_log import list_audit_logs
+from app.services.audit_log import create_audit_log, list_audit_logs
+from app.services.email_service import share_report_email
 from app.services.report_permissions import ReportPermissionError, assert_report_permission, list_role_report_permissions, replace_role_report_permissions
 from app.services.report_exporter import export_filename, export_report_pdf, export_report_xlsx
 from app.services.saved_report_store import get_saved_report, list_saved_reports, save_generated_report
@@ -41,6 +41,21 @@ app.add_middleware(
 def _require_super_admin(actor_role: str | None) -> None:
     if (actor_role or "").strip().lower() != "super admin":
         raise HTTPException(status_code=403, detail="Only Super Admin can manage and run scheduled reports.")
+
+
+def _normalize_share_formats(formats: list[str]) -> list[str]:
+    normalized = []
+    for item in formats or []:
+        value = str(item).strip().lower()
+        if value == "excel":
+            value = "xlsx"
+        if value not in {"pdf", "xlsx"}:
+            raise ValueError("Share format must be pdf or xlsx.")
+        if value not in normalized:
+            normalized.append(value)
+    if not normalized:
+        raise ValueError("Select at least one share format.")
+    return normalized
 
 
 @app.on_event("startup")
@@ -321,6 +336,57 @@ def export_saved_report(
         )
     except HTTPException:
         raise
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@app.post("/api/reports/saved/{report_id}/share", response_model=SavedReportShareResponse)
+def share_saved_report(report_id: str, payload: SavedReportShareRequest) -> SavedReportShareResponse:
+    try:
+        report = get_saved_report(report_id)
+        if report is None:
+            raise HTTPException(status_code=404, detail="Saved report was not found.")
+        role = payload.current_user_role or "Super Admin"
+        try:
+            assert_report_permission(role, report.report_category or "custom", "view_saved")
+            if payload.formats:
+                assert_report_permission(role, report.report_category or "custom", "export")
+        except ReportPermissionError as exc:
+            raise HTTPException(status_code=403, detail=str(exc)) from exc
+
+        formats = _normalize_share_formats(payload.formats)
+        report_for_email = report.model_copy(update={"saved_report_id": report_id})
+        delivery = share_report_email(
+            report_for_email,
+            payload.recipient_email,
+            formats,
+            payload.message,
+        )
+        create_audit_log(
+            event_type="report_shared",
+            actor_role=role,
+            report_id=report_id,
+            report_category=report.report_category or "custom",
+            action="share",
+            metadata={
+                "recipient_email": payload.recipient_email,
+                "formats": formats,
+                "delivery": delivery,
+            },
+        )
+        if delivery.get("status") == "sent":
+            message = "Report shared successfully."
+        elif delivery.get("status") == "skipped":
+            reason = str(delivery.get("reason") or "Email delivery was not attempted.")
+            message = f"Share recorded, but email delivery was skipped: {reason}"
+        else:
+            reason = str(delivery.get("reason") or "Email delivery failed.")
+            message = f"Share recorded, but email delivery failed: {reason}"
+        return SavedReportShareResponse(status=str(delivery.get("status") or "unknown"), message=message, delivery=delivery)
+    except HTTPException:
+        raise
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 

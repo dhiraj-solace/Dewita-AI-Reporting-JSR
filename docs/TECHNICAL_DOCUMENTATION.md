@@ -115,6 +115,19 @@ Configured providers include:
 
 The system also supports a separate local validator model through `llm_output_validator.py`.
 
+Current model configuration:
+
+| Purpose | Provider | Setting | Current/default model |
+| --- | --- | --- | --- |
+| Main SQL generation | OpenRouter | `OPENROUTER_MODEL` | `openai/gpt-4.1-mini` |
+| Intent safety detection | OpenRouter | `OPENROUTER_INTENT_MODEL` | Falls back to `OPENROUTER_MODEL` when empty |
+| Local SQL generation | Ollama | `OLLAMA_SQL_MODEL` | `qwen2.5-coder:3b` |
+| Local SQL validator | Ollama/local validator endpoint | `LLM_VALIDATOR_MODEL` | `smollm` |
+| Optional direct Gemini generation | Gemini | `GEMINI_MODEL` | `gemini-1.5-flash` |
+| Optional direct OpenAI generation | OpenAI | `OPENAI_MODEL` | `gpt-4.1-mini` |
+
+In local mode, Ollama serves both the SQL generation model and the optional validator model through `/api/chat`. In OpenRouter mode, OpenRouter is used for SQL generation and intent classification, while the local validator can still run separately when `LLM_VALIDATOR_ENABLED=true`.
+
 ### User Input to Report Output Flow
 
 ```mermaid
@@ -236,6 +249,8 @@ Important settings:
 
 - Database: `DATABASE_URL`, `DB_HOST`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`
 - AI providers: OpenRouter, Gemini, OpenAI, Ollama
+- OpenRouter models: `OPENROUTER_MODEL=openai/gpt-4.1-mini`, optional `OPENROUTER_INTENT_MODEL`
+- Local Ollama models: `OLLAMA_SQL_MODEL=qwen2.5-coder:3b`, `LLM_VALIDATOR_MODEL=smollm`
 - LLM cache: path, TTL, enable flag
 - Validator: local validator URL/model/retry settings
 - Query limits and timeout

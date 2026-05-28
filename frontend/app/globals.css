@@ -799,6 +799,129 @@ tr:nth-child(even) td {
   padding: 18px;
 }
 
+.share-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  background: rgba(19, 34, 54, 0.46);
+  display: grid;
+  place-items: center;
+  padding: 20px;
+}
+
+.share-modal {
+  width: min(560px, 100%);
+  border: 1px solid #cbd9ec;
+  border-radius: 7px;
+  background: #fff;
+  box-shadow: 0 20px 70px rgba(19, 34, 54, 0.24);
+  padding: 18px;
+}
+
+.share-modal-header,
+.share-actions,
+.share-format-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.share-modal-header {
+  justify-content: space-between;
+  margin-bottom: 15px;
+}
+
+.share-modal-header span,
+.share-modal label span {
+  display: block;
+  color: #53647d;
+  font-size: 13px;
+  font-weight: 800;
+  margin-bottom: 6px;
+}
+
+.share-modal-header h2 {
+  font-size: 24px;
+}
+
+.share-modal-header button,
+.share-actions button {
+  min-height: 38px;
+  border: 1px solid #cbd9ec;
+  border-radius: 6px;
+  background: #fff;
+  color: #243955;
+  padding: 0 12px;
+  font-weight: 800;
+}
+
+.share-modal label {
+  display: block;
+  margin-bottom: 12px;
+}
+
+.share-modal input,
+.share-modal textarea {
+  width: 100%;
+  min-height: 42px;
+  border: 1px solid #cbd9ec;
+  border-radius: 5px;
+  background: #fff;
+  color: #132236;
+  padding: 0 11px;
+}
+
+.share-modal textarea {
+  min-height: 92px;
+  padding: 10px 11px;
+  resize: vertical;
+}
+
+.share-format-row {
+  margin: 2px 0 12px;
+}
+
+.share-format-row label {
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+
+.share-format-row input {
+  width: 18px;
+  min-height: 18px;
+  accent-color: #4f73dc;
+}
+
+.share-format-row span {
+  margin: 0;
+}
+
+.share-status {
+  border: 1px solid #d7e2f2;
+  border-radius: 6px;
+  background: #f8fbff;
+  color: #243955;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  font-weight: 800;
+}
+
+.share-actions {
+  justify-content: flex-end;
+}
+
+.share-actions button.active {
+  border-color: #4f73dc;
+  background: #4f73dc;
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .empty-state {
   min-height: 260px;
   display: grid;

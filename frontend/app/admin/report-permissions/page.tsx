@@ -1,7 +1,6 @@
 "use client";
 
 import {useEffect, useMemo, useState} from "react";
-import {useSearchParams} from "next/navigation";
 import {RefreshCw, Save, ShieldCheck} from "lucide-react";
 import {
   ReportCategory,
@@ -49,8 +48,7 @@ function categoryLabel(category: ReportCategory) {
 }
 
 export default function ReportPermissionsAdminPage() {
-  const searchParams = useSearchParams();
-  const embedded = searchParams.get("embedded") === "1";
+  const [embedded, setEmbedded] = useState(false);
   const [matrix, setMatrix] = useState<ReportPermissionsMatrix | null>(null);
   const [permissions, setPermissions] = useState<Record<string, RoleReportPermission>>({});
   const [selectedRole, setSelectedRole] = useState("");
@@ -58,6 +56,10 @@ export default function ReportPermissionsAdminPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [savedMessage, setSavedMessage] = useState("");
+
+  useEffect(() => {
+    setEmbedded(new URLSearchParams(window.location.search).get("embedded") === "1");
+  }, []);
 
   useEffect(() => {
     load();

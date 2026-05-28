@@ -2,7 +2,6 @@ import smtplib
 from email.message import EmailMessage
 from email.utils import formataddr
 from typing import Any
-
 from app.core.config import get_settings
 from app.models import GeneratedReport
 from app.services.report_exporter import export_filename, export_report_pdf, export_report_xlsx
@@ -31,6 +30,56 @@ def send_report_email(
     message["From"] = formataddr((settings.smtp_from_name, settings.smtp_from_email or ""))
     message["To"] = ", ".join(cleaned_recipients)
     message.set_content(_email_body(report, attachments))
+
+    for attachment in attachments:
+        message.add_attachment(
+            attachment["content"],
+            maintype=attachment["maintype"],
+            subtype=attachment["subtype"],
+            filename=attachment["filename"],
+        )
+
+    try:
+        with smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=30) as smtp:
+            if settings.smtp_use_tls:
+                smtp.starttls()
+            if settings.smtp_username and settings.smtp_password:
+                smtp.login(settings.smtp_username, settings.smtp_password)
+            smtp.send_message(message)
+    except Exception as exc:
+        return {
+            "status": "failed",
+            "reason": str(exc),
+            "recipients": cleaned_recipients,
+            "attachments": [item["filename"] for item in attachments],
+        }
+
+    return {
+        "status": "sent",
+        "recipients": cleaned_recipients,
+        "attachments": [item["filename"] for item in attachments],
+    }
+
+
+def share_report_email(
+    report: GeneratedReport,
+    recipient_email: str,
+    formats: list[str] | None = None,
+    sender_message: str | None = None,
+) -> dict[str, Any]:
+    cleaned_recipients = _clean_recipients([recipient_email])
+    if not cleaned_recipients:
+        return {"status": "skipped", "reason": "Recipient email is required."}
+    if not is_email_configured():
+        return {"status": "skipped", "reason": "SMTP settings are not configured."}
+
+    settings = get_settings()
+    attachments = _build_attachments(report, formats or ["xlsx"])
+    message = EmailMessage()
+    message["Subject"] = f"[Devita AI Reporting] Shared report: {report.title}"
+    message["From"] = formataddr((settings.smtp_from_name, settings.smtp_from_email or ""))
+    message["To"] = ", ".join(cleaned_recipients)
+    message.set_content(_share_email_body(report, attachments, sender_message))
 
     for attachment in attachments:
         message.add_attachment(
@@ -103,6 +152,27 @@ def _email_body(report: GeneratedReport, attachments: list[dict[str, Any]]) -> s
             "This is an automated notification from Devita AI Reporting.",
         ]
     )
+
+
+def _share_email_body(
+    report: GeneratedReport,
+    attachments: list[dict[str, Any]],
+    sender_message: str | None,
+) -> str:
+    attachment_names = ", ".join(item["filename"] for item in attachments) or "none"
+    lines = [
+        "A Devita AI report has been shared with you.",
+        "",
+        f"Report: {report.title}",
+        f"Category: {report.report_category or 'custom'}",
+        f"Rows: {report.row_count}",
+        f"Saved report ID: {report.saved_report_id or 'not saved'}",
+        f"Attachments: {attachment_names}",
+    ]
+    if sender_message and sender_message.strip():
+        lines.extend(["", "Message:", sender_message.strip()])
+    lines.extend(["", "This is an automated notification from Devita AI Reporting."])
+    return "\n".join(lines)
 
 
 def _clean_recipients(recipients: list[str]) -> list[str]:

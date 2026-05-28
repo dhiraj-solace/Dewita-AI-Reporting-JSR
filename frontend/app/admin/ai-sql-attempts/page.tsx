@@ -1,7 +1,6 @@
 "use client";
 
 import {useEffect, useMemo, useState} from "react";
-import {useSearchParams} from "next/navigation";
 import {CheckCircle2, Database, RefreshCw, ShieldCheck, XCircle} from "lucide-react";
 import {
   AiSqlAttempt,
@@ -49,8 +48,7 @@ function countByStatus(attempts: AiSqlAttempt[], status: string) {
 }
 
 export default function AiSqlAttemptsAdminPage() {
-  const searchParams = useSearchParams();
-  const embedded = searchParams.get("embedded") === "1";
+  const [embedded, setEmbedded] = useState(false);
   const [attempts, setAttempts] = useState<AiSqlAttempt[]>([]);
   const [mistakes, setMistakes] = useState<SqlMistakeExample[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -66,6 +64,10 @@ export default function AiSqlAttemptsAdminPage() {
     [attempts, selectedId]
   );
   const goldCount = useMemo(() => attempts.filter((attempt) => attempt.is_gold_example).length, [attempts]);
+
+  useEffect(() => {
+    setEmbedded(new URLSearchParams(window.location.search).get("embedded") === "1");
+  }, []);
 
   useEffect(() => {
     loadAttempts(goldOnly);

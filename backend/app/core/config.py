@@ -1,8 +1,11 @@
 from functools import lru_cache
 from pathlib import Path
 from urllib.parse import quote_plus
-
+from dotenv import load_dotenv
 from pydantic_settings import BaseSettings, SettingsConfigDict
+import os 
+
+load_dotenv()
 
 ROOT_ENV = Path(__file__).resolve().parents[3] / ".env"
 
@@ -47,14 +50,14 @@ class Settings(BaseSettings):
     max_rows: int = 500
     query_timeout_seconds: int = 60
 
-    smtp_host: str | None = None
+    smtp_host: str = "smtp.gmail.com"
     smtp_port: int = 587
-    smtp_username: str | None = None
-    smtp_password: str | None = None
-    smtp_from_email: str | None = None
+    smtp_username: str = "rihasoft2@gmail.com"
+    smtp_password: str = os.getenv("GMAIL_PASSWORD")
+    smtp_from_email: str = "rihasoft2@gmail.com"
     smtp_from_name: str = "Devita AI Reporting"
     smtp_use_tls: bool = True
-
+     
     model_config = SettingsConfigDict(
         env_file=ROOT_ENV,
         env_file_encoding="utf-8",

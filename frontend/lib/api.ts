@@ -44,6 +44,19 @@ export type SavedReportSummary = {
   created_at: string;
 };
 
+export type SavedReportSharePayload = {
+  recipient_email: string;
+  message?: string | null;
+  formats: Array<"pdf" | "xlsx">;
+  current_user_role?: string | null;
+};
+
+export type SavedReportShareResponse = {
+  status: string;
+  message: string;
+  delivery: Record<string, unknown>;
+};
+
 export type ReportAuditLog = {
   id: string;
   event_type: string;
@@ -376,6 +389,21 @@ export async function getSavedReport(reportId: string, role = "Super Admin"): Pr
 export function savedReportExportUrl(reportId: string, format: "pdf" | "xlsx", role = "Super Admin"): string {
   const params = new URLSearchParams({role});
   return `${API_URL}/api/reports/saved/${reportId}/export/${format}?${params.toString()}`;
+}
+
+export async function shareSavedReport(
+  reportId: string,
+  payload: SavedReportSharePayload
+): Promise<SavedReportShareResponse> {
+  const response = await fetch(`${API_URL}/api/reports/saved/${reportId}/share`, {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify(payload)
+  });
+  if (!response.ok) {
+    throw await apiError(response, "Unable to share saved report");
+  }
+  return response.json();
 }
 
 export async function listAiSqlAttempts(goldOnly = false): Promise<AiSqlAttempt[]> {

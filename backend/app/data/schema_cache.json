@@ -2,10 +2,10 @@
   "source_files": [
     "live_database"
   ],
-  "fetched_at": "2026-05-27T15:46:07.952777",
+  "fetched_at": "2026-05-28T16:20:15.527731",
   "notes": [
     "Schema fetched from live database",
-    "Last updated: 2026-05-27T15:46:07.952777",
+    "Last updated: 2026-05-28T16:20:15.527731",
     "Static schema metadata preserved where available"
   ],
   "relationships": [
@@ -3228,6 +3228,68 @@
         },
         {
           "name": "updated_at",
+          "type": "datetime",
+          "description": ""
+        }
+      ],
+      "description": "",
+      "aliases": []
+    },
+    {
+      "name": "report_audit_logs",
+      "columns": [
+        {
+          "name": "id",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "event_type",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "actor_role",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "target_role",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "report_id",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "report_category",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "action",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "before_json",
+          "type": "longtext",
+          "description": ""
+        },
+        {
+          "name": "after_json",
+          "type": "longtext",
+          "description": ""
+        },
+        {
+          "name": "metadata_json",
+          "type": "longtext",
+          "description": ""
+        },
+        {
+          "name": "created_at",
           "type": "datetime",
           "description": ""
         }

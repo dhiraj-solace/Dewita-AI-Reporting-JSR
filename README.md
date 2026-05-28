@@ -27,19 +27,41 @@ The app reads `.env` from the project root even when the backend is started from
 
 The app needs a direct MySQL connection host to execute SQL. Set either `DATABASE_URL` or `DB_HOST`, `DB_NAME`, `DB_USER`, and `DB_PASSWORD` in `.env`. If `DATABASE_URL` is present with placeholder text, the backend ignores it and uses the individual DB fields.
 
-For development AI SQL generation, Gemini is the default provider:
+For development AI SQL generation, set the provider and model in `.env`.
 
 ```env
-AI_PROVIDER=gemini
-GEMINI_API_KEY=your_gemini_key
-GEMINI_MODEL=gemini-1.5-flash
+AI_PROVIDER=openrouter
+OPENROUTER_API_KEY=your_openrouter_key
+OPENROUTER_MODEL=openai/gpt-4.1-mini
 ```
 
-OpenRouter is used for intent safety classification before SQL generation:
+The project currently supports these LLM model settings:
+
+| Purpose | Provider | Env setting | Current/default model |
+| --- | --- | --- | --- |
+| Main SQL generation | OpenRouter | `OPENROUTER_MODEL` | `openai/gpt-4.1-mini` |
+| Intent safety detection | OpenRouter | `OPENROUTER_INTENT_MODEL` | Uses `OPENROUTER_MODEL` when empty |
+| Local SQL generation | Ollama | `OLLAMA_SQL_MODEL` | `qwen2.5-coder:3b` |
+| Local SQL validator | Ollama/local validator endpoint | `LLM_VALIDATOR_MODEL` | `smollm` |
+| Optional direct Gemini generation | Gemini | `GEMINI_MODEL` | `gemini-1.5-flash` |
+| Optional direct OpenAI generation | OpenAI | `OPENAI_MODEL` | `gpt-4.1-mini` |
+
+OpenRouter is also used for intent safety classification before SQL generation:
 
 ```env
 OPENROUTER_API_KEY=your_openrouter_key
 OPENROUTER_INTENT_MODEL=openai/gpt-4.1-mini
+```
+
+For local Ollama usage:
+
+```env
+AI_PROVIDER=ollama
+OLLAMA_SQL_URL=http://localhost:11434/api/chat
+OLLAMA_SQL_MODEL=qwen2.5-coder:3b
+LLM_VALIDATOR_ENABLED=true
+LLM_VALIDATOR_URL=http://localhost:11434/api/chat
+LLM_VALIDATOR_MODEL=smollm
 ```
 
 Optional SMTP settings for scheduled report email delivery:
