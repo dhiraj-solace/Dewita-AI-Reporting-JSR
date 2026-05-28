@@ -25,6 +25,7 @@ class Settings(BaseSettings):
     ai_provider: str = "openrouter"
     openrouter_api_key: str | None = None
     openrouter_model: str = "openai/gpt-4.1-mini"
+    openrouter_intent_model: str | None = None
     openrouter_site_url: str | None = None
     openrouter_app_name: str = "Devita AI Reporting"
     ollama_sql_url: str = "http://localhost:11434/api/chat"

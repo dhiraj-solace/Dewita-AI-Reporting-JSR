@@ -8,6 +8,7 @@ FastAPI + Next.js scaffold for natural-language database reporting.
 - Business report catalog for attendance, timesheets, daily/project summaries, week-five reports, efficiency, capacity, rating, markup, change requests, and post-error reports.
 - Guarded SQL execution pipeline:
   - Natural-language request
+  - OpenRouter intent classification for read-only report intent
   - Optional AI SQL generation
   - Read-only SQL validation
   - Database execution
@@ -32,6 +33,13 @@ For development AI SQL generation, Gemini is the default provider:
 AI_PROVIDER=gemini
 GEMINI_API_KEY=your_gemini_key
 GEMINI_MODEL=gemini-1.5-flash
+```
+
+OpenRouter is used for intent safety classification before SQL generation:
+
+```env
+OPENROUTER_API_KEY=your_openrouter_key
+OPENROUTER_INTENT_MODEL=openai/gpt-4.1-mini
 ```
 
 Optional SMTP settings for scheduled report email delivery:

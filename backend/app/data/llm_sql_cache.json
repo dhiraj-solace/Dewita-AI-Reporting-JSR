@@ -177,6 +177,58 @@
         "token:team"
       ]
     },
+    "6c45f95092382368182644f367b0f23b71d9edc18fad52e9d8f2f60f6db5976d": {
+      "cache_policy": {
+        "created_at": "2026-05-28T08:03:13.584719+00:00",
+        "expires_at": "2026-05-30T08:03:13.584719+00:00",
+        "ttl_days": 2
+      },
+      "intent": {
+        "canonical_tokens": [
+          "employees",
+          "has",
+          "less",
+          "productivity",
+          "who"
+        ],
+        "date_tokens": [],
+        "end_date": null,
+        "limit": 500,
+        "report_category": "custom",
+        "start_date": null
+      },
+      "key": "6c45f95092382368182644f367b0f23b71d9edc18fad52e9d8f2f60f6db5976d",
+      "query": {
+        "normalized": "show employees who has less productivity",
+        "original": "Show employees who has less productivity"
+      },
+      "response": {
+        "explanation": "",
+        "sql": "SELECT u.id, u.name, u.employee_id, COALESCE(SUM(tr.hours) + SUM(tr.minutes)/60, 0) AS total_hours_worked, COUNT(DISTINCT th.task_id) AS tasks_completed, CASE WHEN (SUM(tr.hours) + SUM(tr.minutes)/60) > 0 THEN COUNT(DISTINCT th.task_id) / (SUM(tr.hours) + SUM(tr.minutes)/60) ELSE 0 END AS productivity FROM users u LEFT JOIN timelog_records tr ON u.id = tr.user_id LEFT JOIN task_hours th ON u.id = th.user_id WHERE u.is_deleted = 0 GROUP BY u.id, u.name, u.employee_id ORDER BY productivity ASC LIMIT 10",
+        "title": "SQL Report"
+      },
+      "sources": {
+        "schema_version": "0d608f525ed65867"
+      },
+      "stats": {
+        "hit_count": 0,
+        "invalidated_reason": null,
+        "last_hit_at": null,
+        "last_invalidated_at": null
+      },
+      "tags": [
+        "cache_key:6c45f95092382368182644f367b0f23b71d9edc18fad52e9d8f2f60f6db5976d",
+        "llm_sql",
+        "table:task_hours",
+        "table:timelog_records",
+        "table:users",
+        "token:employees",
+        "token:has",
+        "token:less",
+        "token:productivity",
+        "token:who"
+      ]
+    },
     "7e465d59dcf4970f0f4660729af677bb1685ce6e098423884cb5e4b593c58865": {
       "cache_policy": {
         "created_at": "2026-05-26T07:58:10.813107+00:00",
@@ -530,6 +582,63 @@
         "token:project"
       ]
     },
+    "d62c7459ffee2c64159f5b1f5d00532d3df102e1cf72a23e6d583e94b889cadd": {
+      "cache_policy": {
+        "created_at": "2026-05-28T08:50:53.548650+00:00",
+        "expires_at": "2026-05-30T08:50:53.548650+00:00",
+        "ttl_days": 2
+      },
+      "intent": {
+        "canonical_tokens": [
+          "10",
+          "employees",
+          "has",
+          "less",
+          "productivity",
+          "top",
+          "who"
+        ],
+        "date_tokens": [
+          "10"
+        ],
+        "end_date": null,
+        "limit": 500,
+        "report_category": "custom",
+        "start_date": null
+      },
+      "key": "d62c7459ffee2c64159f5b1f5d00532d3df102e1cf72a23e6d583e94b889cadd",
+      "query": {
+        "normalized": "show top 10 employees who has less productivity",
+        "original": "Show top 10  employees who has less productivity "
+      },
+      "response": {
+        "explanation": "",
+        "sql": "SELECT \n    u.name AS employee_name,\n    COUNT(pt.id) AS task_count,\n    SUM(CASE WHEN pt.task_status = 'Completed' THEN 1 ELSE 0 END) AS completed_tasks,\n    SUM(CASE WHEN pt.task_status = 'Pending' THEN 1 ELSE 0 END) AS pending_tasks\nFROM \n    users u\nJOIN \n    product_task pt ON u.id = pt.assign_member\nWHERE \n    pt.is_deleted = 0\nGROUP BY \n    u.name\nORDER BY \n    completed_tasks DESC, pending_tasks ASC\nLIMIT 10",
+        "title": "SQL Report"
+      },
+      "sources": {
+        "schema_version": "0d608f525ed65867"
+      },
+      "stats": {
+        "hit_count": 1,
+        "invalidated_reason": null,
+        "last_hit_at": "2026-05-28T09:04:50.386717+00:00",
+        "last_invalidated_at": null
+      },
+      "tags": [
+        "cache_key:d62c7459ffee2c64159f5b1f5d00532d3df102e1cf72a23e6d583e94b889cadd",
+        "llm_sql",
+        "table:product_task",
+        "table:users",
+        "token:10",
+        "token:employees",
+        "token:has",
+        "token:less",
+        "token:productivity",
+        "token:top",
+        "token:who"
+      ]
+    },
     "da85a99415bd39b61dfc85a6ea1cb956a96667bd23a9b163d9144e881a49e162": {
       "cache_policy": {
         "created_at": "2026-05-27T10:42:38.849339+00:00",
@@ -568,9 +677,9 @@
         "schema_version": "0d608f525ed65867"
       },
       "stats": {
-        "hit_count": 0,
+        "hit_count": 1,
         "invalidated_reason": null,
-        "last_hit_at": null,
+        "last_hit_at": "2026-05-28T06:05:35.824662+00:00",
         "last_invalidated_at": null
       },
       "tags": [
@@ -719,9 +828,11 @@
     "2e884a9e48c61d686b116b5f57953dcf673d2a6de08c753c8603271d58111886": "b505ddb004273ef0b1ce38b2f805efc711bf9ca9ea5233a1a7f254214c22fba9",
     "5a1788979781d8b373b3bb6ca2c00a1dda7ac87a071298ed9f3ee2ddcc30b291": "003436a35b721542f87d280b69a395b0c883b05fb6a5bcd8921eaed3d6dee1ea",
     "81faec0803dcb17d125c52388163f951ca2dbc359603baff654d4700ca968487": "f24e015e0003cc866749623ef76012317febbd9518eb5ff1a9032515702c0031",
+    "8af8e2fe4de5def3473f82e865bc9cffe1b3a486020fd2d31a293ed105c3b9b7": "d62c7459ffee2c64159f5b1f5d00532d3df102e1cf72a23e6d583e94b889cadd",
     "a38f95c0e39422422d6be204a4252b39a45400648e27a83bf5b3474c0946e484": "9be00873507a1c945adadf8cf9746a787a2ba656f14d2e7313bb71c5e4271c4c",
     "a4933ae46f794e949e6fd7d1b5a5f4416e8dbf6552483e76885775ec92152856": "52822310166876f5317e5ad1ea1808561c8efbd1a7a5fed55d7ef7471dbfc47f",
     "bbd4d172304b152d96037eeb31447fce8403900c227abd09be50a3d8e0a52276": "7e465d59dcf4970f0f4660729af677bb1685ce6e098423884cb5e4b593c58865",
+    "caf047279c27078abefee4e8aa2f29b745cee73855f96035c1d082eb05f354f0": "6c45f95092382368182644f367b0f23b71d9edc18fad52e9d8f2f60f6db5976d",
     "d418e1f26305d579d9491ffc2bd4e383b59e83d9cba9251027a16819db0321fc": "8ddb990f8fd3e11896c98f7073c7d344230b17140693770bf826f744c9d06bec",
     "e04d2161661eec73279d0d395974a5f5cf93f60d4c46ccd7ef4ac8be868c7af9": "da85a99415bd39b61dfc85a6ea1cb956a96667bd23a9b163d9144e881a49e162",
     "ff7b72f7ccdebd428fea7701187b5a9f6725519264e4fb2d2ad963b773518e26": "c31a76c1fb466e34a3202d4327b683b27caacecfdc80c450de3230d07ea8b452"
@@ -730,12 +841,14 @@
     "003436a35b721542f87d280b69a395b0c883b05fb6a5bcd8921eaed3d6dee1ea": "003436a35b721542f87d280b69a395b0c883b05fb6a5bcd8921eaed3d6dee1ea",
     "52822310166876f5317e5ad1ea1808561c8efbd1a7a5fed55d7ef7471dbfc47f": "52822310166876f5317e5ad1ea1808561c8efbd1a7a5fed55d7ef7471dbfc47f",
     "6bfa98d911a52c1e99514aea56676863e16f8886c35d734ffafad0acb5c122ff": "6bfa98d911a52c1e99514aea56676863e16f8886c35d734ffafad0acb5c122ff",
+    "6c45f95092382368182644f367b0f23b71d9edc18fad52e9d8f2f60f6db5976d": "6c45f95092382368182644f367b0f23b71d9edc18fad52e9d8f2f60f6db5976d",
     "7e465d59dcf4970f0f4660729af677bb1685ce6e098423884cb5e4b593c58865": "7e465d59dcf4970f0f4660729af677bb1685ce6e098423884cb5e4b593c58865",
     "8ddb990f8fd3e11896c98f7073c7d344230b17140693770bf826f744c9d06bec": "8ddb990f8fd3e11896c98f7073c7d344230b17140693770bf826f744c9d06bec",
     "98ef54ecb4ce633e9210e60f17f002dc6960b9ad00b6bfabca440b8cdcf3926e": "98ef54ecb4ce633e9210e60f17f002dc6960b9ad00b6bfabca440b8cdcf3926e",
     "9be00873507a1c945adadf8cf9746a787a2ba656f14d2e7313bb71c5e4271c4c": "9be00873507a1c945adadf8cf9746a787a2ba656f14d2e7313bb71c5e4271c4c",
     "b505ddb004273ef0b1ce38b2f805efc711bf9ca9ea5233a1a7f254214c22fba9": "b505ddb004273ef0b1ce38b2f805efc711bf9ca9ea5233a1a7f254214c22fba9",
     "c31a76c1fb466e34a3202d4327b683b27caacecfdc80c450de3230d07ea8b452": "c31a76c1fb466e34a3202d4327b683b27caacecfdc80c450de3230d07ea8b452",
+    "d62c7459ffee2c64159f5b1f5d00532d3df102e1cf72a23e6d583e94b889cadd": "d62c7459ffee2c64159f5b1f5d00532d3df102e1cf72a23e6d583e94b889cadd",
     "da85a99415bd39b61dfc85a6ea1cb956a96667bd23a9b163d9144e881a49e162": "da85a99415bd39b61dfc85a6ea1cb956a96667bd23a9b163d9144e881a49e162",
     "f24e015e0003cc866749623ef76012317febbd9518eb5ff1a9032515702c0031": "f24e015e0003cc866749623ef76012317febbd9518eb5ff1a9032515702c0031",
     "f37bddf3e86dd0fd8b9d023cd0f71ef38f84e8e6ee9ae2a4e19c89295b57b2c0": "f37bddf3e86dd0fd8b9d023cd0f71ef38f84e8e6ee9ae2a4e19c89295b57b2c0"

@@ -258,15 +258,20 @@ Safety is the most important part of this type of system.
 
 ### User Question Safety
 
-Block questions that ask to:
+Use OpenRouter intent classification before SQL generation. The classifier should allow only read/report intent and block mutation/admin intent.
 
-- insert data
-- update data
-- delete data
-- drop tables
-- alter schema
-- create users
-- run stored procedures
+Allowed examples:
+
+- show last month deleted users
+- list users created in May
+- summarize updated tasks by project
+
+Blocked examples:
+
+- delete users from last month
+- create a new user
+- update task status
+- drop or alter tables
 - execute admin commands
 
 ### SQL Safety
