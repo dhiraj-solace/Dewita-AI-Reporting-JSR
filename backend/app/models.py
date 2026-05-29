@@ -178,6 +178,16 @@ class AiSqlAttempt(BaseModel):
     updated_at: Any
 
 
+class AiSqlAttemptEvent(BaseModel):
+    id: str
+    attempt_id: str
+    step: str
+    message: str
+    event_type: str = "log"
+    payload_json: str | None = None
+    created_at: Any
+
+
 class AiSqlAttemptReviewRequest(BaseModel):
     user_feedback_status: str = Field(..., pattern="^(pending|correct|incorrect)$")
     admin_approved: bool = False

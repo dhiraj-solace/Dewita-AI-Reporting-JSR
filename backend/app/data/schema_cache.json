@@ -2,10 +2,10 @@
   "source_files": [
     "live_database"
   ],
-  "fetched_at": "2026-05-28T16:20:15.527731",
+  "fetched_at": "2026-05-29T16:48:55.332655",
   "notes": [
     "Schema fetched from live database",
-    "Last updated: 2026-05-28T16:20:15.527731",
+    "Last updated: 2026-05-29T16:48:55.332655",
     "Static schema metadata preserved where available"
   ],
   "relationships": [

@@ -4,8 +4,10 @@ import {useEffect, useMemo, useState} from "react";
 import {CheckCircle2, Database, RefreshCw, ShieldCheck, XCircle} from "lucide-react";
 import {
   AiSqlAttempt,
+  AiSqlAttemptEvent,
   AiSqlAttemptPreview,
   SqlMistakeExample,
+  listAiSqlAttemptEvents,
   listAiSqlAttempts,
   listSqlMistakeExamples,
   previewAiSqlAttempt,
@@ -56,6 +58,8 @@ export default function AiSqlAttemptsAdminPage() {
   const [loading, setLoading] = useState(true);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [preview, setPreview] = useState<AiSqlAttemptPreview | null>(null);
+  const [events, setEvents] = useState<AiSqlAttemptEvent[]>([]);
+  const [eventsLoading, setEventsLoading] = useState(false);
   const [reviewing, setReviewing] = useState("");
   const [error, setError] = useState("");
 
@@ -74,15 +78,32 @@ export default function AiSqlAttemptsAdminPage() {
   }, [goldOnly]);
 
   useEffect(() => {
+    const timer = window.setInterval(() => {
+      loadAttempts(goldOnly, true);
+    }, 4000);
+    return () => window.clearInterval(timer);
+  }, [goldOnly]);
+
+  useEffect(() => {
     if (!selected?.id) {
       setPreview(null);
+      setEvents([]);
       return;
     }
     loadPreview(selected.id);
+    loadEvents(selected.id);
   }, [selected?.id]);
 
-  async function loadAttempts(nextGoldOnly = goldOnly) {
-    setLoading(true);
+  useEffect(() => {
+    if (!selected?.id) return;
+    const timer = window.setInterval(() => {
+      loadEvents(selected.id, true);
+    }, 2500);
+    return () => window.clearInterval(timer);
+  }, [selected?.id]);
+
+  async function loadAttempts(nextGoldOnly = goldOnly, silent = false) {
+    if (!silent) setLoading(true);
     setError("");
     try {
       const data = await listAiSqlAttempts(nextGoldOnly);
@@ -93,7 +114,7 @@ export default function AiSqlAttemptsAdminPage() {
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to load attempts");
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }
 
@@ -127,6 +148,17 @@ export default function AiSqlAttemptsAdminPage() {
       });
     } finally {
       setPreviewLoading(false);
+    }
+  }
+
+  async function loadEvents(attemptId: string, silent = false) {
+    if (!silent) setEventsLoading(true);
+    try {
+      setEvents(await listAiSqlAttemptEvents(attemptId));
+    } catch {
+      if (!silent) setEvents([]);
+    } finally {
+      if (!silent) setEventsLoading(false);
     }
   }
 
@@ -250,6 +282,34 @@ export default function AiSqlAttemptsAdminPage() {
                   <div><dt>Validator Feedback</dt><dd>{selected.validator_feedback || "-"}</dd></div>
                   <div><dt>Execution Error</dt><dd>{selected.execution_error || "-"}</dd></div>
                 </dl>
+              </section>
+
+              <section className="attempt-block live-run-block">
+                <div className="result-preview-header">
+                  <div>
+                    <h3>Live Run Timeline</h3>
+                    <p>Session events from generation, validation, retry, and execution. Auto-refreshes while this page is open.</p>
+                  </div>
+                  <button onClick={() => loadEvents(selected.id)} type="button">
+                    <RefreshCw size={16} /> Refresh Logs
+                  </button>
+                </div>
+                {eventsLoading && <div className="attempt-empty">Loading live events...</div>}
+                {!eventsLoading && events.length === 0 && <div className="attempt-empty">No live events recorded for this attempt yet.</div>}
+                {!eventsLoading && events.length > 0 && (
+                  <ol className="run-event-list">
+                    {events.map((event) => (
+                      <li className={event.event_type === "detail" ? "detail" : ""} key={event.id}>
+                        <div>
+                          <span>{formatDate(event.created_at)}</span>
+                          <strong>{event.step}</strong>
+                        </div>
+                        <p>{event.message}</p>
+                        {event.payload_json && <pre>{event.payload_json}</pre>}
+                      </li>
+                    ))}
+                  </ol>
+                )}
               </section>
 
               <section className="attempt-block result-preview-block">

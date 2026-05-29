@@ -8,7 +8,7 @@ from typing import Any
 from app.core.config import get_settings
 from app.db import fetch_rows
 from app.models import GeneratedReport, ReportRequest, RetryAttempt
-from app.services.ai_sql_attempt_store import create_attempt, similar_gold_examples, update_attempt
+from app.services.ai_sql_attempt_store import create_attempt, record_attempt_event, similar_gold_examples, update_attempt
 from app.services.date_resolver import resolve_date_range
 from app.services.catalog import resolve_report_category
 from app.services.llm import (
@@ -71,12 +71,22 @@ class ReportBuildError(Exception):
 async def build_report(request: ReportRequest) -> GeneratedReport:
     query_safety = await validate_user_query_safety(request.question)
     if not query_safety.is_safe:
+        if query_safety.blocked_operation == "INTENT_CLASSIFIER":
+            logger.warning("Intent classifier unavailable: %s", query_safety.reason)
+            raise ReportBuildError(
+                query_safety.reason,
+                [],
+                title="Intent classifier unavailable",
+                solution="Retry after the OpenRouter classifier is available, change the intent model, or use an API key with available quota.",
+                status_code=503,
+            )
         logger.warning("Blocked unsafe report request: %s", query_safety.reason)
         raise ReportBuildError(
             query_safety.reason,
             [],
             title="Unsafe report request blocked",
             solution="Ask for a read-only report intent such as view, list, count, summary, comparison, or export.",
+            status_code=400,
         )
 
     warnings: list[str] = []
@@ -441,14 +451,49 @@ async def _validate_generated_output_with_retries(
         try:
             raw_sql = current["sql"]
             prepared_sql = _prepare_sql(raw_sql, sql_limit, warnings, start_date, end_date)
+            _console_validation_log(f"backend validation started for output {llm1_outputs}")
+            _console_validation_detail(
+                "backend validation checking query",
+                {"attempt": attempt, "output": llm1_outputs, "sql": prepared_sql},
+            )
+            _console_attempt_log(attempt_id, "validator", "backend validation checking generated SQL")
+            _console_attempt_detail(attempt_id, "validator", {"checking_sql": prepared_sql})
             safety = validate_sql_safety(prepared_sql, schema)
             if not safety.isValid:
+                _console_validation_log(f"backend validation failed: {_short_reason(safety.reason)}")
+                _console_validation_detail(
+                    "backend validation result",
+                    {
+                        "valid": False,
+                        "stage": "sql_safety",
+                        "reason": safety.reason,
+                        "fix_hint": safety.fixHint,
+                        "risk": safety.risk,
+                    },
+                )
                 _save_mistake(attempt_id, request.question, prepared_sql, safety)
                 mistake_saved = True
                 raise ValueError(safety.reason)
             _validate_requested_limit_alignment(prepared_sql, requested_result_limit)
+            _console_validation_log("backend safety validation passed")
+            _console_validation_detail(
+                "backend validation result",
+                {"valid": True, "stage": "sql_safety", "reason": safety.reason or "Safe read-only SQL."},
+            )
+            _console_attempt_log(attempt_id, "validator", "backend safety validation passed")
         except SchemaValidationError as exc:
             last_error_message = exc.diagnosis.message
+            _console_validation_log(f"backend schema validation failed: {_short_reason(last_error_message)}")
+            _console_validation_detail(
+                "backend validation result",
+                {
+                    "valid": False,
+                    "stage": "schema",
+                    "reason": last_error_message,
+                    "table": exc.diagnosis.table,
+                    "column": exc.diagnosis.column,
+                },
+            )
             _save_mistake(
                 attempt_id,
                 request.question,
@@ -470,6 +515,11 @@ async def _validate_generated_output_with_retries(
             retry_prompt = exc.diagnosis.message
         except Exception as exc:
             last_error_message = str(exc)
+            _console_validation_log(f"backend validation failed: {_short_reason(last_error_message)}")
+            _console_validation_detail(
+                "backend validation result",
+                {"valid": False, "stage": "safety_or_limit", "reason": last_error_message},
+            )
             if not mistake_saved and (prepared_sql or current.get("sql")):
                 _save_mistake(
                     attempt_id,
@@ -550,6 +600,15 @@ async def _validate_generated_output_with_retries(
                         _validator_attempt(attempt, "success", f"Validator accepted output on attempt {attempt}.")
                     )
                     logger.info("Validator accepted output on attempt %s.", attempt)
+                    _console_validation_detail(
+                        "llm2 validation final result",
+                        {
+                            "valid": True,
+                            "attempt": attempt,
+                            "output": llm1_outputs,
+                            "reason": validation.reason or "Validator accepted SQL.",
+                        },
+                    )
                     _console_validation_log(
                         f"success llm1_outputs={llm1_outputs} llm2_calls={llm2_calls} passed_on_attempt={attempt}"
                     )
@@ -585,6 +644,16 @@ async def _validate_generated_output_with_retries(
                     return current, prepared_sql
                 last_error_message = validation.reason or _validation_error_summary(
                     [error.model_dump() for error in validation.errors]
+                )
+                _console_validation_log(f"llm2 validation failed: {_short_reason(last_error_message)}")
+                _console_validation_detail(
+                    "llm2 validation final result",
+                    {
+                        "valid": False,
+                        "attempt": attempt,
+                        "output": llm1_outputs,
+                        "reason": last_error_message,
+                    },
                 )
                 _save_mistake(
                     attempt_id,
@@ -816,6 +885,11 @@ def _console_attempt_log(attempt_id: str, step: str, message: str) -> None:
     timestamp = datetime.now().strftime("%H:%M:%S")
     sys.stderr.write(f"[ai-sql {timestamp} attempt={attempt_id} step={step}] {message}\n")
     sys.stderr.flush()
+    try:
+        record_attempt_event(attempt_id, step, message)
+    except Exception as exc:
+        sys.stderr.write(f"[ai-sql {timestamp} attempt={attempt_id} step=events] event save skipped: {exc}\n")
+        sys.stderr.flush()
 
 
 def _console_validation_detail(label: str, payload: Any) -> None:
@@ -830,6 +904,11 @@ def _console_attempt_detail(attempt_id: str, step: str, payload: Any) -> None:
     rendered = json.dumps(payload, ensure_ascii=False, indent=2, default=str)
     sys.stderr.write(f"[ai-sql {timestamp} attempt={attempt_id} step={step}]\n{rendered}\n")
     sys.stderr.flush()
+    try:
+        record_attempt_event(attempt_id, step, "detail payload recorded", event_type="detail", payload=payload)
+    except Exception as exc:
+        sys.stderr.write(f"[ai-sql {timestamp} attempt={attempt_id} step=events] event detail save skipped: {exc}\n")
+        sys.stderr.flush()
 
 
 def _validation_payload_for_console(payload: dict[str, Any]) -> dict[str, Any]:

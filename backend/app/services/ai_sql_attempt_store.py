@@ -38,6 +38,16 @@ ATTEMPT_FIELDS = (
     "updated_at",
 )
 
+ATTEMPT_EVENT_FIELDS = (
+    "id",
+    "attempt_id",
+    "step",
+    "message",
+    "event_type",
+    "payload_json",
+    "created_at",
+)
+
 _VECTOR_SYNCED_ONCE = False
 MIN_EXAMPLE_SIMILARITY = 0.18
 
@@ -72,6 +82,24 @@ def ensure_ai_sql_attempts_table() -> None:
     with get_engine().begin() as conn:
         conn.execute(text(ddl))
         _ensure_attempt_columns(conn)
+        _ensure_attempt_events_table(conn)
+
+
+def _ensure_attempt_events_table(conn: Any) -> None:
+    ddl = """
+    CREATE TABLE IF NOT EXISTS ai_sql_attempt_events (
+        id VARCHAR(36) PRIMARY KEY,
+        attempt_id VARCHAR(36) NOT NULL,
+        step VARCHAR(80) NOT NULL,
+        message TEXT NOT NULL,
+        event_type VARCHAR(30) NOT NULL DEFAULT 'log',
+        payload_json LONGTEXT NULL,
+        created_at DATETIME NOT NULL,
+        INDEX idx_ai_sql_attempt_events_attempt_created (attempt_id, created_at),
+        INDEX idx_ai_sql_attempt_events_step (step)
+    )
+    """
+    conn.execute(text(ddl))
 
 
 def _ensure_attempt_columns(conn: Any) -> None:
@@ -125,6 +153,58 @@ def create_attempt(user_question: str, schema_snapshot: dict[str, Any]) -> str:
         )
     _console_attempt_log(attempt_id, "saved", "query attempt saved")
     return attempt_id
+
+
+def record_attempt_event(
+    attempt_id: str,
+    step: str,
+    message: str,
+    event_type: str = "log",
+    payload: Any | None = None,
+) -> None:
+    if not attempt_id:
+        return
+    ensure_ai_sql_attempts_table()
+    payload_json = json.dumps(payload, ensure_ascii=False, default=str) if payload is not None else None
+    with get_engine().begin() as conn:
+        conn.execute(
+            text(
+                """
+                INSERT INTO ai_sql_attempt_events (
+                    id, attempt_id, step, message, event_type, payload_json, created_at
+                ) VALUES (
+                    :id, :attempt_id, :step, :message, :event_type, :payload_json, :created_at
+                )
+                """
+            ),
+            {
+                "id": str(uuid4()),
+                "attempt_id": attempt_id,
+                "step": str(step)[:80],
+                "message": message,
+                "event_type": str(event_type)[:30],
+                "payload_json": payload_json,
+                "created_at": _now(),
+            },
+        )
+
+
+def list_attempt_events(attempt_id: str, limit: int = 200) -> list[dict[str, Any]]:
+    ensure_ai_sql_attempts_table()
+    with get_engine().connect() as conn:
+        rows = conn.execute(
+            text(
+                """
+                SELECT id, attempt_id, step, message, event_type, payload_json, created_at
+                FROM ai_sql_attempt_events
+                WHERE attempt_id = :attempt_id
+                ORDER BY created_at ASC
+                LIMIT :limit
+                """
+            ),
+            {"attempt_id": attempt_id, "limit": limit},
+        ).mappings().all()
+    return [_row_to_dict(row) for row in rows]
 
 
 def update_attempt(attempt_id: str, **fields: Any) -> None:
@@ -340,3 +420,8 @@ def _console_attempt_log(attempt_id: str, step: str, message: str) -> None:
     timestamp = datetime.now().strftime("%H:%M:%S")
     sys.stderr.write(f"[ai-sql {timestamp} attempt={attempt_id} step={step}] {message}\n")
     sys.stderr.flush()
+    try:
+        record_attempt_event(attempt_id, step, message)
+    except Exception as exc:
+        sys.stderr.write(f"[ai-sql {timestamp} attempt={attempt_id} step=events] event save skipped: {exc}\n")
+        sys.stderr.flush()

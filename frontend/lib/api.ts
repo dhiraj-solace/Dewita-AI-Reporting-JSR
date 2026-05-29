@@ -170,6 +170,16 @@ export type AiSqlAttempt = {
   updated_at: string;
 };
 
+export type AiSqlAttemptEvent = {
+  id: string;
+  attempt_id: string;
+  step: string;
+  message: string;
+  event_type: string;
+  payload_json?: string | null;
+  created_at: string;
+};
+
 export type SqlMistakeExample = {
   id: string;
   query_attempt_id: string;
@@ -433,6 +443,14 @@ export async function reviewAiSqlAttempt(
     throw new ApiError("Unable to review AI SQL attempt");
   }
 
+  return response.json();
+}
+
+export async function listAiSqlAttemptEvents(attemptId: string): Promise<AiSqlAttemptEvent[]> {
+  const response = await fetch(`${API_URL}/api/admin/ai-sql-attempts/${attemptId}/events?limit=200`, {cache: "no-store"});
+  if (!response.ok) {
+    throw new ApiError("Unable to load AI SQL attempt events");
+  }
   return response.json();
 }
 

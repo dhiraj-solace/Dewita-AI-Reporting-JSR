@@ -1759,6 +1759,10 @@ tr:nth-child(even) td {
   background: #fff;
 }
 
+.live-run-block {
+  background: #fff;
+}
+
 .result-preview-header {
   display: flex;
   align-items: flex-start;
@@ -1820,6 +1824,61 @@ tr:nth-child(even) td {
   padding: 11px 12px;
   font-size: 14px;
   font-weight: 800;
+}
+
+.run-event-list {
+  list-style: none;
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+}
+
+.run-event-list li {
+  border: 1px solid #dbe5f3;
+  border-radius: 6px;
+  background: #fbfdff;
+  padding: 10px 12px;
+}
+
+.run-event-list li.detail {
+  background: #f7faff;
+}
+
+.run-event-list li > div {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 5px;
+}
+
+.run-event-list span {
+  color: #53647d;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.run-event-list strong {
+  border: 1px solid #cbd9ec;
+  border-radius: 999px;
+  background: #eef4ff;
+  color: #315fd2;
+  padding: 3px 8px;
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.run-event-list p {
+  margin: 0;
+  color: #132236;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.run-event-list pre {
+  margin-top: 8px;
+  max-height: 180px;
 }
 
 .review-summary {
