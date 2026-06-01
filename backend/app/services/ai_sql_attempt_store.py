@@ -19,6 +19,7 @@ ATTEMPT_FIELDS = (
     "schema_snapshot",
     "generation_provider",
     "generation_model",
+    "intent_validation_elapsed_ms",
     "generation_elapsed_ms",
     "validator_elapsed_ms",
     "execution_elapsed_ms",
@@ -60,6 +61,7 @@ def ensure_ai_sql_attempts_table() -> None:
         schema_snapshot LONGTEXT NULL,
         generation_provider VARCHAR(50) NULL,
         generation_model VARCHAR(255) NULL,
+        intent_validation_elapsed_ms INT NULL,
         generation_elapsed_ms INT NULL,
         validator_elapsed_ms INT NULL,
         execution_elapsed_ms INT NULL,
@@ -106,6 +108,7 @@ def _ensure_attempt_columns(conn: Any) -> None:
     columns = {
         "generation_provider": "VARCHAR(50) NULL",
         "generation_model": "VARCHAR(255) NULL",
+        "intent_validation_elapsed_ms": "INT NULL",
         "generation_elapsed_ms": "INT NULL",
         "validator_elapsed_ms": "INT NULL",
         "execution_elapsed_ms": "INT NULL",

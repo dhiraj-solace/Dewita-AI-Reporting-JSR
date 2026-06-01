@@ -27,6 +27,7 @@ The main purpose is to provide an AI-assisted reporting layer over the existing 
 
 - Natural-language report query input.
 - Report category detection and optional user-selected category.
+- LLM-based Auto Detect report category selection with keyword fallback.
 - AI SQL generation using OpenRouter, Gemini, OpenAI, or local Ollama.
 - MySQL schema introspection and cached schema catalog fallback.
 - Safe read-only SQL validation.
@@ -42,6 +43,7 @@ The main purpose is to provide an AI-assisted reporting layer over the existing 
 - Saved report list/open/export permission checks.
 - Report audit log for saved-report events and role-permission changes.
 - Model performance tracking on AI SQL attempts.
+- Intent validation timing and generated-SQL validation timing on AI SQL attempts, including backend safety/schema validation duration.
 - Scheduled report auto-generation with dynamic DB configuration.
 - Super Admin-only schedule management and manual run access.
 - Scheduled report email notifications with PDF/Excel attachments when SMTP is configured.
@@ -126,7 +128,7 @@ Current model configuration:
 | Optional direct Gemini generation | Gemini | `GEMINI_MODEL` | `gemini-1.5-flash` |
 | Optional direct OpenAI generation | OpenAI | `OPENAI_MODEL` | `gpt-4.1-mini` |
 
-In local mode, Ollama serves both the SQL generation model and the optional validator model through `/api/chat`. In OpenRouter mode, OpenRouter is used for SQL generation and intent classification, while the local validator can still run separately when `LLM_VALIDATOR_ENABLED=true`. The default is `LLM_VALIDATOR_ENABLED=false` so backend safety and schema validation can accept safe SQL quickly without waiting on a slow local SmolLM call.
+In local mode, Ollama serves both the SQL generation model and the optional validator model through `/api/chat`. In OpenRouter mode, OpenRouter is used for SQL generation, intent classification, and automatic report category detection when the user leaves category set to Auto Detect. The local validator can still run separately when `LLM_VALIDATOR_ENABLED=true`. The default is `LLM_VALIDATOR_ENABLED=false` so backend safety and schema validation can accept safe SQL quickly without waiting on a slow local SmolLM call.
 
 ### User Input to Report Output Flow
 

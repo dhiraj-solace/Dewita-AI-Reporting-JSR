@@ -229,7 +229,7 @@ export default function Home() {
   const [question, setQuestion] = useState(examples[0]);
   const [month, setMonth] = useState("April");
   const [year, setYear] = useState("2026");
-  const [reportCategory, setReportCategory] = useState("custom");
+  const [reportCategory, setReportCategory] = useState("auto");
   const [currentRole, setCurrentRole] = useState("Super Admin");
   const [reportCategories, setReportCategories] = useState<ReportCategory[]>(fallbackReportCategories);
   const [rolePermissions, setRolePermissions] = useState<RoleReportPermission[]>([]);
@@ -284,13 +284,16 @@ export default function Home() {
         .map((permission) => permission.report_category)
     );
     if (allowed.size === 0 && rolePermissions.length > 0) return [];
-    return reportCategories.filter((category) => category.id !== "auto" && (allowed.size === 0 || allowed.has(category.id)));
+    const permitted = reportCategories.filter((category) => category.id !== "auto" && (allowed.size === 0 || allowed.has(category.id)));
+    const autoCategory = reportCategories.find((category) => category.id === "auto") || {id: "auto", label: "Auto Detect"};
+    return [autoCategory, ...permitted];
   }, [currentRole, reportCategories, rolePermissions]);
 
   useEffect(() => {
     if (visibleReportCategories.length === 0) return;
+    if (reportCategory === "auto") return;
     if (!visibleReportCategories.some((category) => category.id === reportCategory)) {
-      setReportCategory(visibleReportCategories[0].id);
+      setReportCategory("auto");
     }
   }, [reportCategory, visibleReportCategories]);
 

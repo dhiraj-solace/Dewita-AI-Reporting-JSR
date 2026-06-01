@@ -45,6 +45,11 @@ function formatMs(value?: number | null) {
   return `${value}ms`;
 }
 
+function formatCapturedMs(value?: number | null) {
+  if (value === null || value === undefined) return "Not captured";
+  return formatMs(value);
+}
+
 function countByStatus(attempts: AiSqlAttempt[], status: string) {
   return attempts.filter((attempt) => (attempt.execution_status || "pending").toLowerCase() === status).length;
 }
@@ -264,8 +269,9 @@ export default function AiSqlAttemptsAdminPage() {
                 <span><Database size={15} /> Rows: {selected.result_row_count ?? "-"}</span>
                 <span>Provider: {selected.generation_provider || "-"}</span>
                 <span>Model: {selected.generation_model || "-"}</span>
+                <span>Intent validation: {formatCapturedMs(selected.intent_validation_elapsed_ms)}</span>
                 <span>Generation: {formatMs(selected.generation_elapsed_ms)}</span>
-                <span>Validator: {formatMs(selected.validator_elapsed_ms)}</span>
+                <span>Query validation: {formatMs(selected.validator_elapsed_ms)}</span>
                 <span>SQL: {formatMs(selected.execution_elapsed_ms)}</span>
                 <span>Total: {formatMs(selected.total_elapsed_ms)}</span>
                 <span>Feedback: {selected.user_feedback_status || "pending"}</span>
@@ -288,7 +294,7 @@ export default function AiSqlAttemptsAdminPage() {
                 <div className="result-preview-header">
                   <div>
                     <h3>Live Run Timeline</h3>
-                    <p>Session events from generation, validation, retry, and execution. Auto-refreshes while this page is open.</p>
+                    <p>Session events from generation, query validation timing, retry, and execution. Auto-refreshes while this page is open.</p>
                   </div>
                   <button onClick={() => loadEvents(selected.id)} type="button">
                     <RefreshCw size={16} /> Refresh Logs

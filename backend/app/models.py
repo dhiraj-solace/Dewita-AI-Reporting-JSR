@@ -159,6 +159,7 @@ class AiSqlAttempt(BaseModel):
     schema_snapshot: str | None = None
     generation_provider: str | None = None
     generation_model: str | None = None
+    intent_validation_elapsed_ms: int | None = None
     generation_elapsed_ms: int | None = None
     validator_elapsed_ms: int | None = None
     execution_elapsed_ms: int | None = None

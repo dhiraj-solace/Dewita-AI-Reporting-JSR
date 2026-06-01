@@ -53,6 +53,8 @@ OPENROUTER_API_KEY=your_openrouter_key
 OPENROUTER_INTENT_MODEL=openai/gpt-4.1-mini
 ```
 
+When the report category is left as `Auto Detect`, the backend asks OpenRouter to classify the user's report question into a report category. If that classifier is unavailable, it falls back to the local keyword/category matcher.
+
 For local Ollama usage:
 
 ```env
@@ -162,6 +164,8 @@ The backend creates application tables for operational tracking:
 - `report_audit_logs`: saved report events and role permission changes.
 - `scheduled_reports`: dynamic report schedules, filters, recipients, and execution settings.
 - `scheduled_report_runs`: run history for automatic/manual schedule executions.
+
+`intent_validation_elapsed_ms` tracks OpenRouter intent validation timing. `validator_elapsed_ms` tracks required generated-SQL validation timing, including backend SQL safety, schema validation, and top/limit alignment. Optional local SmolLM validation is disabled by default and is only added to validator timing when explicitly enabled.
 
 ## Scheduled Reports
 

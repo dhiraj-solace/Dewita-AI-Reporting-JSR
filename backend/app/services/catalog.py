@@ -2,6 +2,9 @@ import json
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
+import httpx
+
+from app.core.config import get_settings
 
 DATA_DIR = Path(__file__).resolve().parents[1] / "data"
 
@@ -82,6 +85,75 @@ def resolve_report_category(category_id: str | None, question: str = "") -> dict
     if scored:
         return sorted(scored, key=lambda item: item[0], reverse=True)[0][1]
     return next((category for category in categories if category.get("id") == "custom"), None)
+
+
+async def resolve_report_category_with_ai(category_id: str | None, question: str = "") -> dict[str, Any] | None:
+    categories = load_report_categories().get("categories", [])
+    normalized_id = (category_id or "").strip().lower()
+    if normalized_id and normalized_id != "auto":
+        return next((category for category in categories if category.get("id") == normalized_id), None)
+
+    detected_id = await _detect_category_with_openrouter(question, categories)
+    if detected_id:
+        detected = next((category for category in categories if category.get("id") == detected_id), None)
+        if detected:
+            return detected
+    return resolve_report_category(category_id, question)
+
+
+async def _detect_category_with_openrouter(question: str, categories: list[dict[str, Any]]) -> str | None:
+    settings = get_settings()
+    if not settings.openrouter_api_key:
+        return None
+    choices = [
+        {
+            "id": category.get("id"),
+            "label": category.get("label"),
+            "match_keywords": category.get("match_keywords", [])[:12],
+            "preferred_tables": category.get("preferred_tables", [])[:10],
+            "metrics": category.get("metrics", [])[:10],
+        }
+        for category in categories
+        if category.get("id") not in {"auto", "custom"} and category.get("enabled", True)
+    ]
+    if not choices:
+        return None
+    prompt = (
+        "Classify the user's report question into exactly one report category id. "
+        "Use semantic intent, not only keywords. Return compact JSON only with "
+        "{\"category_id\":\"...\", \"reason\":\"...\"}. If no category fits, use custom."
+    )
+    body = {
+        "model": settings.openrouter_intent_model or settings.openrouter_model,
+        "temperature": 0,
+        "messages": [
+            {"role": "system", "content": prompt},
+            {
+                "role": "user",
+                "content": json.dumps(
+                    {"question": question, "categories": choices + [{"id": "custom", "label": "Custom Report"}]},
+                    ensure_ascii=False,
+                ),
+            },
+        ],
+        "response_format": {"type": "json_object"},
+    }
+    headers = {"Authorization": f"Bearer {settings.openrouter_api_key}"}
+    if settings.openrouter_site_url:
+        headers["HTTP-Referer"] = settings.openrouter_site_url
+    if settings.openrouter_app_name:
+        headers["X-Title"] = settings.openrouter_app_name
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            response = await client.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=body)
+            response.raise_for_status()
+        content = response.json()["choices"][0]["message"]["content"] or "{}"
+        parsed = json.loads(content)
+        category_id = str(parsed.get("category_id") or "").strip().lower()
+        allowed_ids = {str(category.get("id") or "").lower() for category in choices}
+        return category_id if category_id in allowed_ids else None
+    except Exception:
+        return None
 
 
 def category_context(category: dict[str, Any] | None) -> dict[str, Any] | None:

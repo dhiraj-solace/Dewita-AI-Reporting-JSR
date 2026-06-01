@@ -10,7 +10,7 @@ from app.db import fetch_rows
 from app.models import GeneratedReport, ReportRequest, RetryAttempt
 from app.services.ai_sql_attempt_store import create_attempt, record_attempt_event, similar_gold_examples, update_attempt
 from app.services.date_resolver import resolve_date_range
-from app.services.catalog import resolve_report_category
+from app.services.catalog import resolve_report_category, resolve_report_category_with_ai
 from app.services.llm import (
     AiSqlGenerationError,
     build_sql_generation_payload_preview,
@@ -69,30 +69,99 @@ class ReportBuildError(Exception):
 
 
 async def build_report(request: ReportRequest) -> GeneratedReport:
+    attempt_id = create_attempt(
+        request.question,
+        {
+            "status": "pending_intent_validation",
+            "note": "Schema snapshot is attached after intent validation passes.",
+        },
+    )
+    _console_attempt_log(attempt_id, "intent", "intent validation started")
+    _console_attempt_detail(
+        attempt_id,
+        "intent",
+        {"question": request.question, "provider": "openrouter"},
+    )
+    intent_started = perf_counter()
     query_safety = await validate_user_query_safety(request.question)
+    intent_elapsed_ms = int((perf_counter() - intent_started) * 1000)
+    update_attempt(attempt_id, intent_validation_elapsed_ms=intent_elapsed_ms)
     if not query_safety.is_safe:
         if query_safety.blocked_operation == "INTENT_CLASSIFIER":
             logger.warning("Intent classifier unavailable: %s", query_safety.reason)
+            update_attempt(
+                attempt_id,
+                validator_status="failed",
+                validator_feedback=query_safety.reason,
+                total_elapsed_ms=intent_elapsed_ms,
+            )
+            _console_attempt_log(attempt_id, "intent", f"intent validation unavailable elapsed_ms={intent_elapsed_ms}")
+            _console_attempt_detail(
+                attempt_id,
+                "intent",
+                {
+                    "valid": False,
+                    "elapsed_ms": intent_elapsed_ms,
+                    "reason": query_safety.reason,
+                    "blocked_operation": query_safety.blocked_operation,
+                },
+            )
             raise ReportBuildError(
                 query_safety.reason,
                 [],
                 title="Intent classifier unavailable",
                 solution="Retry after the OpenRouter classifier is available, change the intent model, or use an API key with available quota.",
                 status_code=503,
+                attempt_id=attempt_id,
             )
         logger.warning("Blocked unsafe report request: %s", query_safety.reason)
+        update_attempt(
+            attempt_id,
+            validator_status="failed",
+            validator_feedback=query_safety.reason,
+            total_elapsed_ms=intent_elapsed_ms,
+        )
+        _console_attempt_log(attempt_id, "intent", f"intent validation blocked elapsed_ms={intent_elapsed_ms}")
+        _console_attempt_detail(
+            attempt_id,
+            "intent",
+            {
+                "valid": False,
+                "elapsed_ms": intent_elapsed_ms,
+                "intent": query_safety.intent,
+                "risk": query_safety.risk,
+                "reason": query_safety.reason,
+            },
+        )
         raise ReportBuildError(
             query_safety.reason,
             [],
             title="Unsafe report request blocked",
             solution="Ask for a read-only report intent such as view, list, count, summary, comparison, or export.",
             status_code=400,
+            attempt_id=attempt_id,
         )
+    _console_attempt_log(
+        attempt_id,
+        "intent",
+        f"intent validation passed intent={query_safety.intent or '-'} risk={query_safety.risk or '-'} elapsed_ms={intent_elapsed_ms}",
+    )
+    _console_attempt_detail(
+        attempt_id,
+        "intent",
+        {
+            "valid": True,
+            "elapsed_ms": intent_elapsed_ms,
+            "intent": query_safety.intent,
+            "risk": query_safety.risk,
+            "reason": query_safety.reason,
+        },
+    )
 
     warnings: list[str] = []
     retry_attempts: list[RetryAttempt] = []
     request_started = perf_counter()
-    report_category = resolve_report_category(request.report_category, request.question)
+    report_category = await resolve_report_category_with_ai(request.report_category, request.question)
     category_id = str(report_category.get("id") or "custom") if report_category else "custom"
     category_label = str(report_category.get("label") or "Custom Report") if report_category else "Custom Report"
     if request.report_category and not report_category:
@@ -100,18 +169,24 @@ async def build_report(request: ReportRequest) -> GeneratedReport:
     try:
         assert_report_permission(request.current_user_role, category_id, "create")
     except ReportPermissionError as exc:
+        update_attempt(
+            attempt_id,
+            validator_status="failed",
+            validator_feedback=str(exc),
+        )
+        _console_attempt_log(attempt_id, "permission", f"permission denied: {_short_reason(str(exc))}")
         raise ReportBuildError(
             str(exc),
             [],
             title="Report permission denied",
             solution="Ask an admin to enable this report category for your role.",
             status_code=403,
+            attempt_id=attempt_id,
         ) from exc
     resolved_dates = resolve_date_range(request.question, request.start_date, request.end_date)
     schema_snapshot = _safe_schema()
-    attempt_id = create_attempt(request.question, schema_snapshot)
     provider, model = _model_tracking_context(request.sql_generation_provider)
-    update_attempt(attempt_id, generation_provider=provider, generation_model=model)
+    update_attempt(attempt_id, schema_snapshot=schema_snapshot, generation_provider=provider, generation_model=model)
     generated: dict[str, Any] | None = None
     cached_sql: str | None = None
     cache_entry: dict[str, Any] | None = None
@@ -425,6 +500,7 @@ async def _validate_generated_output_with_retries(
         prepared_sql: str | None = None
         schema = _safe_schema()
         mistake_saved = False
+        backend_validation_started = perf_counter()
 
         _console_validation_log(f"validator attempt {attempt} started for output {llm1_outputs}")
         _console_attempt_log(attempt_id, "validator", f"attempt {attempt} started for output {llm1_outputs}")
@@ -451,21 +527,25 @@ async def _validate_generated_output_with_retries(
         try:
             raw_sql = current["sql"]
             prepared_sql = _prepare_sql(raw_sql, sql_limit, warnings, start_date, end_date)
-            _console_validation_log(f"backend validation started for output {llm1_outputs}")
+            _console_validation_log(f"query validation(1) started for output {llm1_outputs}")
             _console_validation_detail(
-                "backend validation checking query",
+                "query validation(1) checking query",
                 {"attempt": attempt, "output": llm1_outputs, "sql": prepared_sql},
             )
-            _console_attempt_log(attempt_id, "validator", "backend validation checking generated SQL")
-            _console_attempt_detail(attempt_id, "validator", {"checking_sql": prepared_sql})
+            _console_attempt_log(attempt_id, "validator", "query validation(1) checking generated SQL")
+            _console_attempt_detail(attempt_id, "validator", {"stage": "query_validation_1", "checking_sql": prepared_sql})
             safety = validate_sql_safety(prepared_sql, schema)
             if not safety.isValid:
+                elapsed_ms = int((perf_counter() - backend_validation_started) * 1000)
+                validator_elapsed_ms += elapsed_ms
+                update_attempt(attempt_id, validator_elapsed_ms=validator_elapsed_ms)
                 _console_validation_log(f"backend validation failed: {_short_reason(safety.reason)}")
                 _console_validation_detail(
-                    "backend validation result",
+                    "query validation(1) result",
                     {
                         "valid": False,
                         "stage": "sql_safety",
+                        "elapsed_ms": elapsed_ms,
                         "reason": safety.reason,
                         "fix_hint": safety.fixHint,
                         "risk": safety.risk,
@@ -475,20 +555,37 @@ async def _validate_generated_output_with_retries(
                 mistake_saved = True
                 raise ValueError(safety.reason)
             _validate_requested_limit_alignment(prepared_sql, requested_result_limit)
-            _console_validation_log("backend safety validation passed")
+            elapsed_ms = int((perf_counter() - backend_validation_started) * 1000)
+            validator_elapsed_ms += elapsed_ms
+            update_attempt(attempt_id, validator_elapsed_ms=validator_elapsed_ms)
+            _console_validation_log(f"query validation(1) passed elapsed_ms={elapsed_ms}")
             _console_validation_detail(
-                "backend validation result",
-                {"valid": True, "stage": "sql_safety", "reason": safety.reason or "Safe read-only SQL."},
+                "query validation(1) result",
+                {
+                    "valid": True,
+                    "stage": "sql_safety_schema_limit",
+                    "elapsed_ms": elapsed_ms,
+                    "reason": safety.reason or "Safe read-only SQL and schema validation passed.",
+                },
             )
-            _console_attempt_log(attempt_id, "validator", "backend safety validation passed")
+            _console_attempt_log(attempt_id, "validator", f"query validation(1) passed elapsed_ms={elapsed_ms}")
+            _console_attempt_detail(
+                attempt_id,
+                "validator",
+                {"stage": "query_validation_1", "valid": True, "elapsed_ms": elapsed_ms},
+            )
         except SchemaValidationError as exc:
             last_error_message = exc.diagnosis.message
+            elapsed_ms = int((perf_counter() - backend_validation_started) * 1000)
+            validator_elapsed_ms += elapsed_ms
+            update_attempt(attempt_id, validator_elapsed_ms=validator_elapsed_ms)
             _console_validation_log(f"backend schema validation failed: {_short_reason(last_error_message)}")
             _console_validation_detail(
-                "backend validation result",
+                "query validation(1) result",
                 {
                     "valid": False,
                     "stage": "schema",
+                    "elapsed_ms": elapsed_ms,
                     "reason": last_error_message,
                     "table": exc.diagnosis.table,
                     "column": exc.diagnosis.column,
@@ -515,10 +612,13 @@ async def _validate_generated_output_with_retries(
             retry_prompt = exc.diagnosis.message
         except Exception as exc:
             last_error_message = str(exc)
+            elapsed_ms = int((perf_counter() - backend_validation_started) * 1000)
+            validator_elapsed_ms += elapsed_ms
+            update_attempt(attempt_id, validator_elapsed_ms=validator_elapsed_ms)
             _console_validation_log(f"backend validation failed: {_short_reason(last_error_message)}")
             _console_validation_detail(
-                "backend validation result",
-                {"valid": False, "stage": "safety_or_limit", "reason": last_error_message},
+                "query validation(1) result",
+                {"valid": False, "stage": "safety_or_limit", "elapsed_ms": elapsed_ms, "reason": last_error_message},
             )
             if not mistake_saved and (prepared_sql or current.get("sql")):
                 _save_mistake(

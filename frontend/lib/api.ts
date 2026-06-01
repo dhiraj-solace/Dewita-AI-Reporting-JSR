@@ -151,6 +151,7 @@ export type AiSqlAttempt = {
   schema_snapshot?: string | null;
   generation_provider?: string | null;
   generation_model?: string | null;
+  intent_validation_elapsed_ms?: number | null;
   generation_elapsed_ms?: number | null;
   validator_elapsed_ms?: number | null;
   execution_elapsed_ms?: number | null;
