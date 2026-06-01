@@ -42,11 +42,11 @@ class Settings(BaseSettings):
     llm_sql_cache_enabled: bool = True
     llm_sql_cache_path: str = "data/llm_sql_cache.json"
     llm_sql_cache_ttl_days: int = 2
-    llm_validator_enabled: bool = True
+    llm_validator_enabled: bool = False
     llm_validator_url: str = "http://localhost:11434/api/chat"
     llm_validator_model: str = "smollm"
-    llm_validator_max_retries: int = 10
-    llm_validator_timeout_seconds: float = 360
+    llm_validator_max_retries: int = 3
+    llm_validator_timeout_seconds: float = 20
     max_rows: int = 500
     query_timeout_seconds: int = 60
 

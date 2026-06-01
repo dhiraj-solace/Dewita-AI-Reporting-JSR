@@ -59,10 +59,14 @@ For local Ollama usage:
 AI_PROVIDER=ollama
 OLLAMA_SQL_URL=http://localhost:11434/api/chat
 OLLAMA_SQL_MODEL=qwen2.5-coder:3b
-LLM_VALIDATOR_ENABLED=true
+LLM_VALIDATOR_ENABLED=false
 LLM_VALIDATOR_URL=http://localhost:11434/api/chat
 LLM_VALIDATOR_MODEL=smollm
+LLM_VALIDATOR_TIMEOUT_SECONDS=20
+LLM_VALIDATOR_MAX_RETRIES=3
 ```
+
+Keep `LLM_VALIDATOR_ENABLED=false` for fast report generation. When it is `true`, the local SmolLM validator runs as an optional second AI check after backend safety and schema validation, so it can add latency if the local model is slow.
 
 Optional SMTP settings for scheduled report email delivery:
 

@@ -542,6 +542,21 @@ async def _validate_generated_output_with_retries(
             retry_prompt = str(exc)
         else:
             try:
+                if not settings.llm_validator_enabled:
+                    fallback_message = "Optional local SmolLM validator is disabled; backend safety and schema validation accepted the SQL."
+                    update_attempt(
+                        attempt_id,
+                        validator_status="success",
+                        validator_feedback=fallback_message,
+                        final_sql=prepared_sql,
+                        validator_elapsed_ms=validator_elapsed_ms,
+                    )
+                    retry_attempts.append(
+                        _validator_attempt(attempt, "success", fallback_message)
+                    )
+                    _console_validation_log("optional smollm validator skipped; accepted by backend validation")
+                    _console_attempt_log(attempt_id, "validator", "optional smollm validator skipped; backend validation accepted SQL")
+                    return current, prepared_sql
                 llm2_calls += 1
                 validator_started = perf_counter()
                 _console_validation_log(f"llm2 smollm call {llm2_calls} started for output {llm1_outputs}")

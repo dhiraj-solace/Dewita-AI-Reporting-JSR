@@ -2,10 +2,10 @@
   "source_files": [
     "live_database"
   ],
-  "fetched_at": "2026-05-29T16:48:55.332655",
+  "fetched_at": "2026-06-01T10:59:41.795667",
   "notes": [
     "Schema fetched from live database",
-    "Last updated: 2026-05-29T16:48:55.332655",
+    "Last updated: 2026-06-01T10:59:41.795667",
     "Static schema metadata preserved where available"
   ],
   "relationships": [
@@ -214,6 +214,48 @@
         {
           "name": "total_elapsed_ms",
           "type": "int",
+          "description": ""
+        }
+      ],
+      "description": "",
+      "aliases": []
+    },
+    {
+      "name": "ai_sql_attempt_events",
+      "columns": [
+        {
+          "name": "id",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "attempt_id",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "step",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "message",
+          "type": "text",
+          "description": ""
+        },
+        {
+          "name": "event_type",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "payload_json",
+          "type": "longtext",
+          "description": ""
+        },
+        {
+          "name": "created_at",
+          "type": "datetime",
           "description": ""
         }
       ],

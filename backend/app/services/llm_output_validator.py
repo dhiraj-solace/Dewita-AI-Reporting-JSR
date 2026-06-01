@@ -84,7 +84,7 @@ async def validate_llm_report_output(
     settings = get_settings()
     if not settings.llm_validator_enabled:
         return ValidationResult(is_valid=True, errors=[], retry_prompt="")
-
+    
     payload = build_validation_payload(question=question, schema=schema, generated_sql=generated_sql)
     body = {
         "model": settings.llm_validator_model,
@@ -96,7 +96,7 @@ async def validate_llm_report_output(
             {"role": "user", "content": json.dumps(payload, ensure_ascii=False)},
         ],
     }
-
+    
     try:
         timeout = httpx.Timeout(settings.llm_validator_timeout_seconds, connect=10)
         async with httpx.AsyncClient(timeout=timeout) as client:
@@ -124,7 +124,6 @@ def build_validation_payload(
         "database_schema": _compact_schema(schema, generated_sql),
         "llm_1_generated_sql": generated_sql,
     }
-
 
 def _parse_validation_result(content: str) -> ValidationResult:
     try:
@@ -161,7 +160,7 @@ def _compact_schema(schema: dict[str, Any], sql: str) -> dict[str, Any]:
         for alias in table.get("aliases", []) or []:
             if isinstance(alias, str):
                 tables_by_name[alias.lower()] = table
-
+    
     referenced_names = _referenced_table_names(sql, tables_by_name)
     compact_tables: list[dict[str, Any]] = []
     for table_name in sorted(referenced_names):
