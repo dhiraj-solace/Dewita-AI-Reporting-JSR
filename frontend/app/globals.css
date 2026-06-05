@@ -700,6 +700,98 @@ tr:nth-child(even) td {
   line-height: 1.45;
 }
 
+.login-shell {
+  min-height: 100vh;
+  background: #eef3f8;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.login-panel {
+  width: min(460px, 100%);
+  border: 1px solid #d7e2f2;
+  border-radius: 8px;
+  background: #fff;
+  padding: 24px;
+  box-shadow: 0 18px 50px rgba(19, 34, 54, 0.12);
+}
+
+.login-form {
+  display: grid;
+  gap: 14px;
+  margin-top: 28px;
+}
+
+.login-form h1 {
+  font-size: 30px;
+  color: #132236;
+}
+
+.login-form div > span,
+.login-form label span {
+  color: #53647d;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.login-form input {
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid #cbd9ec;
+  border-radius: 5px;
+  padding: 0 12px;
+  margin-top: 6px;
+}
+
+.login-form button,
+.logout-button {
+  min-height: 40px;
+  border: 1px solid #4f73dc;
+  border-radius: 6px;
+  background: #4f73dc;
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 14px;
+  font-weight: 800;
+}
+
+.login-form p {
+  color: #6c7895;
+  font-size: 13px;
+}
+
+.login-error {
+  border: 1px solid #ffb8b8;
+  background: #fff1f1;
+  color: #9b1c1c;
+  border-radius: 6px;
+  padding: 10px 12px;
+  font-weight: 800;
+}
+
+.user-chip {
+  min-height: 38px;
+  border: 1px solid #d7e2f2;
+  border-radius: 6px;
+  background: #fff;
+  color: #243955;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px;
+  font-weight: 800;
+}
+
+.user-chip em {
+  color: #6c7895;
+  font-size: 12px;
+  font-style: normal;
+}
+
 .saved-reports-panel {
   border: 1px solid #dbe5f3;
   border-top: 0;
@@ -764,6 +856,11 @@ tr:nth-child(even) td {
   background: #eef4ff;
 }
 
+.saved-report-row.new {
+  border-color: #25a66a;
+  background: #f1fbf6;
+}
+
 .saved-report-row strong,
 .saved-report-row span {
   overflow: hidden;
@@ -775,6 +872,24 @@ tr:nth-child(even) td {
   color: #142a46;
   font-size: 15px;
   -webkit-line-clamp: 1;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.report-badge {
+  border-radius: 999px;
+  background: #e9eef8;
+  color: #4a5c76;
+  padding: 3px 7px;
+  font-size: 10px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.report-badge.new {
+  background: #dff7eb;
+  color: #146c43;
 }
 
 .saved-report-row span {
@@ -832,7 +947,8 @@ tr:nth-child(even) td {
 }
 
 .share-modal-header span,
-.share-modal label span {
+.share-modal label span,
+.share-field > span {
   display: block;
   color: #53647d;
   font-size: 13px;
@@ -860,7 +976,26 @@ tr:nth-child(even) td {
   margin-bottom: 12px;
 }
 
+.share-field {
+  margin-bottom: 12px;
+}
+
+.share-inline-toggle {
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 8px;
+}
+
+.share-inline-toggle input {
+  width: 18px;
+  min-height: 18px;
+  accent-color: #4f73dc;
+}
+
 .share-modal input,
+.share-modal select,
 .share-modal textarea {
   width: 100%;
   min-height: 42px;
@@ -869,6 +1004,12 @@ tr:nth-child(even) td {
   background: #fff;
   color: #132236;
   padding: 0 11px;
+}
+
+.share-modal .share-inline-toggle input {
+  width: 18px;
+  min-height: 18px;
+  padding: 0;
 }
 
 .share-modal textarea {
@@ -987,6 +1128,40 @@ tr:nth-child(even) td {
   color: var(--text);
   padding: 26px;
   overflow: hidden;
+}
+
+.admin-access-shell {
+  min-height: 100vh;
+  background: var(--page);
+  color: #243955;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 10px;
+  padding: 24px;
+  text-align: center;
+}
+
+.admin-access-shell strong {
+  color: #142a46;
+  font-size: 24px;
+}
+
+.admin-access-shell span {
+  color: #6c7895;
+}
+
+.admin-access-shell a {
+  min-height: 38px;
+  border: 1px solid #4f73dc;
+  border-radius: 6px;
+  background: #4f73dc;
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 14px;
+  text-decoration: none;
+  font-weight: 800;
 }
 
 .admin-header {
@@ -1464,6 +1639,146 @@ tr:nth-child(even) td {
   display: grid;
   grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
   gap: 14px;
+}
+
+.admin-users-layout {
+  display: grid;
+  grid-template-columns: minmax(280px, 360px) 1fr;
+  gap: 18px;
+}
+
+.admin-user-form,
+.admin-users-panel {
+  border: 1px solid #d7e2f2;
+  border-radius: 7px;
+  background: #fff;
+  padding: 18px;
+}
+
+.admin-user-form {
+  display: grid;
+  gap: 13px;
+  align-content: start;
+}
+
+.admin-user-form h2 {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 22px;
+}
+
+.admin-user-form label span {
+  display: block;
+  color: #53647d;
+  font-size: 13px;
+  font-weight: 800;
+  margin-bottom: 6px;
+}
+
+.admin-user-form input,
+.admin-user-form select {
+  width: 100%;
+  min-height: 42px;
+  border: 1px solid #cbd9ec;
+  border-radius: 5px;
+  padding: 0 11px;
+}
+
+.admin-user-form button.active {
+  min-height: 40px;
+  border: 1px solid #4f73dc;
+  border-radius: 6px;
+  background: #4f73dc;
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-weight: 800;
+}
+
+.admin-user-list {
+  display: grid;
+  gap: 10px;
+}
+
+.admin-user-row {
+  min-height: 66px;
+  border: 1px solid #e1e8f2;
+  border-radius: 6px;
+  background: #fbfdff;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 140px 96px 118px;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+}
+
+.admin-user-row span {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.admin-user-row strong,
+.admin-user-row small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-user-row small {
+  color: #6c7895;
+}
+
+.admin-user-row em {
+  color: #4f73dc;
+  font-style: normal;
+  font-weight: 800;
+}
+
+.user-status {
+  border-radius: 999px;
+  padding: 6px 10px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.user-status.active {
+  background: #e3f8ee;
+  color: #146c43;
+}
+
+.user-status.inactive {
+  background: #f2f4f7;
+  color: #6c7895;
+}
+
+.admin-user-row button {
+  min-height: 34px;
+  border: 1px solid #cbd9ec;
+  border-radius: 5px;
+  background: #fff;
+  color: #243955;
+  font-weight: 800;
+}
+
+.admin-user-row button.activate {
+  border-color: #25a66a;
+  color: #146c43;
+}
+
+.admin-user-row button.deactivate {
+  border-color: #ef8a8a;
+  color: #9b1c1c;
+}
+
+.admin-user-row button:disabled {
+  opacity: 0.48;
+  cursor: not-allowed;
 }
 
 .admin-console-panel {

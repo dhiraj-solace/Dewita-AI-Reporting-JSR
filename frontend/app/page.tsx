@@ -1,6 +1,6 @@
 "use client";
 
-import {useEffect, useMemo, useState} from "react";
+import {FormEvent, useEffect, useMemo, useState} from "react";
 import Link from "next/link";
 import {
   BarChart3,
@@ -37,11 +37,17 @@ import {
   RoleReportPermission,
   RetryAttempt,
   SavedReportSummary,
+  UserPublic,
+  clearAuthSession,
+  getCurrentUser,
   getHealth,
   getSavedReport,
+  getStoredUser,
   listReportCategories,
   listReportPermissions,
   listSavedReports,
+  listUsers,
+  login,
   runReport,
   savedReportExportUrl,
   shareSavedReport
@@ -96,8 +102,7 @@ const sqlProviderOptions = [
   {label: "Local Qwen", value: "ollama"}
 ] as const;
 type SqlGenerationProvider = (typeof sqlProviderOptions)[number]["value"];
-const roleOptions = ["Super Admin", "HR", "Project Manager", "Team Leader", "Team Member"];
-
+const shareRecipientRoles = ["HR", "Team Leader", "Team Member"];
 const fallbackReportCategories: ReportCategory[] = [
   {id: "auto", label: "Auto Detect"},
   {id: "custom", label: "Custom Report"},
@@ -230,7 +235,11 @@ export default function Home() {
   const [month, setMonth] = useState("April");
   const [year, setYear] = useState("2026");
   const [reportCategory, setReportCategory] = useState("auto");
-  const [currentRole, setCurrentRole] = useState("Super Admin");
+  const [currentUser, setCurrentUser] = useState<UserPublic | null>(null);
+  const [loginEmail, setLoginEmail] = useState("admin@devita.local");
+  const [loginPassword, setLoginPassword] = useState("Admin@12345");
+  const [loginLoading, setLoginLoading] = useState(false);
+  const [loginError, setLoginError] = useState("");
   const [reportCategories, setReportCategories] = useState<ReportCategory[]>(fallbackReportCategories);
   const [rolePermissions, setRolePermissions] = useState<RoleReportPermission[]>([]);
   const [sqlProvider, setSqlProvider] = useState<SqlGenerationProvider>("openrouter");
@@ -245,15 +254,23 @@ export default function Home() {
   const [showSql, setShowSql] = useState(false);
   const [generatedAt, setGeneratedAt] = useState<string | null>(null);
   const [savedReports, setSavedReports] = useState<SavedReportSummary[]>([]);
+  const [users, setUsers] = useState<UserPublic[]>([]);
   const [savedLoading, setSavedLoading] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
+  const [shareUserId, setShareUserId] = useState("");
   const [shareEmail, setShareEmail] = useState("");
   const [shareMessage, setShareMessage] = useState("");
   const [shareFormats, setShareFormats] = useState<Array<"pdf" | "xlsx">>(["xlsx"]);
+  const [shareSendEmail, setShareSendEmail] = useState(false);
+  const [shareCanExport, setShareCanExport] = useState(true);
   const [shareSaving, setShareSaving] = useState(false);
   const [shareStatus, setShareStatus] = useState("");
+  const currentRole = currentUser?.role_name || "Super Admin";
 
   useEffect(() => {
+    const storedUser = getStoredUser();
+    if (storedUser) setCurrentUser(storedUser);
+    getCurrentUser().then(setCurrentUser).catch(() => setCurrentUser(null));
     getHealth().then(setStatus).catch(() => setStatus(null));
     listReportCategories()
       .then((categories) => {
@@ -269,14 +286,26 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    refreshSavedReports();
+    if (currentUser) {
+      refreshSavedReports();
+      listUsers().then(setUsers).catch(() => setUsers([]));
+    } else {
+      setSavedReports([]);
+      setUsers([]);
+    }
     setReport(null);
-  }, [currentRole]);
+  }, [currentUser?.id]);
 
   const visibleRows = useMemo(() => report?.rows.slice(0, 100) ?? [], [report]);
   const summaryItems = useMemo(() => report ? buildSummaryItems(report) : [], [report]);
   const retrySummary = useMemo(() => validationSummary(retryAttempts), [retryAttempts]);
   const activeSavedReportId = report?.saved_report_id ?? null;
+  const shareRecipientsByRole = useMemo(() => {
+    return shareRecipientRoles.map((role) => ({
+      role,
+      users: users.filter((item) => item.id !== currentUser?.id && item.is_active && item.role_name === role)
+    }));
+  }, [currentUser?.id, users]);
   const visibleReportCategories = useMemo(() => {
     const allowed = new Set(
       rolePermissions
@@ -298,6 +327,7 @@ export default function Home() {
   }, [reportCategory, visibleReportCategories]);
 
   async function refreshSavedReports() {
+    if (!currentUser) return;
     setSavedLoading(true);
     try {
       setSavedReports(await listSavedReports(currentRole));
@@ -337,6 +367,7 @@ export default function Home() {
 
   function openShareModal() {
     if (!activeSavedReportId) return;
+    if (users.length === 0) listUsers().then(setUsers).catch(() => setUsers([]));
     setShareOpen(true);
     setShareStatus("");
   }
@@ -353,29 +384,53 @@ export default function Home() {
 
   async function submitShare() {
     if (!activeSavedReportId) return;
-    if (!shareEmail.trim()) {
-      setShareStatus("Recipient email is required.");
+    if (!shareUserId) {
+      setShareStatus("Select a user to share with.");
       return;
     }
-    if (shareFormats.length === 0) {
-      setShareStatus("Select at least one format.");
+    if (shareSendEmail && shareFormats.length === 0) {
+      setShareStatus("Select at least one email attachment format.");
       return;
     }
     setShareSaving(true);
     setShareStatus("");
     try {
       const result = await shareSavedReport(activeSavedReportId, {
-        recipient_email: shareEmail.trim(),
+        recipient_user_id: shareUserId,
+        recipient_email: shareSendEmail ? shareEmail.trim() || null : null,
         message: shareMessage.trim() || null,
-        formats: shareFormats,
+        formats: shareSendEmail ? shareFormats : [],
+        can_export: shareCanExport,
         current_user_role: currentRole
       });
       setShareStatus(result.message);
+      refreshSavedReports();
     } catch (err) {
       setShareStatus(err instanceof Error ? err.message : "Unable to share report");
     } finally {
       setShareSaving(false);
     }
+  }
+
+  async function submitLogin(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setLoginLoading(true);
+    setLoginError("");
+    try {
+      const session = await login(loginEmail, loginPassword);
+      setCurrentUser(session.user);
+    } catch (err) {
+      setLoginError(err instanceof Error ? err.message : "Unable to login");
+    } finally {
+      setLoginLoading(false);
+    }
+  }
+
+  function logout() {
+    clearAuthSession();
+    setCurrentUser(null);
+    setReport(null);
+    setSavedReports([]);
   }
 
   async function submit(nextQuestion = question) {
@@ -416,6 +471,42 @@ export default function Home() {
     } finally {
       setLoading(false);
     }
+  }
+
+  if (!currentUser) {
+    return (
+      <main className="login-shell">
+        <section className="login-panel">
+          <div className="brand">
+            <div className="brand-mark">D</div>
+            <div>
+              <strong>DEVITA</strong>
+              <span>AI Reporting</span>
+            </div>
+          </div>
+          <form onSubmit={submitLogin} className="login-form">
+            <div>
+              <span>Secure Access</span>
+              <h1>Sign in to reporting</h1>
+            </div>
+            <label>
+              <span>Email</span>
+              <input value={loginEmail} onChange={(event) => setLoginEmail(event.target.value)} type="email" />
+            </label>
+            <label>
+              <span>Password</span>
+              <input value={loginPassword} onChange={(event) => setLoginPassword(event.target.value)} type="password" />
+            </label>
+            {loginError && <div className="login-error">{loginError}</div>}
+            <button disabled={loginLoading} type="submit">
+              {loginLoading ? <Loader2 className="spin" size={18} /> : <User size={18} />}
+              {loginLoading ? "Signing in" : "Sign In"}
+            </button>
+            <p>Default local admin: admin@devita.local / Admin@12345</p>
+          </form>
+        </section>
+      </main>
+    );
   }
 
   return (
@@ -481,13 +572,8 @@ export default function Home() {
               <Database size={17} /> {status?.database_connected ? "Live DB" : "DB pending"}
             </span>
             <button className="icon-button" title="Fullscreen"><Expand size={23} /></button>
-            <User size={24} />
-            <label className="role-switcher">
-              <span>Active Role</span>
-              <select value={currentRole} onChange={(event) => setCurrentRole(event.target.value)}>
-                {roleOptions.map((role) => <option key={role} value={role}>{role}</option>)}
-              </select>
-            </label>
+            <span className="user-chip"><User size={18} />{currentUser.name}<em>{currentRole}</em></span>
+            <button className="logout-button" onClick={logout} type="button">Logout</button>
           </div>
         </header>
 
@@ -707,13 +793,20 @@ export default function Home() {
               {savedReports.length === 0 && <span className="saved-empty">No saved reports yet.</span>}
               {savedReports.map((item) => (
                 <button
-                  className={item.id === activeSavedReportId ? "saved-report-row active" : "saved-report-row"}
+                  className={`${item.id === activeSavedReportId ? "saved-report-row active" : "saved-report-row"} ${item.is_new ? "new" : ""}`}
                   key={item.id}
                   onClick={() => loadSavedReport(item.id)}
                 >
-                  <strong>{item.title}</strong>
+                  <strong>
+                    {item.title}
+                    {item.shared_label && <small className={item.is_new ? "report-badge new" : "report-badge"}>{item.shared_label}</small>}
+                  </strong>
                   <span>{item.question}</span>
-                  <em>{numberFormatter.format(item.row_count)} rows</em>
+                  <em>
+                    {numberFormatter.format(item.row_count)} rows
+                    {item.is_shared && ` · shared by ${item.shared_by_name || "user"}`}
+                    {!item.is_shared && item.created_by_name && ` · ${item.created_by_name}`}
+                  </em>
                 </button>
               ))}
             </div>
@@ -730,21 +823,53 @@ export default function Home() {
                   <button onClick={() => setShareOpen(false)} type="button">Close</button>
                 </div>
                 <label>
-                  <span>Recipient Email</span>
-                  <input value={shareEmail} onChange={(event) => setShareEmail(event.target.value)} placeholder="name@company.com" />
+                  <span>Participant</span>
+                  <select
+                    value={shareUserId}
+                    onChange={(event) => {
+                      const nextUser = users.find((item) => item.id === event.target.value);
+                      setShareUserId(event.target.value);
+                      setShareEmail(nextUser?.email || "");
+                    }}
+                  >
+                    <option value="">Select user</option>
+                    {shareRecipientsByRole.map((group) => (
+                      <optgroup key={group.role} label={group.role}>
+                        {group.users.map((item) => <option key={item.id} value={item.id}>{item.name} · {item.email}</option>)}
+                      </optgroup>
+                    ))}
+                  </select>
                 </label>
+                <div className="share-field">
+                  <span>Email Notification</span>
+                  <label className="share-inline-toggle">
+                    <input checked={shareSendEmail} onChange={(event) => setShareSendEmail(event.target.checked)} type="checkbox" />
+                    <span>Also send email attachment</span>
+                  </label>
+                  {shareSendEmail && (
+                    <input value={shareEmail} onChange={(event) => setShareEmail(event.target.value)} placeholder="name@company.com" />
+                  )}
+                </div>
                 <label>
                   <span>Message</span>
                   <textarea value={shareMessage} onChange={(event) => setShareMessage(event.target.value)} placeholder="Optional message" />
                 </label>
                 <div className="share-format-row">
+                  {shareSendEmail && (
+                    <>
+                      <label>
+                        <input checked={shareFormats.includes("xlsx")} onChange={(event) => toggleShareFormat("xlsx", event.target.checked)} type="checkbox" />
+                        <span>Excel</span>
+                      </label>
+                      <label>
+                        <input checked={shareFormats.includes("pdf")} onChange={(event) => toggleShareFormat("pdf", event.target.checked)} type="checkbox" />
+                        <span>PDF</span>
+                      </label>
+                    </>
+                  )}
                   <label>
-                    <input checked={shareFormats.includes("xlsx")} onChange={(event) => toggleShareFormat("xlsx", event.target.checked)} type="checkbox" />
-                    <span>Excel</span>
-                  </label>
-                  <label>
-                    <input checked={shareFormats.includes("pdf")} onChange={(event) => toggleShareFormat("pdf", event.target.checked)} type="checkbox" />
-                    <span>PDF</span>
+                    <input checked={shareCanExport} onChange={(event) => setShareCanExport(event.target.checked)} type="checkbox" />
+                    <span>Allow Export</span>
                   </label>
                 </div>
                 {shareStatus && <div className="share-status">{shareStatus}</div>}

@@ -9,6 +9,31 @@ export type ReportRequest = {
   sql_generation_provider?: "openrouter" | "ollama" | "gemini" | "openai" | null;
 };
 
+export type UserPublic = {
+  id: string;
+  name: string;
+  email: string;
+  role_name: string;
+  is_active: boolean;
+  created_at?: string | null;
+  updated_at?: string | null;
+};
+
+export type LoginResponse = {
+  token: string;
+  user: UserPublic;
+};
+
+export type UserCreatePayload = {
+  name: string;
+  email: string;
+  password: string;
+  role_name: string;
+  is_active: boolean;
+};
+
+export type UserUpdatePayload = Partial<UserCreatePayload>;
+
 export type ReportCategory = {
   id: string;
   label: string;
@@ -21,6 +46,7 @@ export type GeneratedReport = {
   generated_source?: string | null;
   report_category?: string | null;
   created_by_role?: string | null;
+  created_by_user_id?: string | null;
   title: string;
   question: string;
   sql: string;
@@ -40,14 +66,23 @@ export type SavedReportSummary = {
   question: string;
   report_category?: string | null;
   created_by_role?: string | null;
+  created_by_user_id?: string | null;
+  created_by_name?: string | null;
+  shared_by_name?: string | null;
+  shared_label?: string | null;
+  is_shared: boolean;
+  is_new: boolean;
+  can_export_shared: boolean;
   row_count: number;
   created_at: string;
 };
 
 export type SavedReportSharePayload = {
-  recipient_email: string;
+  recipient_email?: string | null;
+  recipient_user_id?: string | null;
   message?: string | null;
   formats: Array<"pdf" | "xlsx">;
+  can_export: boolean;
   current_user_role?: string | null;
 };
 
@@ -228,6 +263,41 @@ export class ApiError extends Error {
 }
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:7000";
+const AUTH_TOKEN_KEY = "devita_auth_token";
+const AUTH_USER_KEY = "devita_auth_user";
+
+export function getStoredToken(): string {
+  if (typeof window === "undefined") return "";
+  return localStorage.getItem(AUTH_TOKEN_KEY) || "";
+}
+
+export function getStoredUser(): UserPublic | null {
+  if (typeof window === "undefined") return null;
+  const raw = localStorage.getItem(AUTH_USER_KEY);
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as UserPublic;
+  } catch {
+    return null;
+  }
+}
+
+export function storeAuthSession(session: LoginResponse) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(AUTH_TOKEN_KEY, session.token);
+  localStorage.setItem(AUTH_USER_KEY, JSON.stringify(session.user));
+}
+
+export function clearAuthSession() {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem(AUTH_TOKEN_KEY);
+  localStorage.removeItem(AUTH_USER_KEY);
+}
+
+function authHeaders(extra: Record<string, string> = {}): Record<string, string> {
+  const token = getStoredToken();
+  return token ? {...extra, Authorization: `Bearer ${token}`} : extra;
+}
 
 async function apiError(response: Response, fallback: string): Promise<ApiError> {
   const body = await response.json().catch(() => ({}));
@@ -254,7 +324,7 @@ async function apiError(response: Response, fallback: string): Promise<ApiError>
 export async function runReport(payload: ReportRequest): Promise<GeneratedReport> {
   const response = await fetch(`${API_URL}/api/reports/query`, {
     method: "POST",
-    headers: {"Content-Type": "application/json"},
+    headers: authHeaders({"Content-Type": "application/json"}),
     body: JSON.stringify(payload)
   });
 
@@ -262,6 +332,63 @@ export async function runReport(payload: ReportRequest): Promise<GeneratedReport
     throw await apiError(response, "Unable to run report");
   }
 
+  return response.json();
+}
+
+export async function login(email: string, password: string): Promise<LoginResponse> {
+  const response = await fetch(`${API_URL}/api/auth/login`, {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({email, password})
+  });
+  if (!response.ok) {
+    throw await apiError(response, "Unable to login");
+  }
+  const session = await response.json();
+  storeAuthSession(session);
+  return session;
+}
+
+export async function getCurrentUser(): Promise<UserPublic> {
+  const response = await fetch(`${API_URL}/api/auth/me`, {headers: authHeaders(), cache: "no-store"});
+  if (!response.ok) {
+    clearAuthSession();
+    throw new ApiError("Login is required");
+  }
+  const user = await response.json();
+  if (typeof window !== "undefined") localStorage.setItem(AUTH_USER_KEY, JSON.stringify(user));
+  return user;
+}
+
+export async function listUsers(): Promise<UserPublic[]> {
+  const response = await fetch(`${API_URL}/api/admin/users`, {headers: authHeaders(), cache: "no-store"});
+  if (!response.ok) {
+    throw await apiError(response, "Unable to load users");
+  }
+  return response.json();
+}
+
+export async function createUser(payload: UserCreatePayload): Promise<UserPublic> {
+  const response = await fetch(`${API_URL}/api/admin/users`, {
+    method: "POST",
+    headers: authHeaders({"Content-Type": "application/json"}),
+    body: JSON.stringify(payload)
+  });
+  if (!response.ok) {
+    throw await apiError(response, "Unable to create user");
+  }
+  return response.json();
+}
+
+export async function updateUser(id: string, payload: UserUpdatePayload): Promise<UserPublic> {
+  const response = await fetch(`${API_URL}/api/admin/users/${id}`, {
+    method: "PATCH",
+    headers: authHeaders({"Content-Type": "application/json"}),
+    body: JSON.stringify(payload)
+  });
+  if (!response.ok) {
+    throw await apiError(response, "Unable to update user");
+  }
   return response.json();
 }
 
@@ -283,7 +410,7 @@ export async function listReportCategories(): Promise<ReportCategory[]> {
 }
 
 export async function listReportPermissions(): Promise<ReportPermissionsMatrix> {
-  const response = await fetch(`${API_URL}/api/admin/report-permissions`, {cache: "no-store"});
+  const response = await fetch(`${API_URL}/api/admin/report-permissions`, {headers: authHeaders(), cache: "no-store"});
   if (!response.ok) {
     throw new ApiError("Unable to load report permissions");
   }
@@ -297,7 +424,7 @@ export async function updateReportPermissions(
   const params = new URLSearchParams({actor_role: actorRole});
   const response = await fetch(`${API_URL}/api/admin/report-permissions?${params.toString()}`, {
     method: "PUT",
-    headers: {"Content-Type": "application/json"},
+    headers: authHeaders({"Content-Type": "application/json"}),
     body: JSON.stringify({permissions})
   });
   if (!response.ok) {
@@ -308,7 +435,7 @@ export async function updateReportPermissions(
 
 export async function listReportAuditLogs(limit = 100): Promise<ReportAuditLog[]> {
   const params = new URLSearchParams({limit: String(limit)});
-  const response = await fetch(`${API_URL}/api/admin/report-audit-logs?${params.toString()}`, {cache: "no-store"});
+  const response = await fetch(`${API_URL}/api/admin/report-audit-logs?${params.toString()}`, {headers: authHeaders(), cache: "no-store"});
   if (!response.ok) {
     throw new ApiError("Unable to load report audit logs");
   }
@@ -317,7 +444,7 @@ export async function listReportAuditLogs(limit = 100): Promise<ReportAuditLog[]
 
 export async function listScheduledReports(actorRole = "Super Admin"): Promise<ScheduledReport[]> {
   const params = new URLSearchParams({actor_role: actorRole});
-  const response = await fetch(`${API_URL}/api/admin/scheduled-reports?${params.toString()}`, {cache: "no-store"});
+  const response = await fetch(`${API_URL}/api/admin/scheduled-reports?${params.toString()}`, {headers: authHeaders(), cache: "no-store"});
   if (!response.ok) {
     throw new ApiError("Unable to load scheduled reports");
   }
@@ -328,7 +455,7 @@ export async function createScheduledReport(payload: ScheduledReportPayload, act
   const params = new URLSearchParams({actor_role: actorRole});
   const response = await fetch(`${API_URL}/api/admin/scheduled-reports?${params.toString()}`, {
     method: "POST",
-    headers: {"Content-Type": "application/json"},
+    headers: authHeaders({"Content-Type": "application/json"}),
     body: JSON.stringify(payload)
   });
   if (!response.ok) {
@@ -341,7 +468,7 @@ export async function updateScheduledReport(id: string, payload: ScheduledReport
   const params = new URLSearchParams({actor_role: actorRole});
   const response = await fetch(`${API_URL}/api/admin/scheduled-reports/${id}?${params.toString()}`, {
     method: "PUT",
-    headers: {"Content-Type": "application/json"},
+    headers: authHeaders({"Content-Type": "application/json"}),
     body: JSON.stringify(payload)
   });
   if (!response.ok) {
@@ -353,7 +480,8 @@ export async function updateScheduledReport(id: string, payload: ScheduledReport
 export async function setScheduledReportStatus(id: string, isActive: boolean, actorRole = "Super Admin"): Promise<ScheduledReport> {
   const params = new URLSearchParams({is_active: String(isActive), actor_role: actorRole});
   const response = await fetch(`${API_URL}/api/admin/scheduled-reports/${id}/status?${params.toString()}`, {
-    method: "PATCH"
+    method: "PATCH",
+    headers: authHeaders()
   });
   if (!response.ok) {
     throw new ApiError("Unable to update scheduled report status");
@@ -363,7 +491,7 @@ export async function setScheduledReportStatus(id: string, isActive: boolean, ac
 
 export async function runScheduledReportNow(id: string, actorRole = "Super Admin"): Promise<ScheduledReportRun> {
   const params = new URLSearchParams({actor_role: actorRole});
-  const response = await fetch(`${API_URL}/api/admin/scheduled-reports/${id}/run-now?${params.toString()}`, {method: "POST"});
+  const response = await fetch(`${API_URL}/api/admin/scheduled-reports/${id}/run-now?${params.toString()}`, {method: "POST", headers: authHeaders()});
   if (!response.ok) {
     throw new ApiError("Unable to run scheduled report");
   }
@@ -372,7 +500,7 @@ export async function runScheduledReportNow(id: string, actorRole = "Super Admin
 
 export async function listScheduledReportRuns(id: string, actorRole = "Super Admin"): Promise<ScheduledReportRun[]> {
   const params = new URLSearchParams({limit: "50", actor_role: actorRole});
-  const response = await fetch(`${API_URL}/api/admin/scheduled-reports/${id}/runs?${params.toString()}`, {cache: "no-store"});
+  const response = await fetch(`${API_URL}/api/admin/scheduled-reports/${id}/runs?${params.toString()}`, {headers: authHeaders(), cache: "no-store"});
   if (!response.ok) {
     throw new ApiError("Unable to load scheduled report runs");
   }
@@ -381,7 +509,7 @@ export async function listScheduledReportRuns(id: string, actorRole = "Super Adm
 
 export async function listSavedReports(role = "Super Admin"): Promise<SavedReportSummary[]> {
   const params = new URLSearchParams({limit: "25", role});
-  const response = await fetch(`${API_URL}/api/reports/saved?${params.toString()}`, {cache: "no-store"});
+  const response = await fetch(`${API_URL}/api/reports/saved?${params.toString()}`, {headers: authHeaders(), cache: "no-store"});
   if (!response.ok) {
     throw new ApiError("Unable to load saved reports");
   }
@@ -390,7 +518,7 @@ export async function listSavedReports(role = "Super Admin"): Promise<SavedRepor
 
 export async function getSavedReport(reportId: string, role = "Super Admin"): Promise<GeneratedReport> {
   const params = new URLSearchParams({role});
-  const response = await fetch(`${API_URL}/api/reports/saved/${reportId}?${params.toString()}`, {cache: "no-store"});
+  const response = await fetch(`${API_URL}/api/reports/saved/${reportId}?${params.toString()}`, {headers: authHeaders(), cache: "no-store"});
   if (!response.ok) {
     throw new ApiError("Unable to load saved report");
   }
@@ -399,6 +527,8 @@ export async function getSavedReport(reportId: string, role = "Super Admin"): Pr
 
 export function savedReportExportUrl(reportId: string, format: "pdf" | "xlsx", role = "Super Admin"): string {
   const params = new URLSearchParams({role});
+  const token = getStoredToken();
+  if (token) params.set("access_token", token);
   return `${API_URL}/api/reports/saved/${reportId}/export/${format}?${params.toString()}`;
 }
 
@@ -408,7 +538,7 @@ export async function shareSavedReport(
 ): Promise<SavedReportShareResponse> {
   const response = await fetch(`${API_URL}/api/reports/saved/${reportId}/share`, {
     method: "POST",
-    headers: {"Content-Type": "application/json"},
+    headers: authHeaders({"Content-Type": "application/json"}),
     body: JSON.stringify(payload)
   });
   if (!response.ok) {
@@ -419,7 +549,7 @@ export async function shareSavedReport(
 
 export async function listAiSqlAttempts(goldOnly = false): Promise<AiSqlAttempt[]> {
   const params = new URLSearchParams({limit: "100", gold_only: String(goldOnly)});
-  const response = await fetch(`${API_URL}/api/admin/ai-sql-attempts?${params.toString()}`, {cache: "no-store"});
+  const response = await fetch(`${API_URL}/api/admin/ai-sql-attempts?${params.toString()}`, {headers: authHeaders(), cache: "no-store"});
   if (!response.ok) {
     throw new ApiError("Unable to load AI SQL attempts");
   }
@@ -433,7 +563,7 @@ export async function reviewAiSqlAttempt(
 ): Promise<AiSqlAttempt> {
   const response = await fetch(`${API_URL}/api/admin/ai-sql-attempts/${attemptId}/review`, {
     method: "POST",
-    headers: {"Content-Type": "application/json"},
+    headers: authHeaders({"Content-Type": "application/json"}),
     body: JSON.stringify({
       user_feedback_status: userFeedbackStatus,
       admin_approved: adminApproved
@@ -448,7 +578,7 @@ export async function reviewAiSqlAttempt(
 }
 
 export async function listAiSqlAttemptEvents(attemptId: string): Promise<AiSqlAttemptEvent[]> {
-  const response = await fetch(`${API_URL}/api/admin/ai-sql-attempts/${attemptId}/events?limit=200`, {cache: "no-store"});
+  const response = await fetch(`${API_URL}/api/admin/ai-sql-attempts/${attemptId}/events?limit=200`, {headers: authHeaders(), cache: "no-store"});
   if (!response.ok) {
     throw new ApiError("Unable to load AI SQL attempt events");
   }
@@ -456,7 +586,7 @@ export async function listAiSqlAttemptEvents(attemptId: string): Promise<AiSqlAt
 }
 
 export async function listSqlMistakeExamples(): Promise<SqlMistakeExample[]> {
-  const response = await fetch(`${API_URL}/api/admin/sql-mistake-examples?limit=100`, {cache: "no-store"});
+  const response = await fetch(`${API_URL}/api/admin/sql-mistake-examples?limit=100`, {headers: authHeaders(), cache: "no-store"});
   if (!response.ok) {
     throw new ApiError("Unable to load SQL mistake examples");
   }
@@ -465,7 +595,7 @@ export async function listSqlMistakeExamples(): Promise<SqlMistakeExample[]> {
 
 export async function previewAiSqlAttempt(attemptId: string, limit = 25): Promise<AiSqlAttemptPreview> {
   const params = new URLSearchParams({limit: String(limit)});
-  const response = await fetch(`${API_URL}/api/admin/ai-sql-attempts/${attemptId}/preview?${params.toString()}`, {cache: "no-store"});
+  const response = await fetch(`${API_URL}/api/admin/ai-sql-attempts/${attemptId}/preview?${params.toString()}`, {headers: authHeaders(), cache: "no-store"});
   if (!response.ok) {
     throw new ApiError("Unable to load SQL result preview");
   }

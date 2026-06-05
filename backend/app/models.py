@@ -1,6 +1,42 @@
 from typing import Any
 from pydantic import BaseModel, Field
 
+
+class UserPublic(BaseModel):
+    id: str
+    name: str
+    email: str
+    role_name: str
+    is_active: bool = True
+    created_at: Any | None = None
+    updated_at: Any | None = None
+
+
+class LoginRequest(BaseModel):
+    email: str = Field(..., min_length=3)
+    password: str = Field(..., min_length=6)
+
+
+class AuthResponse(BaseModel):
+    token: str
+    user: UserPublic
+
+
+class UserCreateRequest(BaseModel):
+    name: str = Field(..., min_length=2)
+    email: str = Field(..., min_length=3)
+    password: str = Field(..., min_length=6)
+    role_name: str = "Team Member"
+    is_active: bool = True
+
+
+class UserUpdateRequest(BaseModel):
+    name: str | None = Field(default=None, min_length=2)
+    email: str | None = Field(default=None, min_length=3)
+    password: str | None = Field(default=None, min_length=6)
+    role_name: str | None = None
+    is_active: bool | None = None
+
 class ReportRequest(BaseModel):
     question: str = Field(..., min_length=3)
     report_category: str | None = None
@@ -39,6 +75,7 @@ class GeneratedReport(BaseModel):
     generated_source: str | None = None
     report_category: str | None = None
     created_by_role: str | None = None
+    created_by_user_id: str | None = None
     title: str
     question: str
     sql: str
@@ -58,14 +95,23 @@ class SavedReportSummary(BaseModel):
     question: str
     report_category: str | None = None
     created_by_role: str | None = None
+    created_by_user_id: str | None = None
+    created_by_name: str | None = None
+    shared_by_name: str | None = None
+    shared_label: str | None = None
+    is_shared: bool = False
+    is_new: bool = False
+    can_export_shared: bool = False
     row_count: int
     created_at: Any
 
 
 class SavedReportShareRequest(BaseModel):
-    recipient_email: str = Field(..., min_length=3)
+    recipient_email: str | None = Field(default=None, min_length=3)
+    recipient_user_id: str | None = None
     message: str | None = None
-    formats: list[str] = ["xlsx"]
+    formats: list[str] = []
+    can_export: bool = True
     current_user_role: str | None = "Super Admin"
 
 

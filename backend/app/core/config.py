@@ -49,6 +49,8 @@ class Settings(BaseSettings):
     llm_validator_timeout_seconds: float = 20
     max_rows: int = 500
     query_timeout_seconds: int = 60
+    auth_secret_key: str = "devita-local-auth-secret-change-me"
+    auth_token_ttl_minutes: int = 720
 
     smtp_host: str = "smtp.gmail.com"
     smtp_port: int = 587

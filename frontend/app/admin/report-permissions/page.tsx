@@ -9,6 +9,7 @@ import {
   listReportPermissions,
   updateReportPermissions
 } from "@/lib/api";
+import AdminGuard from "../AdminGuard";
 
 const actions: Array<keyof Pick<RoleReportPermission, "can_view" | "can_create" | "can_export" | "can_save" | "can_view_saved">> = [
   "can_view",
@@ -130,6 +131,7 @@ export default function ReportPermissionsAdminPage() {
   }
 
   return (
+    <AdminGuard>
     <main className={embedded ? "admin-shell permission-shell embedded-admin-shell" : "admin-shell permission-shell"}>
       <header className="admin-header">
         <div>
@@ -235,5 +237,6 @@ export default function ReportPermissionsAdminPage() {
         </section>
       </section>
     </main>
+    </AdminGuard>
   );
 }

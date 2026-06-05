@@ -2,10 +2,10 @@
   "source_files": [
     "live_database"
   ],
-  "fetched_at": "2026-06-01T10:59:41.795667",
+  "fetched_at": "2026-06-04T18:40:37.923608",
   "notes": [
     "Schema fetched from live database",
-    "Last updated: 2026-06-01T10:59:41.795667",
+    "Last updated: 2026-06-04T18:40:37.923608",
     "Static schema metadata preserved where available"
   ],
   "relationships": [
@@ -213,6 +213,11 @@
         },
         {
           "name": "total_elapsed_ms",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "intent_validation_elapsed_ms",
           "type": "int",
           "description": ""
         }
@@ -3528,6 +3533,11 @@
           "description": ""
         },
         {
+          "name": "created_by_user_id",
+          "type": "varchar",
+          "description": ""
+        },
+        {
           "name": "title",
           "type": "text",
           "description": ""
@@ -3580,6 +3590,68 @@
         {
           "name": "retry_attempts",
           "type": "longtext",
+          "description": ""
+        },
+        {
+          "name": "created_at",
+          "type": "datetime",
+          "description": ""
+        },
+        {
+          "name": "updated_at",
+          "type": "datetime",
+          "description": ""
+        }
+      ],
+      "description": "",
+      "aliases": []
+    },
+    {
+      "name": "saved_report_shares",
+      "columns": [
+        {
+          "name": "id",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "report_id",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "shared_by_user_id",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "shared_by_role",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "shared_with_user_id",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "message",
+          "type": "text",
+          "description": ""
+        },
+        {
+          "name": "can_view",
+          "type": "tinyint",
+          "description": ""
+        },
+        {
+          "name": "can_export",
+          "type": "tinyint",
+          "description": ""
+        },
+        {
+          "name": "viewed_at",
+          "type": "datetime",
           "description": ""
         },
         {
@@ -4836,6 +4908,26 @@
           "name": "updated_at",
           "type": "timestamp",
           "description": "Update timestamp"
+        },
+        {
+          "name": "password_hash",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "role_name",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "is_active",
+          "type": "tinyint",
+          "description": ""
+        },
+        {
+          "name": "created_by_user_id",
+          "type": "varchar",
+          "description": ""
         }
       ],
       "description": "Employees and application users for authentication, project assignment, attendance, and time logging.",

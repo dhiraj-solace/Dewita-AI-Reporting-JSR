@@ -13,6 +13,7 @@ import {
   previewAiSqlAttempt,
   reviewAiSqlAttempt
 } from "@/lib/api";
+import AdminGuard from "../AdminGuard";
 
 function shortId(id: string) {
   return id.slice(0, 8);
@@ -168,6 +169,7 @@ export default function AiSqlAttemptsAdminPage() {
   }
 
   return (
+    <AdminGuard>
     <main className={embedded ? "admin-shell embedded-admin-shell" : "admin-shell"}>
       <header className="admin-header">
         <div>
@@ -415,5 +417,6 @@ export default function AiSqlAttemptsAdminPage() {
         </aside>
       </section>
     </main>
+    </AdminGuard>
   );
 }

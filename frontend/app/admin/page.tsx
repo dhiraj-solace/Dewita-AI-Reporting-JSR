@@ -14,7 +14,8 @@ import {
   RefreshCw,
   ShieldCheck,
   SlidersHorizontal,
-  User
+  User,
+  Users
 } from "lucide-react";
 import {
   AiSqlAttempt,
@@ -28,6 +29,7 @@ import {
   listReportPermissions,
   listScheduledReports
 } from "@/lib/api";
+import AdminGuard from "./AdminGuard";
 
 type AdminModule = {
   key: string;
@@ -92,6 +94,15 @@ export default function AdminConsolePage() {
 
   const modules = useMemo<AdminModule[]>(() => [
     {
+      key: "users",
+      title: "Users",
+      description: "Create application users, assign roles, and manage login access.",
+      href: "/admin/users",
+      icon: Users,
+      metric: `${permissions?.roles.length ?? 0}`,
+      meta: "login access"
+    },
+    {
       key: "ai-sql-attempts",
       title: "AI SQL Attempts",
       description: "Review generated SQL, validator feedback, timings, mistakes, and gold examples.",
@@ -130,6 +141,7 @@ export default function AdminConsolePage() {
   );
 
   return (
+    <AdminGuard>
     <main className="admin-portal-shell">
       <section className="page">
         <header className="topbar">
@@ -291,5 +303,6 @@ export default function AdminConsolePage() {
         </section>
       </section>
     </main>
+    </AdminGuard>
   );
 }

@@ -1,9 +1,9 @@
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, Header, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 from app.core.config import get_settings
 from app.db import get_engine
-from app.models import AiSqlAttempt, AiSqlAttemptEvent, AiSqlAttemptPreview, AiSqlAttemptReviewRequest, GeneratedReport, ReportAuditLog, ReportRequest, RoleReportPermissionsPayload, SavedReportShareRequest, SavedReportShareResponse, SavedReportSummary, ScheduledReport, ScheduledReportCreate, ScheduledReportRun, ScheduledReportUpdate, SqlMistakeExample
+from app.models import AiSqlAttempt, AiSqlAttemptEvent, AiSqlAttemptPreview, AiSqlAttemptReviewRequest, AuthResponse, GeneratedReport, LoginRequest, ReportAuditLog, ReportRequest, RoleReportPermissionsPayload, SavedReportShareRequest, SavedReportShareResponse, SavedReportSummary, ScheduledReport, ScheduledReportCreate, ScheduledReportRun, ScheduledReportUpdate, SqlMistakeExample, UserCreateRequest, UserPublic, UserUpdateRequest
 from app.services.catalog import load_report_catalog, load_report_categories, load_schema_catalog
 from app.services.ai_sql_attempt_store import get_attempt, list_attempt_events, list_attempts, review_attempt
 from app.services.admin_attempt_preview import preview_attempt_rows
@@ -12,6 +12,7 @@ from app.services.email_service import share_report_email
 from app.services.report_permissions import ReportPermissionError, assert_report_permission, list_role_report_permissions, replace_role_report_permissions
 from app.services.report_exporter import export_filename, export_report_pdf, export_report_xlsx
 from app.services.saved_report_store import get_saved_report, list_saved_reports, save_generated_report
+from app.services.saved_report_shares import get_report_share, mark_report_share_viewed, share_saved_report_with_user
 from app.services.scheduled_reports import (
     create_scheduled_report,
     get_scheduled_report,
@@ -25,6 +26,7 @@ from app.services.scheduled_reports import (
 )
 from app.services.sql_mistake_store import list_mistake_examples
 from app.services.report_runner import ReportBuildError, build_report
+from app.services.users import authenticate_user, create_auth_token, create_user, get_user_from_token, list_users, require_super_admin_user, update_user
 
 settings = get_settings()
 
@@ -41,6 +43,40 @@ app.add_middleware(
 def _require_super_admin(actor_role: str | None) -> None:
     if (actor_role or "").strip().lower() != "super admin":
         raise HTTPException(status_code=403, detail="Only Super Admin can manage and run scheduled reports.")
+
+
+def _current_user(authorization: str | None) -> dict | None:
+    if not authorization:
+        return None
+    scheme, _, token = authorization.partition(" ")
+    if scheme.lower() != "bearer" or not token:
+        return None
+    return get_user_from_token(token)
+
+
+def _require_user(authorization: str | None) -> dict:
+    user = _current_user(authorization)
+    if not user:
+        raise HTTPException(status_code=401, detail="Login is required.")
+    return user
+
+
+def _require_super_admin_auth(authorization: str | None) -> dict:
+    user = _require_user(authorization)
+    _require_super_admin(str(user.get("role_name") or ""))
+    return user
+
+
+def _can_access_saved_report(report: GeneratedReport, role: str, user: dict | None, *, require_export: bool = False) -> None:
+    is_owner = bool(user and report.created_by_user_id and report.created_by_user_id == user.get("id"))
+    is_super_admin = role.strip().lower() == "super admin"
+    share = get_report_share(report.saved_report_id or "", user.get("id") if user else None)
+    if share and require_export and not bool(share.get("can_export")):
+        share = None
+    if is_owner or is_super_admin or share:
+        return
+    action = "export" if require_export else "view_saved"
+    assert_report_permission(role, report.report_category or "custom", action)
 
 
 def _normalize_share_formats(formats: list[str]) -> list[str]:
@@ -95,6 +131,59 @@ def health() -> dict:
     }
 
 
+@app.post("/api/auth/login", response_model=AuthResponse)
+def login(payload: LoginRequest) -> AuthResponse:
+    user = authenticate_user(payload.email, payload.password)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid email or password.")
+    return AuthResponse(token=create_auth_token(user), user=UserPublic.model_validate(user))
+
+
+@app.get("/api/auth/me", response_model=UserPublic)
+def me(authorization: str | None = Header(default=None)) -> UserPublic:
+    return UserPublic.model_validate(_require_user(authorization))
+
+
+@app.get("/api/admin/users", response_model=list[UserPublic])
+def admin_users(authorization: str | None = Header(default=None)) -> list[UserPublic]:
+    user = _require_user(authorization)
+    try:
+        require_super_admin_user(user)
+    except PermissionError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+    return [UserPublic.model_validate(item) for item in list_users()]
+
+
+@app.post("/api/admin/users", response_model=UserPublic)
+def admin_create_user(payload: UserCreateRequest, authorization: str | None = Header(default=None)) -> UserPublic:
+    user = _require_user(authorization)
+    try:
+        require_super_admin_user(user)
+        return UserPublic.model_validate(create_user(payload.model_dump(), user))
+    except PermissionError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.patch("/api/admin/users/{user_id}", response_model=UserPublic)
+def admin_update_user(
+    user_id: str,
+    payload: UserUpdateRequest,
+    authorization: str | None = Header(default=None),
+) -> UserPublic:
+    user = _require_user(authorization)
+    try:
+        require_super_admin_user(user)
+        if user.get("id") == user_id and payload.is_active is False:
+            raise ValueError("You cannot deactivate your own admin account.")
+        return UserPublic.model_validate(update_user(user_id, payload.model_dump(exclude_unset=True), user))
+    except PermissionError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
 @app.get("/api/schema")
 def schema_catalog() -> dict:
     return load_schema_catalog()
@@ -120,7 +209,8 @@ def report_categories() -> dict:
 
 
 @app.get("/api/admin/report-permissions")
-def admin_report_permissions() -> dict:
+def admin_report_permissions(authorization: str | None = Header(default=None)) -> dict:
+    _require_super_admin_auth(authorization)
     try:
         return list_role_report_permissions()
     except Exception as exc:
@@ -131,11 +221,13 @@ def admin_report_permissions() -> dict:
 def admin_update_report_permissions(
     payload: RoleReportPermissionsPayload,
     actor_role: str | None = Query(default="Super Admin"),
+    authorization: str | None = Header(default=None),
 ) -> dict:
+    user = _require_super_admin_auth(authorization)
     try:
         return replace_role_report_permissions(
             [item.model_dump() for item in payload.permissions],
-            actor_role=actor_role,
+            actor_role=str(user.get("role_name") or actor_role),
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
@@ -144,7 +236,11 @@ def admin_update_report_permissions(
 
 
 @app.get("/api/admin/report-audit-logs", response_model=list[ReportAuditLog])
-def admin_report_audit_logs(limit: int = Query(default=100, ge=1, le=300)) -> list[ReportAuditLog]:
+def admin_report_audit_logs(
+    limit: int = Query(default=100, ge=1, le=300),
+    authorization: str | None = Header(default=None),
+) -> list[ReportAuditLog]:
+    _require_super_admin_auth(authorization)
     try:
         return [ReportAuditLog.model_validate(item) for item in list_audit_logs(limit)]
     except Exception as exc:
@@ -152,8 +248,11 @@ def admin_report_audit_logs(limit: int = Query(default=100, ge=1, le=300)) -> li
 
 
 @app.get("/api/admin/scheduled-reports", response_model=list[ScheduledReport])
-def admin_scheduled_reports(actor_role: str | None = Query(default="Super Admin")) -> list[ScheduledReport]:
-    _require_super_admin(actor_role)
+def admin_scheduled_reports(
+    actor_role: str | None = Query(default="Super Admin"),
+    authorization: str | None = Header(default=None),
+) -> list[ScheduledReport]:
+    _require_super_admin_auth(authorization)
     try:
         return [ScheduledReport.model_validate(item) for item in list_scheduled_reports()]
     except Exception as exc:
@@ -164,10 +263,11 @@ def admin_scheduled_reports(actor_role: str | None = Query(default="Super Admin"
 def admin_create_scheduled_report(
     payload: ScheduledReportCreate,
     actor_role: str | None = Query(default="Super Admin"),
+    authorization: str | None = Header(default=None),
 ) -> ScheduledReport:
-    _require_super_admin(actor_role)
+    user = _require_super_admin_auth(authorization)
     try:
-        return ScheduledReport.model_validate(create_scheduled_report(payload.model_dump(), actor_role or "Super Admin"))
+        return ScheduledReport.model_validate(create_scheduled_report(payload.model_dump(), str(user.get("role_name") or actor_role or "Super Admin")))
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:
@@ -178,8 +278,9 @@ def admin_create_scheduled_report(
 def admin_scheduled_report(
     schedule_id: str,
     actor_role: str | None = Query(default="Super Admin"),
+    authorization: str | None = Header(default=None),
 ) -> ScheduledReport:
-    _require_super_admin(actor_role)
+    _require_super_admin_auth(authorization)
     try:
         schedule = get_scheduled_report(schedule_id)
         if schedule is None:
@@ -196,10 +297,11 @@ def admin_update_scheduled_report(
     schedule_id: str,
     payload: ScheduledReportUpdate,
     actor_role: str | None = Query(default="Super Admin"),
+    authorization: str | None = Header(default=None),
 ) -> ScheduledReport:
-    _require_super_admin(actor_role)
+    user = _require_super_admin_auth(authorization)
     try:
-        return ScheduledReport.model_validate(update_scheduled_report(schedule_id, payload.model_dump(), actor_role or "Super Admin"))
+        return ScheduledReport.model_validate(update_scheduled_report(schedule_id, payload.model_dump(), str(user.get("role_name") or actor_role or "Super Admin")))
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except Exception as exc:
@@ -211,10 +313,11 @@ def admin_update_scheduled_report_status(
     schedule_id: str,
     is_active: bool,
     actor_role: str | None = Query(default="Super Admin"),
+    authorization: str | None = Header(default=None),
 ) -> ScheduledReport:
-    _require_super_admin(actor_role)
+    user = _require_super_admin_auth(authorization)
     try:
-        return ScheduledReport.model_validate(set_scheduled_report_status(schedule_id, is_active, actor_role or "Super Admin"))
+        return ScheduledReport.model_validate(set_scheduled_report_status(schedule_id, is_active, str(user.get("role_name") or actor_role or "Super Admin")))
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except Exception as exc:
@@ -225,8 +328,9 @@ def admin_update_scheduled_report_status(
 async def admin_run_scheduled_report_now(
     schedule_id: str,
     actor_role: str | None = Query(default="Super Admin"),
+    authorization: str | None = Header(default=None),
 ) -> ScheduledReportRun:
-    _require_super_admin(actor_role)
+    _require_super_admin_auth(authorization)
     try:
         return ScheduledReportRun.model_validate(await run_scheduled_report_now(schedule_id))
     except ValueError as exc:
@@ -240,8 +344,9 @@ def admin_scheduled_report_runs(
     schedule_id: str,
     limit: int = Query(default=50, ge=1, le=200),
     actor_role: str | None = Query(default="Super Admin"),
+    authorization: str | None = Header(default=None),
 ) -> list[ScheduledReportRun]:
-    _require_super_admin(actor_role)
+    _require_super_admin_auth(authorization)
     try:
         return [ScheduledReportRun.model_validate(item) for item in list_scheduled_report_runs(schedule_id, limit)]
     except Exception as exc:
@@ -249,9 +354,14 @@ def admin_scheduled_report_runs(
 
 
 @app.post("/api/reports/query", response_model=GeneratedReport)
-async def query_report(request: ReportRequest) -> GeneratedReport:
+async def query_report(request: ReportRequest, authorization: str | None = Header(default=None)) -> GeneratedReport:
+    user = _current_user(authorization)
+    if user:
+        request = request.model_copy(update={"current_user_role": user["role_name"]})
     try:
         report = await build_report(request)
+        if user:
+            report = report.model_copy(update={"created_by_user_id": user["id"], "created_by_role": user["role_name"]})
         if report.generated_source == "cache":
             return report
         try:
@@ -280,23 +390,37 @@ async def query_report(request: ReportRequest) -> GeneratedReport:
 def saved_reports(
     limit: int = Query(default=50, ge=1, le=200),
     role: str | None = Query(default="Super Admin"),
+    authorization: str | None = Header(default=None),
 ) -> list[SavedReportSummary]:
+    user = _current_user(authorization)
+    actor_role = str(user.get("role_name")) if user else role
     try:
-        return [SavedReportSummary.model_validate(report) for report in list_saved_reports(limit, role)]
+        return [
+            SavedReportSummary.model_validate(report)
+            for report in list_saved_reports(limit, actor_role, user.get("id") if user else None)
+        ]
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
 @app.get("/api/reports/saved/{report_id}", response_model=GeneratedReport)
-def saved_report(report_id: str, role: str | None = Query(default="Super Admin")) -> GeneratedReport:
+def saved_report(
+    report_id: str,
+    role: str | None = Query(default="Super Admin"),
+    authorization: str | None = Header(default=None),
+) -> GeneratedReport:
+    user = _current_user(authorization)
+    actor_role = str(user.get("role_name")) if user else role
     try:
         report = get_saved_report(report_id)
         if report is None:
             raise HTTPException(status_code=404, detail="Saved report was not found.")
         try:
-            assert_report_permission(role, report.report_category or "custom", "view_saved")
+            _can_access_saved_report(report, actor_role or "Super Admin", user)
         except ReportPermissionError as exc:
             raise HTTPException(status_code=403, detail=str(exc)) from exc
+        if user:
+            mark_report_share_viewed(report_id, user.get("id"))
         return report
     except HTTPException:
         raise
@@ -309,13 +433,17 @@ def export_saved_report(
     report_id: str,
     format: str,
     role: str | None = Query(default="Super Admin"),
+    access_token: str | None = Query(default=None),
+    authorization: str | None = Header(default=None),
 ) -> Response:
+    user = _current_user(authorization) or get_user_from_token(access_token)
+    actor_role = str(user.get("role_name")) if user else role
     try:
         report = get_saved_report(report_id)
         if report is None:
             raise HTTPException(status_code=404, detail="Saved report was not found.")
         try:
-            assert_report_permission(role, report.report_category or "custom", "export")
+            _can_access_saved_report(report, actor_role or "Super Admin", user, require_export=True)
         except ReportPermissionError as exc:
             raise HTTPException(status_code=403, detail=str(exc)) from exc
         normalized_format = format.lower()
@@ -341,27 +469,44 @@ def export_saved_report(
 
 
 @app.post("/api/reports/saved/{report_id}/share", response_model=SavedReportShareResponse)
-def share_saved_report(report_id: str, payload: SavedReportShareRequest) -> SavedReportShareResponse:
+def share_saved_report(
+    report_id: str,
+    payload: SavedReportShareRequest,
+    authorization: str | None = Header(default=None),
+) -> SavedReportShareResponse:
+    user = _current_user(authorization)
     try:
         report = get_saved_report(report_id)
         if report is None:
             raise HTTPException(status_code=404, detail="Saved report was not found.")
-        role = payload.current_user_role or "Super Admin"
+        role = str(user.get("role_name")) if user else (payload.current_user_role or "Super Admin")
         try:
-            assert_report_permission(role, report.report_category or "custom", "view_saved")
-            if payload.formats:
-                assert_report_permission(role, report.report_category or "custom", "export")
+            _can_access_saved_report(report, role, user)
+            if payload.recipient_email and payload.formats:
+                _can_access_saved_report(report, role, user, require_export=True)
         except ReportPermissionError as exc:
             raise HTTPException(status_code=403, detail=str(exc)) from exc
 
-        formats = _normalize_share_formats(payload.formats)
-        report_for_email = report.model_copy(update={"saved_report_id": report_id})
-        delivery = share_report_email(
-            report_for_email,
-            payload.recipient_email,
-            formats,
-            payload.message,
+        formats = _normalize_share_formats(payload.formats) if payload.recipient_email and payload.formats else []
+        share = share_saved_report_with_user(
+            report_id=report_id,
+            recipient_user_id=payload.recipient_user_id,
+            recipient_email=payload.recipient_email,
+            actor=user,
+            actor_role=role,
+            message=payload.message,
+            can_export=payload.can_export,
+            report_category=report.report_category or "custom",
         )
+        report_for_email = report.model_copy(update={"saved_report_id": report_id})
+        delivery = {"status": "skipped", "reason": "In-app share only."}
+        if payload.recipient_email and formats:
+            delivery = share_report_email(
+                report_for_email,
+                payload.recipient_email,
+                formats,
+                payload.message,
+            )
         create_audit_log(
             event_type="report_shared",
             actor_role=role,
@@ -370,18 +515,20 @@ def share_saved_report(report_id: str, payload: SavedReportShareRequest) -> Save
             action="share",
             metadata={
                 "recipient_email": payload.recipient_email,
+                "recipient_user_id": share.get("shared_with_user_id"),
                 "formats": formats,
+                "can_export": payload.can_export,
                 "delivery": delivery,
             },
         )
         if delivery.get("status") == "sent":
-            message = "Report shared successfully."
+            message = "Report shared in app and email was sent."
         elif delivery.get("status") == "skipped":
             reason = str(delivery.get("reason") or "Email delivery was not attempted.")
-            message = f"Share recorded, but email delivery was skipped: {reason}"
+            message = f"Report shared in app. Email delivery was skipped: {reason}"
         else:
             reason = str(delivery.get("reason") or "Email delivery failed.")
-            message = f"Share recorded, but email delivery failed: {reason}"
+            message = f"Report shared in app, but email delivery failed: {reason}"
         return SavedReportShareResponse(status=str(delivery.get("status") or "unknown"), message=message, delivery=delivery)
     except HTTPException:
         raise
@@ -395,7 +542,9 @@ def share_saved_report(report_id: str, payload: SavedReportShareRequest) -> Save
 def admin_ai_sql_attempts(
     limit: int = Query(default=50, ge=1, le=200),
     gold_only: bool = False,
+    authorization: str | None = Header(default=None),
 ) -> list[AiSqlAttempt]:
+    _require_super_admin_auth(authorization)
     try:
         return [AiSqlAttempt.model_validate(attempt) for attempt in list_attempts(limit, gold_only)]
     except Exception as exc:
@@ -403,7 +552,11 @@ def admin_ai_sql_attempts(
 
 
 @app.get("/api/admin/ai-sql-attempts/{attempt_id}", response_model=AiSqlAttempt)
-def admin_ai_sql_attempt(attempt_id: str) -> AiSqlAttempt:
+def admin_ai_sql_attempt(
+    attempt_id: str,
+    authorization: str | None = Header(default=None),
+) -> AiSqlAttempt:
+    _require_super_admin_auth(authorization)
     try:
         attempt = get_attempt(attempt_id)
         if attempt is None:
@@ -419,7 +572,9 @@ def admin_ai_sql_attempt(attempt_id: str) -> AiSqlAttempt:
 def admin_ai_sql_attempt_events(
     attempt_id: str,
     limit: int = Query(default=200, ge=1, le=500),
+    authorization: str | None = Header(default=None),
 ) -> list[AiSqlAttemptEvent]:
+    _require_super_admin_auth(authorization)
     try:
         if get_attempt(attempt_id) is None:
             raise HTTPException(status_code=404, detail="AI SQL attempt was not found.")
@@ -431,7 +586,12 @@ def admin_ai_sql_attempt_events(
 
 
 @app.post("/api/admin/ai-sql-attempts/{attempt_id}/review", response_model=AiSqlAttempt)
-def admin_review_ai_sql_attempt(attempt_id: str, review: AiSqlAttemptReviewRequest) -> AiSqlAttempt:
+def admin_review_ai_sql_attempt(
+    attempt_id: str,
+    review: AiSqlAttemptReviewRequest,
+    authorization: str | None = Header(default=None),
+) -> AiSqlAttempt:
+    _require_super_admin_auth(authorization)
     try:
         return AiSqlAttempt.model_validate(
             review_attempt(
@@ -450,7 +610,9 @@ def admin_review_ai_sql_attempt(attempt_id: str, review: AiSqlAttemptReviewReque
 def admin_ai_sql_attempt_preview(
     attempt_id: str,
     limit: int = Query(default=25, ge=1, le=100),
+    authorization: str | None = Header(default=None),
 ) -> AiSqlAttemptPreview:
+    _require_super_admin_auth(authorization)
     try:
         return AiSqlAttemptPreview.model_validate(preview_attempt_rows(attempt_id, limit))
     except ValueError as exc:
@@ -460,7 +622,11 @@ def admin_ai_sql_attempt_preview(
 
 
 @app.get("/api/admin/sql-mistake-examples", response_model=list[SqlMistakeExample])
-def admin_sql_mistake_examples(limit: int = Query(default=100, ge=1, le=200)) -> list[SqlMistakeExample]:
+def admin_sql_mistake_examples(
+    limit: int = Query(default=100, ge=1, le=200),
+    authorization: str | None = Header(default=None),
+) -> list[SqlMistakeExample]:
+    _require_super_admin_auth(authorization)
     try:
         return [SqlMistakeExample.model_validate(item) for item in list_mistake_examples(limit)]
     except Exception as exc:

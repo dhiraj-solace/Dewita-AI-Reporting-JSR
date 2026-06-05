@@ -16,6 +16,7 @@ import {
   setScheduledReportStatus,
   updateScheduledReport
 } from "@/lib/api";
+import AdminGuard from "../AdminGuard";
 
 const fallbackCategories: ReportCategory[] = [
   {id: "custom", label: "Custom Report"},
@@ -256,6 +257,7 @@ export default function ScheduledReportsAdminPage() {
   }
 
   return (
+    <AdminGuard>
     <main className={embedded ? "admin-shell schedule-shell embedded-admin-shell" : "admin-shell schedule-shell"}>
       <header className="admin-header">
         <div>
@@ -436,5 +438,6 @@ export default function ScheduledReportsAdminPage() {
         </section>
       </section>
     </main>
+    </AdminGuard>
   );
 }

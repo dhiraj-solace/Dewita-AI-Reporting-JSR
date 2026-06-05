@@ -10,6 +10,8 @@ from app.db import get_engine
 from app.models import GeneratedReport
 from app.services.audit_log import create_audit_log
 from app.services.report_permissions import list_allowed_report_categories
+from app.services.saved_report_shares import list_shared_report_rows
+from app.services.users import ensure_users_table
 
 
 SAVED_REPORT_FIELDS = (
@@ -17,6 +19,7 @@ SAVED_REPORT_FIELDS = (
     "attempt_id",
     "report_category",
     "created_by_role",
+    "created_by_user_id",
     "title",
     "question",
     "sql",
@@ -34,12 +37,14 @@ SAVED_REPORT_FIELDS = (
 
 
 def ensure_saved_reports_table() -> None:
+    ensure_users_table()
     ddl = """
     CREATE TABLE IF NOT EXISTS saved_reports (
         id VARCHAR(36) PRIMARY KEY,
         attempt_id VARCHAR(36) NULL,
         report_category VARCHAR(100) NULL,
         created_by_role VARCHAR(100) NULL,
+        created_by_user_id VARCHAR(36) NULL,
         title TEXT NOT NULL,
         question TEXT NOT NULL,
         sql_text LONGTEXT NOT NULL,
@@ -66,6 +71,7 @@ def _ensure_saved_report_columns(conn: Any) -> None:
     columns = {
         "report_category": "VARCHAR(100) NULL AFTER attempt_id",
         "created_by_role": "VARCHAR(100) NULL AFTER report_category",
+        "created_by_user_id": "VARCHAR(36) NULL AFTER created_by_role",
     }
     for name, definition in columns.items():
         exists = conn.execute(
@@ -87,6 +93,7 @@ def save_generated_report(report: GeneratedReport) -> str:
     ensure_saved_reports_table()
     report_category = report.report_category or "custom"
     created_by_role = report.created_by_role or "Super Admin"
+    created_by_user_id = report.created_by_user_id
     existing_id = find_existing_saved_report(report.question, report.sql)
     if existing_id:
         with get_engine().begin() as conn:
@@ -96,6 +103,7 @@ def save_generated_report(report: GeneratedReport) -> str:
                     UPDATE saved_reports
                     SET report_category = COALESCE(report_category, :report_category),
                         created_by_role = COALESCE(created_by_role, :created_by_role),
+                        created_by_user_id = COALESCE(created_by_user_id, :created_by_user_id),
                         updated_at = :updated_at
                     WHERE id = :id
                     """
@@ -104,6 +112,7 @@ def save_generated_report(report: GeneratedReport) -> str:
                     "id": existing_id,
                     "report_category": report_category,
                     "created_by_role": created_by_role,
+                    "created_by_user_id": created_by_user_id,
                     "updated_at": _now(),
                 },
             )
@@ -123,6 +132,7 @@ def save_generated_report(report: GeneratedReport) -> str:
         "attempt_id": report.attempt_id,
         "report_category": report_category,
         "created_by_role": created_by_role,
+        "created_by_user_id": created_by_user_id,
         "title": report.title,
         "question": report.question,
         "sql_text": report.sql,
@@ -142,11 +152,11 @@ def save_generated_report(report: GeneratedReport) -> str:
             text(
                 """
                 INSERT INTO saved_reports (
-                    id, attempt_id, report_category, created_by_role, title, question, sql_text, explanation, assumptions,
+                    id, attempt_id, report_category, created_by_role, created_by_user_id, title, question, sql_text, explanation, assumptions,
                     columns_json, rows_json, row_count, dry_run, warnings, retry_attempts,
                     created_at, updated_at
                 ) VALUES (
-                    :id, :attempt_id, :report_category, :created_by_role, :title, :question, :sql_text, :explanation, :assumptions,
+                    :id, :attempt_id, :report_category, :created_by_role, :created_by_user_id, :title, :question, :sql_text, :explanation, :assumptions,
                     :columns_json, :rows_json, :row_count, :dry_run, :warnings, :retry_attempts,
                     :created_at, :updated_at
                 )
@@ -188,27 +198,51 @@ def find_existing_saved_report(question: str, sql: str) -> str | None:
     return str(row["id"]) if row else None
 
 
-def list_saved_reports(limit: int = 50, role_name: str | None = None) -> list[dict[str, Any]]:
+def list_saved_reports(
+    limit: int = 50,
+    role_name: str | None = None,
+    user_id: str | None = None,
+    include_shared: bool = True,
+) -> list[dict[str, Any]]:
     ensure_saved_reports_table()
     allowed_categories = list_allowed_report_categories(role_name, "view_saved")
     if not allowed_categories:
-        return []
-    with get_engine().connect() as conn:
-        stmt = text(
-                """
-                SELECT id, title, question, COALESCE(report_category, 'custom') AS report_category,
-                       created_by_role, row_count, created_at
-                FROM saved_reports
-                WHERE COALESCE(report_category, 'custom') IN :allowed_categories
-                ORDER BY created_at DESC
-                LIMIT :limit
-                """
-            ).bindparams(bindparam("allowed_categories", expanding=True))
-        rows = conn.execute(
-            stmt,
-            {"limit": limit, "allowed_categories": tuple(allowed_categories)},
-        ).mappings().all()
-    return [dict(row) for row in rows]
+        reports: list[dict[str, Any]] = []
+    else:
+        with get_engine().connect() as conn:
+            stmt = text(
+                    """
+                    SELECT r.id, r.title, r.question, COALESCE(r.report_category, 'custom') AS report_category,
+                           r.created_by_role, r.created_by_user_id, creator.name AS created_by_name,
+                           NULL AS shared_by_name, 'Created by me' AS shared_label,
+                           FALSE AS is_shared, FALSE AS is_new, FALSE AS can_export_shared,
+                           r.row_count, r.created_at
+                    FROM saved_reports r
+                    LEFT JOIN users creator ON creator.id = r.created_by_user_id
+                    WHERE COALESCE(r.report_category, 'custom') IN :allowed_categories
+                      AND (:user_id IS NULL OR r.created_by_user_id = :user_id OR :is_super_admin = TRUE)
+                    ORDER BY r.created_at DESC
+                    LIMIT :limit
+                    """
+                ).bindparams(bindparam("allowed_categories", expanding=True))
+            rows = conn.execute(
+                stmt,
+                {
+                    "limit": limit,
+                    "allowed_categories": tuple(allowed_categories),
+                    "user_id": user_id,
+                    "is_super_admin": (role_name or "").strip().lower() == "super admin",
+                },
+            ).mappings().all()
+        reports = [dict(row) for row in rows]
+    if include_shared and user_id:
+        seen = {str(row["id"]) for row in reports}
+        for row in list_shared_report_rows(user_id, limit):
+            if str(row["id"]) not in seen:
+                reports.append(row)
+                seen.add(str(row["id"]))
+    reports.sort(key=lambda row: row.get("created_at"), reverse=True)
+    return reports[:limit]
 
 
 def get_saved_report(report_id: str) -> GeneratedReport | None:
@@ -229,6 +263,7 @@ def _row_to_report(row: dict[str, Any]) -> GeneratedReport:
         attempt_id=row.get("attempt_id"),
         report_category=row.get("report_category") or "custom",
         created_by_role=row.get("created_by_role"),
+        created_by_user_id=row.get("created_by_user_id"),
         title=row["title"],
         question=row["question"],
         sql=row["sql_text"],
