@@ -552,6 +552,84 @@
         "token:week"
       ]
     },
+    "5353cdf537199d7a65f5d17de325d828315b428e922c906c3bb4545ce95326c5": {
+      "cache_policy": {
+        "created_at": "2026-06-05T09:23:36.683580+00:00",
+        "expires_at": "2026-06-07T09:23:36.683580+00:00",
+        "ttl_days": 2
+      },
+      "intent": {
+        "canonical_tokens": [
+          "5",
+          "all",
+          "bugs",
+          "change",
+          "employees",
+          "have",
+          "more",
+          "no",
+          "on",
+          "pending",
+          "project",
+          "requests",
+          "than",
+          "that",
+          "who",
+          "worked"
+        ],
+        "date_tokens": [
+          "5"
+        ],
+        "end_date": null,
+        "limit": 500,
+        "report_category": "quality",
+        "start_date": null
+      },
+      "key": "5353cdf537199d7a65f5d17de325d828315b428e922c906c3bb4545ce95326c5",
+      "query": {
+        "normalized": "show all employees who worked on projects that have more than 5 bugs and no pending change requests",
+        "original": "Show all employees who worked on projects that have more than 5 bugs and no pending change requests."
+      },
+      "response": {
+        "explanation": "",
+        "sql": "SELECT DISTINCT u.id, u.name, u.employee_id, u.email\nFROM users u\nJOIN timelog_records t ON u.id = t.user_id\nJOIN projects p ON t.project_id = p.id\nJOIN (\n    SELECT project_id, COUNT(*) AS bug_count\n    FROM project_bug_management\n    GROUP BY project_id\n    HAVING COUNT(*) > 5\n) pb ON p.id = pb.project_id\nWHERE NOT EXISTS (\n    SELECT 1\n    FROM changerequest_management cr\n    WHERE cr.project_id = p.id\n    AND cr.changerequest_status = 'pending'\n)\nLIMIT 100",
+        "title": "SQL Report"
+      },
+      "sources": {
+        "schema_version": "74b4a42621d1a370"
+      },
+      "stats": {
+        "hit_count": 0,
+        "invalidated_reason": null,
+        "last_hit_at": null,
+        "last_invalidated_at": null
+      },
+      "tags": [
+        "cache_key:5353cdf537199d7a65f5d17de325d828315b428e922c906c3bb4545ce95326c5",
+        "llm_sql",
+        "table:changerequest_management",
+        "table:project_bug_management",
+        "table:projects",
+        "table:timelog_records",
+        "table:users",
+        "token:5",
+        "token:all",
+        "token:bugs",
+        "token:change",
+        "token:employees",
+        "token:have",
+        "token:more",
+        "token:no",
+        "token:on",
+        "token:pending",
+        "token:project",
+        "token:requests",
+        "token:than",
+        "token:that",
+        "token:who",
+        "token:worked"
+      ]
+    },
     "5da7c4011ebe1f9416a000b6efa72666319bdeeea1520ca7c459300d67eccfdb": {
       "cache_policy": {
         "created_at": "2026-06-01T10:06:10.566343+00:00",
@@ -1158,6 +1236,89 @@
         "token:top"
       ]
     },
+    "ae4e06274d7d337b000de4a02bbdfc95f727686b62ea83f36484bc3a2a5b835c": {
+      "cache_policy": {
+        "created_at": "2026-06-05T06:37:31.045805+00:00",
+        "expires_at": "2026-06-07T06:37:31.045805+00:00",
+        "ttl_days": 2
+      },
+      "intent": {
+        "canonical_tokens": [
+          "10",
+          "2",
+          "all",
+          "at",
+          "bugs",
+          "change",
+          "employees",
+          "have",
+          "least",
+          "more",
+          "on",
+          "pending",
+          "project",
+          "requests",
+          "than",
+          "that",
+          "who",
+          "worked"
+        ],
+        "date_tokens": [
+          "10",
+          "2"
+        ],
+        "end_date": null,
+        "limit": 500,
+        "report_category": "team_employee",
+        "start_date": null
+      },
+      "key": "ae4e06274d7d337b000de4a02bbdfc95f727686b62ea83f36484bc3a2a5b835c",
+      "query": {
+        "normalized": "show all employees who worked on projects that have more than 10 bugs and at least 2 pending change requests",
+        "original": "Show all employees who worked on projects that have more than 10 bugs and at least 2 pending change requests."
+      },
+      "response": {
+        "explanation": "",
+        "sql": "SELECT DISTINCT u.id, u.name, u.employee_id, u.email\nFROM users u\nJOIN timelog_records t ON u.id = t.user_id\nJOIN projects p ON t.project_id = p.id\nJOIN (\n    SELECT project_id, COUNT(*) AS bug_count\n    FROM project_bug_management\n    GROUP BY project_id\n    HAVING COUNT(*) > 10\n) pb ON p.id = pb.project_id\nJOIN (\n    SELECT project_id, COUNT(*) AS pending_cr_count\n    FROM changerequest_management\n    WHERE changerequest_status = 'pending'\n    GROUP BY project_id\n    HAVING COUNT(*) >= 2\n) cr ON p.id = cr.project_id\nLIMIT 100",
+        "title": "SQL Report"
+      },
+      "sources": {
+        "schema_version": "74b4a42621d1a370"
+      },
+      "stats": {
+        "hit_count": 0,
+        "invalidated_reason": null,
+        "last_hit_at": null,
+        "last_invalidated_at": null
+      },
+      "tags": [
+        "cache_key:ae4e06274d7d337b000de4a02bbdfc95f727686b62ea83f36484bc3a2a5b835c",
+        "llm_sql",
+        "table:changerequest_management",
+        "table:project_bug_management",
+        "table:projects",
+        "table:timelog_records",
+        "table:users",
+        "token:10",
+        "token:2",
+        "token:all",
+        "token:at",
+        "token:bugs",
+        "token:change",
+        "token:employees",
+        "token:have",
+        "token:least",
+        "token:more",
+        "token:on",
+        "token:pending",
+        "token:project",
+        "token:requests",
+        "token:than",
+        "token:that",
+        "token:who",
+        "token:worked"
+      ]
+    },
     "b505ddb004273ef0b1ce38b2f805efc711bf9ca9ea5233a1a7f254214c22fba9": {
       "cache_policy": {
         "created_at": "2026-05-07T12:31:33.234665+00:00",
@@ -1458,6 +1619,84 @@
         "token:timeline",
         "token:total",
         "token:zero"
+      ]
+    },
+    "d99c434dabeb40afb92b82052ae4c26f1b2d37e806446d9b66d5b19da2862532": {
+      "cache_policy": {
+        "created_at": "2026-06-05T09:20:24.657356+00:00",
+        "expires_at": "2026-06-07T09:20:24.657356+00:00",
+        "ttl_days": 2
+      },
+      "intent": {
+        "canonical_tokens": [
+          "10",
+          "all",
+          "bugs",
+          "change",
+          "employees",
+          "have",
+          "more",
+          "no",
+          "on",
+          "pending",
+          "project",
+          "requests",
+          "than",
+          "that",
+          "who",
+          "worked"
+        ],
+        "date_tokens": [
+          "10"
+        ],
+        "end_date": null,
+        "limit": 500,
+        "report_category": "team_employee",
+        "start_date": null
+      },
+      "key": "d99c434dabeb40afb92b82052ae4c26f1b2d37e806446d9b66d5b19da2862532",
+      "query": {
+        "normalized": "show all employees who worked on projects that have more than 10 bugs and no pending change requests",
+        "original": "Show all employees who worked on projects that have more than 10 bugs and no pending change requests."
+      },
+      "response": {
+        "explanation": "",
+        "sql": "SELECT DISTINCT u.id, u.name, u.employee_id, u.email\nFROM users u\nJOIN timelog_records t ON u.id = t.user_id\nJOIN projects p ON t.project_id = p.id\nJOIN (\n    SELECT project_id, COUNT(*) AS bug_count\n    FROM project_bug_management\n    GROUP BY project_id\n    HAVING COUNT(*) > 10\n) pb ON p.id = pb.project_id\nWHERE NOT EXISTS (\n    SELECT 1\n    FROM changerequest_management cr\n    WHERE cr.project_id = p.id\n    AND cr.changerequest_status = 'pending'\n)\nLIMIT 100",
+        "title": "SQL Report"
+      },
+      "sources": {
+        "schema_version": "74b4a42621d1a370"
+      },
+      "stats": {
+        "hit_count": 0,
+        "invalidated_reason": null,
+        "last_hit_at": null,
+        "last_invalidated_at": null
+      },
+      "tags": [
+        "cache_key:d99c434dabeb40afb92b82052ae4c26f1b2d37e806446d9b66d5b19da2862532",
+        "llm_sql",
+        "table:changerequest_management",
+        "table:project_bug_management",
+        "table:projects",
+        "table:timelog_records",
+        "table:users",
+        "token:10",
+        "token:all",
+        "token:bugs",
+        "token:change",
+        "token:employees",
+        "token:have",
+        "token:more",
+        "token:no",
+        "token:on",
+        "token:pending",
+        "token:project",
+        "token:requests",
+        "token:than",
+        "token:that",
+        "token:who",
+        "token:worked"
       ]
     },
     "da85a99415bd39b61dfc85a6ea1cb956a96667bd23a9b163d9144e881a49e162": {
@@ -1793,6 +2032,7 @@
     "5a1788979781d8b373b3bb6ca2c00a1dda7ac87a071298ed9f3ee2ddcc30b291": "003436a35b721542f87d280b69a395b0c883b05fb6a5bcd8921eaed3d6dee1ea",
     "5fc709709067967ae578fb8dfa1ef87b99b1539c08c58806aed4f04d42e4fdc1": "cb768a01b7f0ef060b43a95b8510863796f4d0dc8c49dbfde13eedd06388a863",
     "6150050b69982b2cb3896461bbd52d7e92c4061e2a6eb13155eb4f6ab87d11dc": "6cc6d8c4cb6b94acba3154f1287e83d099cbdff8b978bc8a1b99b359919f676c",
+    "7904fea47bd099b90fe2b85a805c14b699b36661825e0c9164eb3e604d59beb1": "5353cdf537199d7a65f5d17de325d828315b428e922c906c3bb4545ce95326c5",
     "7e53935072512a0b4aa40e6df6209ca4cb2db57c473d5f0f02ef9a295f332a4a": "fad9a713fb5b1fe17529dadcb503abef3650bd3632bd3a147510a1350b979a1c",
     "81faec0803dcb17d125c52388163f951ca2dbc359603baff654d4700ca968487": "f24e015e0003cc866749623ef76012317febbd9518eb5ff1a9032515702c0031",
     "8502e6a571fd0590d9212eb020be13b569d451c9ac4e923f02c45919c431f083": "a845eb9aa91870ef0130f7b771029548770eb441299b7d34b873a733c2b0a6dd",
@@ -1802,10 +2042,12 @@
     "a38f95c0e39422422d6be204a4252b39a45400648e27a83bf5b3474c0946e484": "9be00873507a1c945adadf8cf9746a787a2ba656f14d2e7313bb71c5e4271c4c",
     "a4933ae46f794e949e6fd7d1b5a5f4416e8dbf6552483e76885775ec92152856": "52822310166876f5317e5ad1ea1808561c8efbd1a7a5fed55d7ef7471dbfc47f",
     "a9941f4fa3b44e6ab75004c71f22b1acd646d7655538a15001f9e9e822b14441": "345a89fdb6a0dd5756d050324480299860d2e21ab7e50da64d2833084e2c5ba6",
+    "b0128704f2b6814adfd01b1d64b231cacf37236ec1919a4e1915555254db3fdd": "d99c434dabeb40afb92b82052ae4c26f1b2d37e806446d9b66d5b19da2862532",
     "bbd4d172304b152d96037eeb31447fce8403900c227abd09be50a3d8e0a52276": "7e465d59dcf4970f0f4660729af677bb1685ce6e098423884cb5e4b593c58865",
     "c26ff0c91a066c6472651eabcb7fb977fd7a05ff47e6b62d029544e2dbd39db8": "3cfc9080f9a12fc77359aa25dd4a42f422a93bb2000467c7ee6a9f57d3fa8c5d",
     "caf047279c27078abefee4e8aa2f29b745cee73855f96035c1d082eb05f354f0": "6c45f95092382368182644f367b0f23b71d9edc18fad52e9d8f2f60f6db5976d",
     "d418e1f26305d579d9491ffc2bd4e383b59e83d9cba9251027a16819db0321fc": "8ddb990f8fd3e11896c98f7073c7d344230b17140693770bf826f744c9d06bec",
+    "d6bbf84249162606a1cac8deda08502b96198585d4dc57c3e04c6034b9d2abad": "ae4e06274d7d337b000de4a02bbdfc95f727686b62ea83f36484bc3a2a5b835c",
     "d8c35df3f0cd9cb52140eb700ed761c317f59b387a4b299b0b83c7363e8515d8": "d84c46ad295b92c42e9b874c1e6761f273c1dfd573598f95d7787227665b6fb2",
     "e04d2161661eec73279d0d395974a5f5cf93f60d4c46ccd7ef4ac8be868c7af9": "da85a99415bd39b61dfc85a6ea1cb956a96667bd23a9b163d9144e881a49e162",
     "f0649ab0d8fe785ad2c687ce020e284fd631bf5a149e177bdec973184a3f1350": "2c20f9dda846e1583372be8ced50ae618b9391a1ba040fbdfcdaa2e3f06131e3",
@@ -1821,6 +2063,7 @@
     "345a89fdb6a0dd5756d050324480299860d2e21ab7e50da64d2833084e2c5ba6": "345a89fdb6a0dd5756d050324480299860d2e21ab7e50da64d2833084e2c5ba6",
     "3cfc9080f9a12fc77359aa25dd4a42f422a93bb2000467c7ee6a9f57d3fa8c5d": "3cfc9080f9a12fc77359aa25dd4a42f422a93bb2000467c7ee6a9f57d3fa8c5d",
     "52822310166876f5317e5ad1ea1808561c8efbd1a7a5fed55d7ef7471dbfc47f": "52822310166876f5317e5ad1ea1808561c8efbd1a7a5fed55d7ef7471dbfc47f",
+    "5353cdf537199d7a65f5d17de325d828315b428e922c906c3bb4545ce95326c5": "5353cdf537199d7a65f5d17de325d828315b428e922c906c3bb4545ce95326c5",
     "5da7c4011ebe1f9416a000b6efa72666319bdeeea1520ca7c459300d67eccfdb": "5da7c4011ebe1f9416a000b6efa72666319bdeeea1520ca7c459300d67eccfdb",
     "6034c448384a20e7f1d3b5b8e48ff3485b8a53c1e1323a5bf96a8e7617c67b98": "6034c448384a20e7f1d3b5b8e48ff3485b8a53c1e1323a5bf96a8e7617c67b98",
     "6bfa98d911a52c1e99514aea56676863e16f8886c35d734ffafad0acb5c122ff": "6bfa98d911a52c1e99514aea56676863e16f8886c35d734ffafad0acb5c122ff",
@@ -1831,11 +2074,13 @@
     "98ef54ecb4ce633e9210e60f17f002dc6960b9ad00b6bfabca440b8cdcf3926e": "98ef54ecb4ce633e9210e60f17f002dc6960b9ad00b6bfabca440b8cdcf3926e",
     "9be00873507a1c945adadf8cf9746a787a2ba656f14d2e7313bb71c5e4271c4c": "9be00873507a1c945adadf8cf9746a787a2ba656f14d2e7313bb71c5e4271c4c",
     "a845eb9aa91870ef0130f7b771029548770eb441299b7d34b873a733c2b0a6dd": "a845eb9aa91870ef0130f7b771029548770eb441299b7d34b873a733c2b0a6dd",
+    "ae4e06274d7d337b000de4a02bbdfc95f727686b62ea83f36484bc3a2a5b835c": "ae4e06274d7d337b000de4a02bbdfc95f727686b62ea83f36484bc3a2a5b835c",
     "b505ddb004273ef0b1ce38b2f805efc711bf9ca9ea5233a1a7f254214c22fba9": "b505ddb004273ef0b1ce38b2f805efc711bf9ca9ea5233a1a7f254214c22fba9",
     "c31a76c1fb466e34a3202d4327b683b27caacecfdc80c450de3230d07ea8b452": "c31a76c1fb466e34a3202d4327b683b27caacecfdc80c450de3230d07ea8b452",
     "cb768a01b7f0ef060b43a95b8510863796f4d0dc8c49dbfde13eedd06388a863": "cb768a01b7f0ef060b43a95b8510863796f4d0dc8c49dbfde13eedd06388a863",
     "d62c7459ffee2c64159f5b1f5d00532d3df102e1cf72a23e6d583e94b889cadd": "d62c7459ffee2c64159f5b1f5d00532d3df102e1cf72a23e6d583e94b889cadd",
     "d84c46ad295b92c42e9b874c1e6761f273c1dfd573598f95d7787227665b6fb2": "d84c46ad295b92c42e9b874c1e6761f273c1dfd573598f95d7787227665b6fb2",
+    "d99c434dabeb40afb92b82052ae4c26f1b2d37e806446d9b66d5b19da2862532": "d99c434dabeb40afb92b82052ae4c26f1b2d37e806446d9b66d5b19da2862532",
     "da85a99415bd39b61dfc85a6ea1cb956a96667bd23a9b163d9144e881a49e162": "da85a99415bd39b61dfc85a6ea1cb956a96667bd23a9b163d9144e881a49e162",
     "f24e015e0003cc866749623ef76012317febbd9518eb5ff1a9032515702c0031": "f24e015e0003cc866749623ef76012317febbd9518eb5ff1a9032515702c0031",
     "f37bddf3e86dd0fd8b9d023cd0f71ef38f84e8e6ee9ae2a4e19c89295b57b2c0": "f37bddf3e86dd0fd8b9d023cd0f71ef38f84e8e6ee9ae2a4e19c89295b57b2c0",

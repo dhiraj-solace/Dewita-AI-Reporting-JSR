@@ -1,6 +1,7 @@
 "use client";
 
 import {useEffect, useMemo, useState} from "react";
+import Link from "next/link";
 import {CheckCircle2, Database, RefreshCw, ShieldCheck, XCircle} from "lucide-react";
 import {
   AiSqlAttempt,
@@ -11,7 +12,8 @@ import {
   listAiSqlAttempts,
   listSqlMistakeExamples,
   previewAiSqlAttempt,
-  reviewAiSqlAttempt
+  reviewAiSqlAttempt,
+  setSqlMistakeContextUsage
 } from "@/lib/api";
 import AdminGuard from "../AdminGuard";
 
@@ -67,6 +69,7 @@ export default function AiSqlAttemptsAdminPage() {
   const [events, setEvents] = useState<AiSqlAttemptEvent[]>([]);
   const [eventsLoading, setEventsLoading] = useState(false);
   const [reviewing, setReviewing] = useState("");
+  const [updatingMistake, setUpdatingMistake] = useState("");
   const [error, setError] = useState("");
 
   const selected = useMemo(
@@ -121,6 +124,19 @@ export default function AiSqlAttemptsAdminPage() {
       setError(err instanceof Error ? err.message : "Unable to load attempts");
     } finally {
       if (!silent) setLoading(false);
+    }
+  }
+
+  async function toggleMistakeContext(mistake: SqlMistakeExample) {
+    setUpdatingMistake(mistake.id);
+    setError("");
+    try {
+      const updated = await setSqlMistakeContextUsage(mistake.id, !mistake.use_in_context);
+      setMistakes((current) => current.map((item) => item.id === updated.id ? updated : item));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to update mistake context usage");
+    } finally {
+      setUpdatingMistake("");
     }
   }
 
@@ -400,7 +416,7 @@ export default function AiSqlAttemptsAdminPage() {
         <aside className="mistake-panel">
           <div className="attempt-list-header">
             <span>Mistakes</span>
-            <strong>{mistakes.length}</strong>
+            <Link href="/admin/sql-mistakes">Open full page</Link>
           </div>
           {mistakes.length === 0 && <div className="attempt-empty">No mistake examples yet.</div>}
           {mistakes.slice(0, 12).map((mistake) => (
@@ -408,6 +424,18 @@ export default function AiSqlAttemptsAdminPage() {
               <div>
                 <strong>{mistake.mistake_type}</strong>
                 <span>{mistake.risk_level}</span>
+              </div>
+              <div className="mistake-context-row">
+                <small className={mistake.use_in_context ? "context-chip included" : "context-chip excluded"}>
+                  {mistake.use_in_context ? "In context" : "Excluded"}
+                </small>
+                <button
+                  disabled={updatingMistake === mistake.id}
+                  onClick={() => toggleMistakeContext(mistake)}
+                  type="button"
+                >
+                  {updatingMistake === mistake.id ? "Updating" : mistake.use_in_context ? "Exclude" : "Include"}
+                </button>
               </div>
               <p>{mistake.user_question}</p>
               <small>{mistake.validation_reason || mistake.validator_feedback || "-"}</small>

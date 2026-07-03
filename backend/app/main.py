@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 from app.core.config import get_settings
 from app.db import get_engine
-from app.models import AiSqlAttempt, AiSqlAttemptEvent, AiSqlAttemptPreview, AiSqlAttemptReviewRequest, AuthResponse, GeneratedReport, LoginRequest, ReportAuditLog, ReportRequest, RoleReportPermissionsPayload, SavedReportShareRequest, SavedReportShareResponse, SavedReportSummary, ScheduledReport, ScheduledReportCreate, ScheduledReportRun, ScheduledReportUpdate, SqlMistakeExample, UserCreateRequest, UserPublic, UserUpdateRequest
+from app.models import AiSqlAttempt, AiSqlAttemptEvent, AiSqlAttemptPreview, AiSqlAttemptReviewRequest, AuthResponse, GeneratedReport, LoginRequest, ReportAuditLog, ReportRequest, RoleReportPermissionsPayload, SavedReportShareRequest, SavedReportShareResponse, SavedReportSummary, ScheduledReport, ScheduledReportCreate, ScheduledReportRun, ScheduledReportUpdate, SqlMistakeContextUsageRequest, SqlMistakeExample, SqlMistakeGroup, UserCreateRequest, UserPublic, UserUpdateRequest
 from app.services.catalog import load_report_catalog, load_report_categories, load_schema_catalog
 from app.services.ai_sql_attempt_store import get_attempt, list_attempt_events, list_attempts, review_attempt
 from app.services.admin_attempt_preview import preview_attempt_rows
@@ -18,13 +18,14 @@ from app.services.scheduled_reports import (
     get_scheduled_report,
     list_scheduled_report_runs,
     list_scheduled_reports,
+    run_due_scheduled_reports,
     run_scheduled_report_now,
     set_scheduled_report_status,
     start_scheduler_loop,
     stop_scheduler_loop,
     update_scheduled_report,
 )
-from app.services.sql_mistake_store import list_mistake_examples
+from app.services.sql_mistake_store import list_mistake_examples, list_mistake_groups, set_mistake_context_usage, set_mistake_group_context_usage
 from app.services.report_runner import ReportBuildError, build_report
 from app.services.users import authenticate_user, create_auth_token, create_user, get_user_from_token, list_users, require_super_admin_user, update_user
 
@@ -96,15 +97,18 @@ def _normalize_share_formats(formats: list[str]) -> list[str]:
 
 @app.on_event("startup")
 async def startup() -> None:
-    await start_scheduler_loop()
+    if settings.scheduler_enabled and not settings.is_vercel:
+        await start_scheduler_loop()
 
 
 @app.on_event("shutdown")
 async def shutdown() -> None:
-    await stop_scheduler_loop()
+    if settings.scheduler_enabled and not settings.is_vercel:
+        await stop_scheduler_loop()
 
 
 @app.get("/health")
+@app.get("/api/health")
 def health() -> dict:
     db_configured = settings.resolved_database_url is not None
     db_connected = False
@@ -129,6 +133,15 @@ def health() -> dict:
             )
         ),
     }
+
+
+@app.get("/api/cron/scheduled-reports")
+async def cron_scheduled_reports(authorization: str | None = Header(default=None)) -> dict:
+    expected = settings.cron_secret
+    if not expected or authorization != f"Bearer {expected}":
+        raise HTTPException(status_code=401, detail="Invalid cron authorization.")
+    results = await run_due_scheduled_reports(limit=10)
+    return {"ok": True, "processed": len(results), "results": results}
 
 
 @app.post("/api/auth/login", response_model=AuthResponse)
@@ -629,5 +642,47 @@ def admin_sql_mistake_examples(
     _require_super_admin_auth(authorization)
     try:
         return [SqlMistakeExample.model_validate(item) for item in list_mistake_examples(limit)]
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@app.get("/api/admin/sql-mistake-groups", response_model=list[SqlMistakeGroup])
+def admin_sql_mistake_groups(
+    limit: int = Query(default=100, ge=1, le=200),
+    authorization: str | None = Header(default=None),
+) -> list[SqlMistakeGroup]:
+    _require_super_admin_auth(authorization)
+    try:
+        return [SqlMistakeGroup.model_validate(item) for item in list_mistake_groups(limit)]
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@app.patch("/api/admin/sql-mistake-examples/{mistake_id}/context", response_model=SqlMistakeExample)
+def admin_update_sql_mistake_context_usage(
+    mistake_id: str,
+    payload: SqlMistakeContextUsageRequest,
+    authorization: str | None = Header(default=None),
+) -> SqlMistakeExample:
+    _require_super_admin_auth(authorization)
+    try:
+        return SqlMistakeExample.model_validate(set_mistake_context_usage(mistake_id, payload.use_in_context))
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@app.patch("/api/admin/sql-mistake-groups/{group_key}/context", response_model=SqlMistakeGroup)
+def admin_update_sql_mistake_group_context_usage(
+    group_key: str,
+    payload: SqlMistakeContextUsageRequest,
+    authorization: str | None = Header(default=None),
+) -> SqlMistakeGroup:
+    _require_super_admin_auth(authorization)
+    try:
+        return SqlMistakeGroup.model_validate(set_mistake_group_context_usage(group_key, payload.use_in_context))
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc

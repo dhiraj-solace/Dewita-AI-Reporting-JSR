@@ -493,13 +493,21 @@ async def _validate_generated_output_with_retries(
     llm1_outputs = 1
     llm2_calls = 0
     validator_elapsed_ms = 0
+    force_schema_refresh = False
+    report_category = resolve_report_category(request.report_category, request.question)
 
     for attempt in range(1, max_retries + 1):
         validation_errors: list[dict] = []
         retry_prompt = ""
         prepared_sql: str | None = None
-        schema = _safe_schema()
+        try:
+            schema = schema_service.get_schema(force_refresh=force_schema_refresh)
+        except Exception:
+            schema = _safe_schema()
+        force_schema_refresh = False
         mistake_saved = False
+        failed_safety: SafetyValidationResult | None = None
+        stop_retrying = False
         backend_validation_started = perf_counter()
 
         _console_validation_log(f"validator attempt {attempt} started for output {llm1_outputs}")
@@ -536,6 +544,8 @@ async def _validate_generated_output_with_retries(
             _console_attempt_detail(attempt_id, "validator", {"stage": "query_validation_1", "checking_sql": prepared_sql})
             safety = validate_sql_safety(prepared_sql, schema)
             if not safety.isValid:
+                failed_safety = safety
+                force_schema_refresh = safety.mistakeType in {"invalid_table", "invalid_column"}
                 elapsed_ms = int((perf_counter() - backend_validation_started) * 1000)
                 validator_elapsed_ms += elapsed_ms
                 update_attempt(attempt_id, validator_elapsed_ms=validator_elapsed_ms)
@@ -551,7 +561,16 @@ async def _validate_generated_output_with_retries(
                         "risk": safety.risk,
                     },
                 )
-                _save_mistake(attempt_id, request.question, prepared_sql, safety)
+                _save_mistake(
+                    attempt_id,
+                    request.question,
+                    prepared_sql,
+                    safety,
+                    validation_stage="schema" if force_schema_refresh else "safety",
+                    validator_source="backend",
+                    generated_output_number=llm1_outputs,
+                    retry_number=attempt,
+                )
                 mistake_saved = True
                 raise ValueError(safety.reason)
             _validate_requested_limit_alignment(prepared_sql, requested_result_limit)
@@ -632,14 +651,32 @@ async def _validate_generated_output_with_retries(
             _console_validation_log(
                 f"llm2 validation call {attempt} skipped smollm: {_short_reason(last_error_message)}"
             )
-            validation_errors = [
-                {
-                    "type": "safety_error",
-                    "message": str(exc),
-                    "fix_hint": "Return one safe read-only SELECT query that matches the report request.",
-                }
-            ]
-            retry_prompt = str(exc)
+            if failed_safety is not None:
+                validation_errors = [
+                    {
+                        "type": failed_safety.mistakeType,
+                        "message": failed_safety.reason,
+                        "fix_hint": failed_safety.fixHint,
+                        "missing_table": failed_safety.table,
+                        "missing_column": failed_safety.column,
+                        "suggestion": failed_safety.suggestion,
+                    }
+                ]
+                retry_prompt = _structured_retry_prompt(
+                    failed_safety.reason,
+                    failed_safety.fixHint,
+                    failed_safety.table,
+                    failed_safety.column,
+                )
+            else:
+                validation_errors = [
+                    {
+                        "type": "safety_error",
+                        "message": str(exc),
+                        "fix_hint": "Return one safe read-only SELECT query that matches the report request.",
+                    }
+                ]
+                retry_prompt = str(exc)
         else:
             try:
                 if not settings.llm_validator_enabled:
@@ -664,6 +701,11 @@ async def _validate_generated_output_with_retries(
                     question=request.question,
                     schema=schema,
                     generated_sql=prepared_sql,
+                    report_category=report_category,
+                    start_date=start_date,
+                    end_date=end_date,
+                    current_user_role=request.current_user_role,
+                    deterministic_validation=safety.model_dump(),
                 )
                 _console_validation_detail(
                     "llm2 validation request",
@@ -673,6 +715,11 @@ async def _validate_generated_output_with_retries(
                     question=request.question,
                     schema=schema,
                     generated_sql=prepared_sql,
+                    report_category=report_category,
+                    start_date=start_date,
+                    end_date=end_date,
+                    current_user_role=request.current_user_role,
+                    deterministic_validation=safety.model_dump(),
                 )
                 validator_elapsed_ms += int((perf_counter() - validator_started) * 1000)
                 update_attempt(attempt_id, validator_elapsed_ms=validator_elapsed_ms)
@@ -680,28 +727,47 @@ async def _validate_generated_output_with_retries(
                 _console_attempt_detail(attempt_id, "validator", validation.model_dump())
             except OutputValidationError as exc:
                 validator_elapsed_ms += int((perf_counter() - validator_started) * 1000)
-                fallback_message = (
-                    "Local Smollm validator returned an unusable response, so backend safety and schema "
-                    "validation were used as the final check."
-                )
-                warnings.append(fallback_message)
-                update_attempt(
-                    attempt_id,
-                    validator_status="success",
-                    validator_feedback=fallback_message,
-                    final_sql=prepared_sql,
-                    validator_elapsed_ms=validator_elapsed_ms,
-                )
-                retry_attempts.append(
-                    _validator_attempt(attempt, "success", fallback_message)
-                )
-                logger.warning("Validator attempt %s fell back to backend validation: %s", attempt, _short_reason(str(exc)))
-                _console_validation_log(
-                    f"llm2 smollm call {llm2_calls} unusable; accepted by backend validation"
-                )
-                _console_attempt_log(attempt_id, "validator", "smollm unusable; backend validation accepted SQL")
-                _console_attempt_detail(attempt_id, "validator", {"fallback_reason": str(exc)})
-                return current, prepared_sql
+                if settings.llm_validator_strict_mode:
+                    last_error_message = f"Judge LLM unavailable: {exc}"
+                    validation_errors = [
+                        {
+                            "type": "judge_unavailable",
+                            "message": last_error_message,
+                            "fix_hint": "Retry validation when the Judge LLM is available.",
+                        }
+                    ]
+                    retry_prompt = last_error_message
+                    update_attempt(
+                        attempt_id,
+                        validator_status="failed",
+                        validator_feedback=last_error_message,
+                        validator_elapsed_ms=validator_elapsed_ms,
+                    )
+                    _console_validation_log(f"judge unavailable in strict mode: {_short_reason(str(exc))}")
+                    _console_attempt_log(attempt_id, "validator", "judge unavailable; strict mode rejected SQL")
+                else:
+                    fallback_message = (
+                        "Judge LLM returned an unusable response, so backend safety and schema "
+                        "validation were used as the final check."
+                    )
+                    warnings.append(fallback_message)
+                    update_attempt(
+                        attempt_id,
+                        validator_status="success",
+                        validator_feedback=fallback_message,
+                        final_sql=prepared_sql,
+                        validator_elapsed_ms=validator_elapsed_ms,
+                    )
+                    retry_attempts.append(
+                        _validator_attempt(attempt, "success", fallback_message)
+                    )
+                    logger.warning("Validator attempt %s fell back to backend validation: %s", attempt, _short_reason(str(exc)))
+                    _console_validation_log(
+                        f"judge call {llm2_calls} unusable; accepted by backend validation"
+                    )
+                    _console_attempt_log(attempt_id, "validator", "judge unusable; backend validation accepted SQL")
+                    _console_attempt_detail(attempt_id, "validator", {"fallback_reason": str(exc)})
+                    return current, prepared_sql
             else:
                 if validation.is_valid:
                     update_attempt(
@@ -760,6 +826,8 @@ async def _validate_generated_output_with_retries(
                 last_error_message = validation.reason or _validation_error_summary(
                     [error.model_dump() for error in validation.errors]
                 )
+                stop_retrying = not validation.retryable
+                force_schema_refresh = validation.error_type in {"invalid_table", "invalid_column"}
                 _console_validation_log(f"llm2 validation failed: {_short_reason(last_error_message)}")
                 _console_validation_detail(
                     "llm2 validation final result",
@@ -774,17 +842,37 @@ async def _validate_generated_output_with_retries(
                     attempt_id,
                     request.question,
                     prepared_sql,
-                    SafetyValidationResult(False, last_error_message, "Regenerate SQL using validator feedback.", "medium", _mistake_type_from_reason(last_error_message)),
+                    SafetyValidationResult(
+                        False,
+                        last_error_message,
+                        validation.fix_hint or "Regenerate SQL using Judge feedback.",
+                        "medium",
+                        validation.error_type or _mistake_type_from_reason(last_error_message),
+                        validation.missing_table,
+                        validation.missing_column,
+                    ),
+                    validation_stage=validation.validation_stage or "judge",
+                    validator_source="judge_llm",
+                    generated_output_number=llm1_outputs,
+                    retry_number=attempt,
+                    use_in_context=False,
                 )
                 update_attempt(attempt_id, validator_status="failed", validator_feedback=last_error_message)
                 validation_errors = [
                     {
-                        "type": "validation_error",
+                        "type": validation.error_type or "validation_error",
                         "message": last_error_message,
-                        "fix_hint": "Regenerate only a corrected SQL query.",
+                        "fix_hint": validation.fix_hint or "Regenerate only a corrected SQL query.",
+                        "missing_table": validation.missing_table,
+                        "missing_column": validation.missing_column,
                     }
                 ]
-                retry_prompt = last_error_message
+                retry_prompt = _structured_retry_prompt(
+                    last_error_message,
+                    validation.fix_hint,
+                    validation.missing_table,
+                    validation.missing_column,
+                )
 
         retry_attempts.append(_validator_attempt(attempt, "failed", last_error_message))
         logger.info("Validator attempt %s rejected output: %s", attempt, _short_reason(last_error_message))
@@ -798,6 +886,9 @@ async def _validate_generated_output_with_retries(
         )
 
         if attempt >= max_retries:
+            break
+        if stop_retrying:
+            _console_attempt_log(attempt_id, "validator", "judge marked rejection as non-retryable")
             break
 
         _console_validation_log(f"llm1 retry {attempt + 1} started after validator rejection")
@@ -813,7 +904,6 @@ async def _validate_generated_output_with_retries(
         _console_validation_detail("data passed to llm1 retry", llm1_retry_payload)
         try:
             retry_generation_started = perf_counter()
-            report_category = resolve_report_category(request.report_category, request.question)
             regenerated = await generate_sql_validation_retry_with_ai(
                 llm1_retry_payload["user_query"],
                 llm1_retry_payload["start_date"],
@@ -934,11 +1024,33 @@ def _validation_error_summary(validation_errors: list[dict]) -> str:
     return _short_reason(f"{error_type}: {message}")
 
 
+def _structured_retry_prompt(
+    reason: str,
+    fix_hint: str | None = None,
+    missing_table: str | None = None,
+    missing_column: str | None = None,
+) -> str:
+    parts = [reason.strip()]
+    if missing_table:
+        parts.append(f"Missing table: {missing_table}.")
+    if missing_column:
+        parts.append(f"Missing column: {missing_column}.")
+    if fix_hint:
+        parts.append(f"Required correction: {fix_hint.strip()}")
+    return " ".join(part for part in parts if part)
+
+
 def _save_mistake(
     attempt_id: str,
     user_question: str,
     wrong_sql: str | None,
     safety: SafetyValidationResult,
+    *,
+    validation_stage: str = "backend",
+    validator_source: str = "backend",
+    generated_output_number: int | None = None,
+    retry_number: int | None = None,
+    use_in_context: bool | None = None,
 ) -> None:
     create_mistake_example(
         query_attempt_id=attempt_id,
@@ -949,6 +1061,14 @@ def _save_mistake(
         mistake_type=safety.mistakeType,
         risk_level=safety.riskLevel,
         corrected_sql=safety.fixedSuggestion,
+        validation_stage=validation_stage,
+        validator_source=validator_source,
+        missing_table=safety.table,
+        missing_column=safety.column,
+        fix_hint=safety.fixHint,
+        generated_output_number=generated_output_number,
+        retry_number=retry_number,
+        use_in_context=use_in_context,
     )
 
 

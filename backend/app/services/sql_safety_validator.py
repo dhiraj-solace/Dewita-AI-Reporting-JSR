@@ -17,14 +17,28 @@ class SafetyValidationResult:
     fixedSuggestion: str
     riskLevel: str
     mistakeType: str = "unknown"
+    table: str | None = None
+    column: str | None = None
+    suggestion: str | None = None
 
-    def model_dump(self) -> dict[str, str | bool]:
+    @property
+    def fixHint(self) -> str:
+        return self.fixedSuggestion
+
+    @property
+    def risk(self) -> str:
+        return self.riskLevel
+
+    def model_dump(self) -> dict[str, str | bool | None]:
         return {
             "isValid": self.isValid,
             "reason": self.reason,
             "fixedSuggestion": self.fixedSuggestion,
             "riskLevel": self.riskLevel,
             "mistakeType": self.mistakeType,
+            "table": self.table,
+            "column": self.column,
+            "suggestion": self.suggestion,
         }
 
 
@@ -43,7 +57,16 @@ def validate_sql_safety(sql: str, schema: dict[str, Any], require_limit: bool = 
     except SchemaValidationError as exc:
         message = exc.diagnosis.message
         mistake_type = "invalid_column" if exc.diagnosis.column else "invalid_table"
-        return SafetyValidationResult(False, message, "Use only tables and columns from the schema.", "medium", mistake_type)
+        return SafetyValidationResult(
+            False,
+            message,
+            exc.diagnosis.suggestion or "Use only tables and columns from the schema.",
+            "medium",
+            mistake_type,
+            exc.diagnosis.table,
+            exc.diagnosis.column,
+            exc.diagnosis.suggestion,
+        )
     except ValueError as exc:
         message = str(exc)
         return SafetyValidationResult(False, message, _suggestion_for_error(message), _risk_for_error(message), _mistake_type(message))

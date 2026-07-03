@@ -13,8 +13,8 @@ from app.services.schema_validator import extract_cte_names
 logger = logging.getLogger(__name__)
 
 VALIDATION_SYSTEM_PROMPT = """
-You are a strict validation layer for an AI reporting backend.
-Validate whether LLM-1's report output is safe, schema-correct, and aligned with the user's report request.
+You are the Judge LLM for an AI reporting backend.
+Validate whether LLM-1's SQL is schema-correct, safe, and semantically aligned with the user's report request.
 
 Rules:
 - Return strict JSON only. No markdown, no comments, no prose outside JSON.
@@ -24,6 +24,10 @@ Rules:
 - Reject unsafe SQL operations: INSERT, UPDATE, DELETE, DROP, ALTER, TRUNCATE, CREATE, GRANT, REVOKE, CALL, EXECUTE, MERGE.
 - Check table names, column names against the provided database_schema only.
 - Do not forgive column or table names that only sound plausible; they must exist in database_schema.
+- Never override deterministic_validation. If it reports a failure, reject the SQL using that exact root cause.
+- After identifiers pass, judge whether joins, filters, date ranges, grouping, aggregation, ordering,
+  and selected business metrics correctly answer the user_question.
+- Treat aliases and CTE names as SQL-local names, not physical schema tables.
 
 LIMIT RULES (read carefully):
 - ONLY check or enforce a LIMIT if the user explicitly used one of these phrases in their query:
@@ -59,15 +63,30 @@ SAFETY RULES:
 - Only SELECT statements and CTEs (WITH ... SELECT) are allowed.
 
 OUTPUT RULES:
-- If valid, return exactly: {"is_valid": true, "reason": ""}
-- If invalid, return exactly: {"is_valid": false, "reason": "one clear, specific issue"}
+- If valid, return exactly:
+  {"is_valid": true, "reason": "", "error_type": "", "validation_stage": "judge",
+   "fix_hint": "", "retryable": false, "missing_table": null, "missing_column": null}
+- If invalid, return the same shape with one clear root cause.
 - The reason must describe only one issue. Do not list multiple issues.
 - Do not mention LIMIT in the reason unless the user explicitly requested a specific top/bottom/first/last N.
+- error_type must be one of: invalid_table, invalid_column, wrong_join, wrong_filter,
+  wrong_aggregation, wrong_ordering, wrong_date_range, unsafe_query, limit_mismatch,
+  permission_denied, unclear_question, unknown.
+- validation_stage must be "schema", "safety", or "judge".
+- missing_table and missing_column must be null unless that exact identifier is missing.
+- fix_hint must be a concrete correction instruction for LLM-1.
+- retryable should be false only when the user question needs clarification.
 
 Required JSON shape:
 {
   "is_valid": true,
-  "reason": ""
+  "reason": "",
+  "error_type": "",
+  "validation_stage": "judge",
+  "fix_hint": "",
+  "retryable": false,
+  "missing_table": null,
+  "missing_column": null
 }
 """.strip()
 
@@ -80,29 +99,71 @@ async def validate_llm_report_output(
     question: str,
     schema: dict[str, Any],
     generated_sql: str,
+    report_category: str | None = None,
+    start_date: str | None = None,
+    end_date: str | None = None,
+    current_user_role: str | None = None,
+    deterministic_validation: dict[str, Any] | None = None,
 ) -> ValidationResult:
     settings = get_settings()
     if not settings.llm_validator_enabled:
         return ValidationResult(is_valid=True, errors=[], retry_prompt="")
     
-    payload = build_validation_payload(question=question, schema=schema, generated_sql=generated_sql)
-    body = {
-        "model": settings.llm_validator_model,
-        "stream": False,
-        "format": "json",
-        "options": {"temperature": 0,"top_p": 1,"top_k": 1,"num_predict": 200,"num_ctx": 8192,},
-        "messages": [
-            {"role": "system", "content": VALIDATION_SYSTEM_PROMPT},
-            {"role": "user", "content": json.dumps(payload, ensure_ascii=False)},
-        ],
-    }
+    payload = build_validation_payload(
+        question=question,
+        schema=schema,
+        generated_sql=generated_sql,
+        report_category=report_category,
+        start_date=start_date,
+        end_date=end_date,
+        current_user_role=current_user_role,
+        deterministic_validation=deterministic_validation,
+    )
+    messages = [
+        {"role": "system", "content": VALIDATION_SYSTEM_PROMPT},
+        {"role": "user", "content": json.dumps(payload, ensure_ascii=False)},
+    ]
+    provider = settings.llm_validator_provider.strip().lower()
+    if provider == "openrouter":
+        if not settings.openrouter_api_key:
+            raise OutputValidationError("OpenRouter Judge is enabled but OPENROUTER_API_KEY is missing.")
+        url = "https://openrouter.ai/api/v1/chat/completions"
+        body = {
+            "model": settings.llm_validator_openrouter_model or settings.openrouter_model,
+            "temperature": 0,
+            "max_tokens": 300,
+            "response_format": {"type": "json_object"},
+            "messages": messages,
+        }
+        headers = {
+            "Authorization": f"Bearer {settings.openrouter_api_key}",
+            "Content-Type": "application/json",
+        }
+        if settings.openrouter_site_url:
+            headers["HTTP-Referer"] = settings.openrouter_site_url
+        if settings.openrouter_app_name:
+            headers["X-Title"] = settings.openrouter_app_name
+    else:
+        url = settings.llm_validator_url
+        body = {
+            "model": settings.llm_validator_model,
+            "stream": False,
+            "format": "json",
+            "options": {"temperature": 0, "top_p": 1, "top_k": 1, "num_predict": 300, "num_ctx": 8192},
+            "messages": messages,
+        }
+        headers = {}
     
     try:
         timeout = httpx.Timeout(settings.llm_validator_timeout_seconds, connect=10)
         async with httpx.AsyncClient(timeout=timeout) as client:
-            response = await client.post(settings.llm_validator_url, json=body)
+            response = await client.post(url, json=body, headers=headers)
             response.raise_for_status()
-        content = response.json().get("message", {}).get("content", "{}")
+        response_payload = response.json()
+        if provider == "openrouter":
+            content = response_payload.get("choices", [{}])[0].get("message", {}).get("content", "{}")
+        else:
+            content = response_payload.get("message", {}).get("content", "{}")
         return _parse_validation_result(content)
     except httpx.HTTPError as exc:
         message = _http_error_message(exc)
@@ -118,9 +179,18 @@ def build_validation_payload(
     question: str,
     schema: dict[str, Any],
     generated_sql: str,
+    report_category: str | None = None,
+    start_date: str | None = None,
+    end_date: str | None = None,
+    current_user_role: str | None = None,
+    deterministic_validation: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     return {
         "user_question": question,
+        "report_category": report_category,
+        "requested_date_range": {"start_date": start_date, "end_date": end_date},
+        "current_user_role": current_user_role,
+        "deterministic_validation": deterministic_validation or {"is_valid": True},
         "database_schema": _compact_schema(schema, generated_sql),
         "llm_1_generated_sql": generated_sql,
     }
@@ -135,6 +205,12 @@ def _parse_validation_result(content: str) -> ValidationResult:
         raise TypeError("Validator response must be a JSON object.")
     if "reason" not in parsed:
         parsed["reason"] = _reason_from_errors(parsed.get("errors"))
+    parsed.setdefault("error_type", "")
+    parsed.setdefault("validation_stage", "judge")
+    parsed.setdefault("fix_hint", "")
+    parsed.setdefault("retryable", not bool(parsed.get("is_valid")))
+    parsed.setdefault("missing_table", None)
+    parsed.setdefault("missing_column", None)
     parsed.setdefault("errors", [])
     parsed.setdefault("retry_prompt", "")
     return ValidationResult.model_validate(parsed)

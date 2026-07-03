@@ -227,7 +227,28 @@ export type SqlMistakeExample = {
   corrected_sql?: string | null;
   final_correct_sql?: string | null;
   risk_level: string;
+  use_in_context: boolean;
+  validation_stage?: string;
+  validator_source?: string;
+  missing_table?: string | null;
+  missing_column?: string | null;
+  fix_hint?: string | null;
+  mistake_fingerprint?: string | null;
+  generated_output_number?: number | null;
+  retry_number?: number | null;
   created_at: string;
+};
+
+export type SqlMistakeGroup = {
+  group_key: string;
+  user_question: string;
+  mistake_type: string;
+  reason: string;
+  risk_level: string;
+  occurrence_count: number;
+  included_count: number;
+  latest_created_at: string;
+  examples: SqlMistakeExample[];
 };
 
 export type AiSqlAttemptPreview = {
@@ -262,7 +283,8 @@ export class ApiError extends Error {
   }
 }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:7000";
+const API_URL = process.env.NEXT_PUBLIC_API_URL
+  ?? (process.env.NODE_ENV === "production" ? "" : "http://localhost:7000");
 const AUTH_TOKEN_KEY = "devita_auth_token";
 const AUTH_USER_KEY = "devita_auth_user";
 
@@ -589,6 +611,44 @@ export async function listSqlMistakeExamples(): Promise<SqlMistakeExample[]> {
   const response = await fetch(`${API_URL}/api/admin/sql-mistake-examples?limit=100`, {headers: authHeaders(), cache: "no-store"});
   if (!response.ok) {
     throw new ApiError("Unable to load SQL mistake examples");
+  }
+  return response.json();
+}
+
+export async function listSqlMistakeGroups(): Promise<SqlMistakeGroup[]> {
+  const response = await fetch(`${API_URL}/api/admin/sql-mistake-groups?limit=100`, {headers: authHeaders(), cache: "no-store"});
+  if (!response.ok) {
+    throw new ApiError("Unable to load SQL mistake groups");
+  }
+  return response.json();
+}
+
+export async function setSqlMistakeContextUsage(
+  mistakeId: string,
+  useInContext: boolean
+): Promise<SqlMistakeExample> {
+  const response = await fetch(`${API_URL}/api/admin/sql-mistake-examples/${mistakeId}/context`, {
+    method: "PATCH",
+    headers: authHeaders({"Content-Type": "application/json"}),
+    body: JSON.stringify({use_in_context: useInContext})
+  });
+  if (!response.ok) {
+    throw await apiError(response, "Unable to update mistake context usage");
+  }
+  return response.json();
+}
+
+export async function setSqlMistakeGroupContextUsage(
+  groupKey: string,
+  useInContext: boolean
+): Promise<SqlMistakeGroup> {
+  const response = await fetch(`${API_URL}/api/admin/sql-mistake-groups/${groupKey}/context`, {
+    method: "PATCH",
+    headers: authHeaders({"Content-Type": "application/json"}),
+    body: JSON.stringify({use_in_context: useInContext})
+  });
+  if (!response.ok) {
+    throw await apiError(response, "Unable to update mistake group context usage");
   }
   return response.json();
 }

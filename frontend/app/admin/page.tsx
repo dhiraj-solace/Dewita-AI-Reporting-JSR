@@ -9,6 +9,7 @@ import {
   CalendarClock,
   Database,
   FileClock,
+  FileWarning,
   LayoutDashboard,
   Menu,
   RefreshCw,
@@ -110,6 +111,15 @@ export default function AdminConsolePage() {
       icon: Bot,
       metric: `${attempts.length}`,
       meta: `${countSuccessful(attempts)} successful`
+    },
+    {
+      key: "sql-mistakes",
+      title: "SQL Mistakes",
+      description: "Group repeated mistakes, inspect examples, and choose what feeds future context.",
+      href: "/admin/sql-mistakes",
+      icon: FileWarning,
+      metric: `${attempts.filter((attempt) => attempt.execution_status === "failed").length}`,
+      meta: "mistake review"
     },
     {
       key: "report-permissions",

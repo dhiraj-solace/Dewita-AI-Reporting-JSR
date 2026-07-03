@@ -1927,6 +1927,13 @@ tr:nth-child(even) td {
   color: #225edc;
 }
 
+.attempt-list-header a {
+  color: #225edc;
+  font-size: 12px;
+  font-weight: 900;
+  text-decoration: none;
+}
+
 .attempt-row {
   width: 100%;
   min-height: 112px;
@@ -2285,8 +2292,47 @@ tr:nth-child(even) td {
   text-transform: uppercase;
 }
 
+.mistake-row .mistake-context-row {
+  justify-content: flex-start;
+}
+
+.mistake-row .context-chip {
+  border-radius: 999px;
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+.mistake-row .context-chip.included {
+  background: #e3f8ee;
+  color: #146c43;
+}
+
+.mistake-row .context-chip.excluded {
+  background: #f2f4f7;
+  color: #6c7895;
+}
+
+.mistake-context-row button {
+  min-height: 30px;
+  border: 1px solid #cbd9ec;
+  border-radius: 5px;
+  background: #fff;
+  color: #243955;
+  padding: 0 10px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.mistake-context-row button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
 .mistake-row p,
-.mistake-row small {
+.mistake-row small:not(.context-chip) {
   display: block;
   color: #53647d;
   font-size: 13px;
@@ -2309,6 +2355,190 @@ tr:nth-child(even) td {
 
 .permission-shell {
   overflow: auto;
+}
+
+.sql-mistakes-shell {
+  overflow: auto;
+}
+
+.sql-mistakes-layout {
+  height: calc(100vh - 132px);
+  min-height: 640px;
+  display: grid;
+  grid-template-columns: 380px minmax(0, 1fr);
+  gap: 14px;
+}
+
+.sql-mistake-groups,
+.sql-mistake-detail {
+  border: 1px solid #d7e2f2;
+  border-radius: 7px;
+  background: #fff;
+  padding: 14px;
+  overflow: auto;
+}
+
+.sql-mistake-group {
+  width: 100%;
+  min-height: 84px;
+  border: 1px solid #e1e8f2;
+  border-radius: 6px;
+  background: #fbfdff;
+  color: #243955;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  text-align: left;
+  padding: 10px;
+  margin-bottom: 8px;
+}
+
+.sql-mistake-group.active {
+  border-color: #4f73dc;
+  background: #eef4ff;
+}
+
+.sql-mistake-group span {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+}
+
+.sql-mistake-group strong,
+.sql-mistake-group small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sql-mistake-group em {
+  color: #4f73dc;
+  font-style: normal;
+  font-weight: 900;
+}
+
+.sql-mistake-group .context-chip {
+  grid-column: 1 / -1;
+  width: fit-content;
+}
+
+.sql-mistake-detail-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  border-bottom: 1px solid #e1e8f2;
+  padding-bottom: 14px;
+  margin-bottom: 14px;
+}
+
+.sql-mistake-detail-header h2 {
+  font-size: 24px;
+  color: #142a46;
+  margin: 4px 0 8px;
+}
+
+.sql-mistake-detail-header span,
+.sql-mistake-detail-header p {
+  color: #53647d;
+  font-weight: 800;
+}
+
+.sql-mistake-actions {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.sql-mistake-actions button {
+  min-height: 38px;
+  border: 1px solid #cbd9ec;
+  border-radius: 6px;
+  background: #fff;
+  color: #243955;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 12px;
+  font-weight: 800;
+}
+
+.sql-mistake-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.sql-mistake-stats div {
+  border: 1px solid #e1e8f2;
+  border-radius: 6px;
+  background: #fbfdff;
+  padding: 12px;
+  display: grid;
+  gap: 5px;
+}
+
+.sql-mistake-stats span {
+  color: #6c7895;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.sql-mistake-stats strong {
+  color: #142a46;
+  font-size: 20px;
+}
+
+.sql-mistake-examples {
+  display: grid;
+  gap: 10px;
+}
+
+.sql-mistake-example {
+  border: 1px solid #dbe5f3;
+  border-radius: 6px;
+  background: #fbfdff;
+  padding: 12px;
+}
+
+.sql-mistake-example header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.sql-mistake-example p {
+  color: #53647d;
+  margin-bottom: 8px;
+}
+
+.sql-mistake-example summary {
+  color: #4f73dc;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.sql-mistake-example pre {
+  max-height: 220px;
+  overflow: auto;
+  border-radius: 5px;
+  background: var(--sql);
+  color: #f4f8ff;
+  padding: 10px;
+  font-size: 12px;
+  line-height: 1.4;
+  white-space: pre-wrap;
+}
+
+.context-chip.partial {
+  background: #fff6dc;
+  color: #835200;
 }
 
 .permission-layout {

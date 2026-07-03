@@ -4,6 +4,8 @@ import re
 from pathlib import Path
 from typing import Any
 
+from app.core.config import get_settings
+
 VECTOR_STORE_PATH = Path(__file__).resolve().parents[1] / "data" / "vector_store"
 COLLECTION_NAME = "devita_gold_sql_examples"
 EMBEDDING_DIMENSIONS = 256
@@ -25,6 +27,8 @@ class HashEmbeddingFunction:
 
 
 def is_vector_store_available() -> bool:
+    if not _is_enabled():
+        return False
     try:
         _collection()
     except Exception:
@@ -33,6 +37,8 @@ def is_vector_store_available() -> bool:
 
 
 def upsert_gold_example(attempt: dict[str, Any]) -> None:
+    if not _is_enabled():
+        return
     collection = _collection()
     attempt_id = str(attempt.get("id") or "")
     question = str(attempt.get("user_question") or "")
@@ -54,6 +60,8 @@ def upsert_gold_example(attempt: dict[str, Any]) -> None:
 
 
 def search_gold_examples(question: str, limit: int = 3) -> list[dict[str, str]]:
+    if not _is_enabled():
+        return []
     collection = _collection()
     result = collection.query(query_embeddings=[_hash_embedding(question)], n_results=limit)
     metadatas = result.get("metadatas") or [[]]
@@ -76,6 +84,11 @@ def _collection() -> Any:
         name=COLLECTION_NAME,
         metadata={"hnsw:space": "cosine"},
     )
+
+
+def _is_enabled() -> bool:
+    settings = get_settings()
+    return bool(settings.vector_store_enabled and not settings.is_vercel)
 
 
 def _hash_embedding(document: str) -> list[float]:

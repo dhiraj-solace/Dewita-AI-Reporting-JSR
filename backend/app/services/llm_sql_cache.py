@@ -110,7 +110,7 @@ def get_cached_sql(
     schema_snapshot: dict[str, Any],
     report_category: str | None = None,
 ) -> tuple[dict[str, Any] | None, str]:
-    if not get_settings().llm_sql_cache_enabled:
+    if not get_settings().llm_sql_cache_enabled or get_settings().is_vercel:
         return None, "disabled"
 
     identity = build_cache_identity(question, start_date, end_date, limit, schema_snapshot, report_category)
@@ -149,7 +149,7 @@ def set_cached_sql(
     tags: list[str] | None = None,
     report_category: str | None = None,
 ) -> dict[str, Any] | None:
-    if not get_settings().llm_sql_cache_enabled:
+    if not get_settings().llm_sql_cache_enabled or get_settings().is_vercel:
         return None
     sql = str(generated.get("sql") or "").strip()
     if not sql:
@@ -214,6 +214,8 @@ def set_cached_sql(
 
 
 def invalidate_cache(tags: list[str] | None = None, reason: str = "manual") -> int:
+    if not get_settings().llm_sql_cache_enabled or get_settings().is_vercel:
+        return 0
     cache = _load_cache()
     entries = cache.get("entries", {})
     tag_set = set(tags or [])

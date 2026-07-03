@@ -65,6 +65,12 @@ class ValidationErrorItem(BaseModel):
 class ValidationResult(BaseModel):
     is_valid: bool
     reason: str = ""
+    error_type: str = ""
+    validation_stage: str = "judge"
+    fix_hint: str = ""
+    retryable: bool = True
+    missing_table: str | None = None
+    missing_column: str | None = None
     errors: list[ValidationErrorItem] = []
     retry_prompt: str = ""
 
@@ -251,7 +257,32 @@ class SqlMistakeExample(BaseModel):
     corrected_sql: str | None = None
     final_correct_sql: str | None = None
     risk_level: str
+    use_in_context: bool = True
+    validation_stage: str = "backend"
+    validator_source: str = "backend"
+    missing_table: str | None = None
+    missing_column: str | None = None
+    fix_hint: str | None = None
+    mistake_fingerprint: str | None = None
+    generated_output_number: int | None = None
+    retry_number: int | None = None
     created_at: Any
+
+
+class SqlMistakeContextUsageRequest(BaseModel):
+    use_in_context: bool
+
+
+class SqlMistakeGroup(BaseModel):
+    group_key: str
+    user_question: str
+    mistake_type: str
+    reason: str
+    risk_level: str
+    occurrence_count: int
+    included_count: int
+    latest_created_at: Any
+    examples: list[SqlMistakeExample]
 
 
 class AiSqlAttemptPreview(BaseModel):

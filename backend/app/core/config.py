@@ -43,14 +43,20 @@ class Settings(BaseSettings):
     llm_sql_cache_path: str = "data/llm_sql_cache.json"
     llm_sql_cache_ttl_days: int = 2
     llm_validator_enabled: bool = False
+    llm_validator_provider: str = "ollama"
     llm_validator_url: str = "http://localhost:11434/api/chat"
     llm_validator_model: str = "smollm"
+    llm_validator_openrouter_model: str | None = None
     llm_validator_max_retries: int = 3
     llm_validator_timeout_seconds: float = 20
+    llm_validator_strict_mode: bool = False
+    vector_store_enabled: bool = True
     max_rows: int = 500
     query_timeout_seconds: int = 60
     auth_secret_key: str = "devita-local-auth-secret-change-me"
     auth_token_ttl_minutes: int = 720
+    scheduler_enabled: bool = True
+    cron_secret: str | None = None
 
     smtp_host: str = "smtp.gmail.com"
     smtp_port: int = 587
@@ -84,6 +90,10 @@ class Settings(BaseSettings):
             f"@{self.db_host}:{self.db_port}/{self.db_name}"
             "?charset=utf8mb4"
         )
+
+    @property
+    def is_vercel(self) -> bool:
+        return os.getenv("VERCEL") == "1"
 
 
 @lru_cache
