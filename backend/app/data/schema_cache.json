@@ -1,0 +1,5001 @@
+{
+  "source_files": [
+    "live_database"
+  ],
+  "fetched_at": "2026-06-04T18:40:37.923608",
+  "notes": [
+    "Schema fetched from live database",
+    "Last updated: 2026-06-04T18:40:37.923608",
+    "Static schema metadata preserved where available"
+  ],
+  "relationships": [
+    {
+      "from": "product_task.product_id",
+      "to": "products.id",
+      "type": "many_to_one"
+    },
+    {
+      "from": "product_task.project_id",
+      "to": "projects.id",
+      "type": "many_to_one"
+    },
+    {
+      "from": "change_open_value.project_id",
+      "to": "projects.id",
+      "type": "many_to_one"
+    },
+    {
+      "from": "task_hours.task_id",
+      "to": "product_task.id",
+      "type": "many_to_one"
+    },
+    {
+      "from": "task_hours.user_id",
+      "to": "users.id",
+      "type": "many_to_one"
+    },
+    {
+      "from": "project_assistances.project_id",
+      "to": "projects.id",
+      "type": "many_to_one"
+    },
+    {
+      "from": "timesheets.product_id",
+      "to": "products.id",
+      "type": "many_to_one"
+    },
+    {
+      "from": "timesheets.project_id",
+      "to": "projects.id",
+      "type": "many_to_one"
+    },
+    {
+      "from": "timesheets.user_id",
+      "to": "users.id",
+      "type": "many_to_one"
+    }
+  ],
+  "tables": [
+    {
+      "name": "admins",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "description": "Primary key"
+        },
+        {
+          "name": "name",
+          "type": "varchar",
+          "description": "Administrator name"
+        },
+        {
+          "name": "email",
+          "type": "varchar",
+          "description": "Admin login email"
+        },
+        {
+          "name": "email_verified_at",
+          "type": "timestamp",
+          "description": "Email verification timestamp"
+        },
+        {
+          "name": "password",
+          "type": "varchar",
+          "description": "Hashed password"
+        },
+        {
+          "name": "remember_token",
+          "type": "varchar",
+          "description": "Remember token"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "description": "Creation timestamp"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "description": "Update timestamp"
+        }
+      ],
+      "description": "Administrator login records from migration descriptions.",
+      "aliases": []
+    },
+    {
+      "name": "ai_sql_attempts",
+      "columns": [
+        {
+          "name": "id",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "user_question",
+          "type": "text",
+          "description": ""
+        },
+        {
+          "name": "schema_snapshot",
+          "type": "longtext",
+          "description": ""
+        },
+        {
+          "name": "generated_sql",
+          "type": "longtext",
+          "description": ""
+        },
+        {
+          "name": "validator_status",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "validator_feedback",
+          "type": "longtext",
+          "description": ""
+        },
+        {
+          "name": "regenerated_sql",
+          "type": "longtext",
+          "description": ""
+        },
+        {
+          "name": "final_sql",
+          "type": "longtext",
+          "description": ""
+        },
+        {
+          "name": "execution_status",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "execution_error",
+          "type": "longtext",
+          "description": ""
+        },
+        {
+          "name": "result_row_count",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "user_feedback_status",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "admin_approved",
+          "type": "tinyint",
+          "description": ""
+        },
+        {
+          "name": "is_gold_example",
+          "type": "tinyint",
+          "description": ""
+        },
+        {
+          "name": "created_at",
+          "type": "datetime",
+          "description": ""
+        },
+        {
+          "name": "updated_at",
+          "type": "datetime",
+          "description": ""
+        },
+        {
+          "name": "generation_provider",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "generation_model",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "generation_elapsed_ms",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "validator_elapsed_ms",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "execution_elapsed_ms",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "total_elapsed_ms",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "intent_validation_elapsed_ms",
+          "type": "int",
+          "description": ""
+        }
+      ],
+      "description": "",
+      "aliases": []
+    },
+    {
+      "name": "ai_sql_attempt_events",
+      "columns": [
+        {
+          "name": "id",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "attempt_id",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "step",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "message",
+          "type": "text",
+          "description": ""
+        },
+        {
+          "name": "event_type",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "payload_json",
+          "type": "longtext",
+          "description": ""
+        },
+        {
+          "name": "created_at",
+          "type": "datetime",
+          "description": ""
+        }
+      ],
+      "description": "",
+      "aliases": []
+    },
+    {
+      "name": "attendances",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "description": "Primary key"
+        },
+        {
+          "name": "date",
+          "type": "date",
+          "description": "Attendance date"
+        },
+        {
+          "name": "day",
+          "type": "varchar",
+          "description": "Day of week"
+        },
+        {
+          "name": "total_hours",
+          "type": "varchar",
+          "description": "Total hours worked"
+        },
+        {
+          "name": "status",
+          "type": "varchar",
+          "description": "Present, Absent, Late, Leave or P/A/WO/H/L"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "description": "Creation timestamp"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "description": "Update timestamp"
+        },
+        {
+          "name": "department",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "designation",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "employee_id",
+          "type": "int",
+          "description": "Employee code"
+        },
+        {
+          "name": "name",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "for_month",
+          "type": "varchar",
+          "description": ""
+        }
+      ],
+      "description": "Attendance records with check-in/check-out times and employee details.",
+      "aliases": [
+        "attendance",
+        "attenndeces"
+      ]
+    },
+    {
+      "name": "bim_errors",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "description": ""
+        },
+        {
+          "name": "severity",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "category",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "is_deleted",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "status",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "created_at",
+          "type": "datetime",
+          "description": ""
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "description": ""
+        }
+      ],
+      "description": "",
+      "aliases": []
+    },
+    {
+      "name": "bsl_assign_task",
+      "columns": [
+        {
+          "name": "task_description",
+          "type": "text",
+          "description": ""
+        },
+        {
+          "name": "id",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "master_project_id",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "project_id",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "task_id",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "task_type",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "detailer",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "checker",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "changerequest_detailing_time",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "changerequest_checking_time",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "changerequest_detailer",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "changerequest_checker",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "project_leader",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "client_cord",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "team_leader",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "detailing_time",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "checking_time",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "changerequest_detailing_date",
+          "type": "date",
+          "description": ""
+        },
+        {
+          "name": "changerequest_checking_date",
+          "type": "date",
+          "description": ""
+        },
+        {
+          "name": "changerequest_upload_date",
+          "type": "date",
+          "description": ""
+        },
+        {
+          "name": "detailing_date",
+          "type": "date",
+          "description": ""
+        },
+        {
+          "name": "checking_date",
+          "type": "date",
+          "description": ""
+        },
+        {
+          "name": "upload_date",
+          "type": "date",
+          "description": ""
+        },
+        {
+          "name": "is_deleted",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "assign_date",
+          "type": "date",
+          "description": ""
+        },
+        {
+          "name": "remark",
+          "type": "text",
+          "description": ""
+        },
+        {
+          "name": "task_stage",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "description": ""
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "description": ""
+        }
+      ],
+      "description": "",
+      "aliases": []
+    },
+    {
+      "name": "bsl_changerequest",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "task_id",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "project_id",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "date",
+          "type": "date",
+          "description": ""
+        },
+        {
+          "name": "changerequest_upload_date",
+          "type": "date",
+          "description": ""
+        },
+        {
+          "name": "changerequest_detailing_date",
+          "type": "date",
+          "description": ""
+        },
+        {
+          "name": "changerequest_checking_date",
+          "type": "date",
+          "description": ""
+        },
+        {
+          "name": "changerequest_added_by",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "changerequest_assign_to",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "changerequest_reviewer_to",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "changerequest_status",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "changerequest_checking_estimated_hrs",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "changerequest_detailing_estimated_hrs",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "description": ""
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "description": ""
+        }
+      ],
+      "description": "",
+      "aliases": []
+    },
+    {
+      "name": "bsl_project",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "master_project_id",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "project_name",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "priority",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "project_status",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "detailer",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "task_id",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "project_plan_prepared_by",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "project_leader",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "team_member",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "client_cord",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "team_leader",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "primary_team_leader",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "project_no",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "start_date",
+          "type": "date",
+          "description": ""
+        },
+        {
+          "name": "project_remarks",
+          "type": "text",
+          "description": ""
+        },
+        {
+          "name": "is_deleted",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "description": ""
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "description": ""
+        }
+      ],
+      "description": "",
+      "aliases": []
+    },
+    {
+      "name": "bsl_project_bug",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "master_project_id",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "project_id",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "task_id",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "error_name_id",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "error_type",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "error_name",
+          "type": "text",
+          "description": ""
+        },
+        {
+          "name": "error_category",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "error_severity",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "error_created_by",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "error_assign_to",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "error_reveiwer_to",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "date",
+          "type": "date",
+          "description": ""
+        },
+        {
+          "name": "status",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "is_deleted",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "description": ""
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "description": ""
+        }
+      ],
+      "description": "",
+      "aliases": []
+    },
+    {
+      "name": "bsl_project_task_logs",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "description": ""
+        },
+        {
+          "name": "user_id",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "project_id",
+          "type": "bigint",
+          "description": ""
+        },
+        {
+          "name": "task_id",
+          "type": "bigint",
+          "description": ""
+        },
+        {
+          "name": "detailing_hr",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "actual_hr",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "description": ""
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "description": ""
+        },
+        {
+          "name": "is_deleted",
+          "type": "varchar",
+          "description": ""
+        }
+      ],
+      "description": "",
+      "aliases": []
+    },
+    {
+      "name": "bsl_task",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "name",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "task_type",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "is_deleted",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "description": ""
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "description": ""
+        }
+      ],
+      "description": "",
+      "aliases": []
+    },
+    {
+      "name": "bsl_task_type",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "task_type",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "is_deleted",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "description": ""
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "description": ""
+        }
+      ],
+      "description": "",
+      "aliases": []
+    },
+    {
+      "name": "bsl_timelog_records",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "task_id",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "project_id",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "hours",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "minutes",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "work_mode",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "user_type",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "task_stage",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "date",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "user_id",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "approve_status",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "is_deleted",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "description": ""
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "description": ""
+        }
+      ],
+      "description": "",
+      "aliases": []
+    },
+    {
+      "name": "bug_category",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "name",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "is_deleted",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "created_at",
+          "type": "datetime",
+          "description": ""
+        },
+        {
+          "name": "updated_at",
+          "type": "datetime",
+          "description": ""
+        }
+      ],
+      "description": "",
+      "aliases": []
+    },
+    {
+      "name": "cache",
+      "columns": [
+        {
+          "name": "key",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "value",
+          "type": "longtext",
+          "description": ""
+        },
+        {
+          "name": "expiration",
+          "type": "int",
+          "description": ""
+        }
+      ],
+      "description": "",
+      "aliases": []
+    },
+    {
+      "name": "cache_locks",
+      "columns": [
+        {
+          "name": "key",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "owner",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "expiration",
+          "type": "int",
+          "description": ""
+        }
+      ],
+      "description": "",
+      "aliases": []
+    },
+    {
+      "name": "changerequest_management",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "description": "Primary key"
+        },
+        {
+          "name": "task_id",
+          "type": "bigint",
+          "description": "Affected task"
+        },
+        {
+          "name": "changerequest_id",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "project_id",
+          "type": "bigint",
+          "description": "Affected project"
+        },
+        {
+          "name": "product_id",
+          "type": "bigint",
+          "description": "Affected product"
+        },
+        {
+          "name": "changerequest_document",
+          "type": "varchar",
+          "description": "Document path or URL"
+        },
+        {
+          "name": "changerequest_comment",
+          "type": "text",
+          "description": "Change details"
+        },
+        {
+          "name": "date",
+          "type": "date",
+          "description": "Submission date"
+        },
+        {
+          "name": "changerequest_added_by",
+          "type": "bigint",
+          "description": "Submitter user id"
+        },
+        {
+          "name": "changerequest_assign_to",
+          "type": "bigint",
+          "description": "Assigned user id"
+        },
+        {
+          "name": "changerequest_reviewer_to",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "changerequest_status",
+          "type": "varchar",
+          "description": "Pending, Approved, Rejected, Completed"
+        },
+        {
+          "name": "changerequest_detailing_estimated_hrs",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "changerequest_upload_date",
+          "type": "date",
+          "description": ""
+        },
+        {
+          "name": "changerequest_checking_date",
+          "type": "date",
+          "description": ""
+        },
+        {
+          "name": "changerequest_detailing_date",
+          "type": "date",
+          "description": ""
+        },
+        {
+          "name": "changerequest_checking_estimated_hrs",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "effective_percentage",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "task_effective_cr_applicable",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "is_deleted",
+          "type": "tinyint",
+          "description": ""
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "description": "Creation timestamp"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "description": "Update timestamp"
+        }
+      ],
+      "description": "Project change requests and approvals.",
+      "aliases": []
+    },
+    {
+      "name": "change_open_value",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "description": ""
+        },
+        {
+          "name": "project_id",
+          "type": "bigint",
+          "description": ""
+        },
+        {
+          "name": "mfg_type",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "week",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "month",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "year",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "open_value",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "description": ""
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "description": ""
+        }
+      ],
+      "description": "",
+      "aliases": []
+    },
+    {
+      "name": "checklists",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "description": ""
+        },
+        {
+          "name": "name",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "mfg",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "product_id",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "points",
+          "type": "longtext",
+          "description": ""
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "description": ""
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "description": ""
+        }
+      ],
+      "description": "",
+      "aliases": []
+    },
+    {
+      "name": "clients",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int",
+          "description": "Primary key"
+        },
+        {
+          "name": "client_name",
+          "type": "varchar",
+          "description": "Client name"
+        },
+        {
+          "name": "is_deleted",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "created_at",
+          "type": "datetime",
+          "description": "Creation timestamp"
+        },
+        {
+          "name": "updated_at",
+          "type": "datetime",
+          "description": "Update timestamp"
+        }
+      ],
+      "description": "Client master data from architecture document.",
+      "aliases": []
+    },
+    {
+      "name": "daily_project_comments",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "description": "Primary key"
+        },
+        {
+          "name": "user_id",
+          "type": "bigint",
+          "description": "Commenting user"
+        },
+        {
+          "name": "project_id",
+          "type": "bigint",
+          "description": "Project foreign key"
+        },
+        {
+          "name": "date",
+          "type": "date",
+          "description": ""
+        },
+        {
+          "name": "comment",
+          "type": "text",
+          "description": "Comment text"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "description": "Creation timestamp"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "description": "Update timestamp"
+        }
+      ],
+      "description": "Daily, weekly, revision, and kickoff project comments.",
+      "aliases": []
+    },
+    {
+      "name": "edrawing_bug_management",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "bug_id",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "bug_type",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "task_id",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "project_id",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "description",
+          "type": "text",
+          "description": ""
+        },
+        {
+          "name": "severity",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "status",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "bug_created_by",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "bug_assigned_to",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "bug_reviewer_to",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "bug_assign_teamleader",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "bug_document",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "cause_of_error",
+          "type": "text",
+          "description": ""
+        },
+        {
+          "name": "corrective_measures_taken",
+          "type": "text",
+          "description": ""
+        },
+        {
+          "name": "dai_cord",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "description": ""
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "description": ""
+        }
+      ],
+      "description": "",
+      "aliases": []
+    },
+    {
+      "name": "edrawing_task",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "project_id",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "shop_mark",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "assign_member",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "assign_team_leader",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "task_status",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "weightage",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "completed_date",
+          "type": "date",
+          "description": ""
+        },
+        {
+          "name": "is_deleted",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "description": ""
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "description": ""
+        }
+      ],
+      "description": "",
+      "aliases": []
+    },
+    {
+      "name": "edrawing_task_details",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "task_id",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "team_leader",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "team_member",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "estimated_man_hr",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "estimated_hours",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "detailing_date",
+          "type": "date",
+          "description": ""
+        },
+        {
+          "name": "uploaded_date",
+          "type": "date",
+          "description": ""
+        },
+        {
+          "name": "pl_estimated_checking_man_hours",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "task_status",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "weightage",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "completed_date",
+          "type": "date",
+          "description": ""
+        },
+        {
+          "name": "is_deleted",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "developer_time_log",
+          "type": "longtext",
+          "description": ""
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "description": ""
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "description": ""
+        }
+      ],
+      "description": "",
+      "aliases": []
+    },
+    {
+      "name": "edrawing_timelog_records",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int",
+          "description": "Primary key"
+        },
+        {
+          "name": "task_id",
+          "type": "int",
+          "description": "Task foreign key"
+        },
+        {
+          "name": "project_id",
+          "type": "int",
+          "description": "Project foreign key"
+        },
+        {
+          "name": "hours",
+          "type": "varchar",
+          "description": "Hours"
+        },
+        {
+          "name": "minutes",
+          "type": "varchar",
+          "description": "Minutes"
+        },
+        {
+          "name": "work_type",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "work_mode",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "task_stage",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "user_type",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "date",
+          "type": "date",
+          "description": "Work date"
+        },
+        {
+          "name": "user_id",
+          "type": "int",
+          "description": "Employee user id"
+        },
+        {
+          "name": "approve_status",
+          "type": "int",
+          "description": "Approval status"
+        },
+        {
+          "name": "rejection_comment",
+          "type": "text",
+          "description": ""
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "description": "Creation timestamp"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "description": "Update timestamp"
+        },
+        {
+          "name": "estimated_man_hr",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "estimated_hours",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "is_deleted",
+          "type": "int",
+          "description": "Soft delete flag"
+        }
+      ],
+      "description": "eDrawing time records from architecture document.",
+      "aliases": []
+    },
+    {
+      "name": "errors",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "description": ""
+        },
+        {
+          "name": "severity",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "category",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "is_deleted",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "status",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "is_applicable_edrawing",
+          "type": "tinyint",
+          "description": ""
+        },
+        {
+          "name": "is_applicable_bsl_project",
+          "type": "tinyint",
+          "description": ""
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "description": ""
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "description": ""
+        }
+      ],
+      "description": "",
+      "aliases": []
+    },
+    {
+      "name": "failed_jobs",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "description": "Primary key"
+        },
+        {
+          "name": "uuid",
+          "type": "varchar",
+          "description": "Failed job UUID"
+        },
+        {
+          "name": "connection",
+          "type": "text",
+          "description": "Queue connection"
+        },
+        {
+          "name": "queue",
+          "type": "text",
+          "description": "Queue name"
+        },
+        {
+          "name": "payload",
+          "type": "longtext",
+          "description": "Job payload"
+        },
+        {
+          "name": "exception",
+          "type": "longtext",
+          "description": "Exception details"
+        },
+        {
+          "name": "failed_at",
+          "type": "timestamp",
+          "description": "Failure timestamp"
+        }
+      ],
+      "description": "Laravel failed queue jobs.",
+      "aliases": []
+    },
+    {
+      "name": "files",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "description": ""
+        },
+        {
+          "name": "user_id",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "file_name",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "status",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "description": ""
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "description": ""
+        }
+      ],
+      "description": "",
+      "aliases": []
+    },
+    {
+      "name": "holidays",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "description": "Primary key"
+        },
+        {
+          "name": "title",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "date",
+          "type": "date",
+          "description": ""
+        },
+        {
+          "name": "description",
+          "type": "text",
+          "description": "Holiday description"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "description": "Creation timestamp"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "description": "Update timestamp"
+        }
+      ],
+      "description": "Holiday calendar for attendance/capacity calculations.",
+      "aliases": []
+    },
+    {
+      "name": "jobs",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "description": ""
+        },
+        {
+          "name": "queue",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "payload",
+          "type": "longtext",
+          "description": ""
+        },
+        {
+          "name": "attempts",
+          "type": "tinyint",
+          "description": ""
+        },
+        {
+          "name": "reserved_at",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "available_at",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "description": ""
+        }
+      ],
+      "description": "",
+      "aliases": []
+    },
+    {
+      "name": "kickoff_meeting_comments",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "description": ""
+        },
+        {
+          "name": "user_id",
+          "type": "bigint",
+          "description": ""
+        },
+        {
+          "name": "project_id",
+          "type": "bigint",
+          "description": ""
+        },
+        {
+          "name": "comment",
+          "type": "text",
+          "description": ""
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "description": ""
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "description": ""
+        }
+      ],
+      "description": "",
+      "aliases": []
+    },
+    {
+      "name": "markup_management",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "description": "Primary key"
+        },
+        {
+          "name": "markup_id",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "task_id",
+          "type": "bigint",
+          "description": "Task requiring markup"
+        },
+        {
+          "name": "project_id",
+          "type": "bigint",
+          "description": ""
+        },
+        {
+          "name": "product_id",
+          "type": "bigint",
+          "description": ""
+        },
+        {
+          "name": "markup_document",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "markup_comment",
+          "type": "text",
+          "description": "Markup comment"
+        },
+        {
+          "name": "date",
+          "type": "date",
+          "description": ""
+        },
+        {
+          "name": "markup_added_by",
+          "type": "bigint",
+          "description": "Markup creator user id"
+        },
+        {
+          "name": "markup_assign_to",
+          "type": "bigint",
+          "description": "Assigned reviewer user id"
+        },
+        {
+          "name": "markup_reviewer_to",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "markup_status",
+          "type": "varchar",
+          "description": "Pending, In Review, Approved, Rejected"
+        },
+        {
+          "name": "markup_detailing_estimated_hrs",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "markup_checking_estimated_hrs",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "markup_uploaded_date",
+          "type": "date",
+          "description": ""
+        },
+        {
+          "name": "markup_detailing_date",
+          "type": "date",
+          "description": ""
+        },
+        {
+          "name": "markup_checking_date",
+          "type": "date",
+          "description": ""
+        },
+        {
+          "name": "is_deleted",
+          "type": "tinyint",
+          "description": ""
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "description": "Creation timestamp"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "description": "Update timestamp"
+        }
+      ],
+      "description": "Markup comments, assignment, and status.",
+      "aliases": []
+    },
+    {
+      "name": "master_bsl_project",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "project_name",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "project_plan_prepared_by",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "project_leader",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "project_no",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "company_name",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "client_name",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "is_deleted",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "description": ""
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "description": ""
+        }
+      ],
+      "description": "",
+      "aliases": []
+    },
+    {
+      "name": "migrations",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "migration",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "batch",
+          "type": "int",
+          "description": ""
+        }
+      ],
+      "description": "",
+      "aliases": []
+    },
+    {
+      "name": "non_billable_task",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "title",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "hours",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "minutes",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "description": ""
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "description": ""
+        }
+      ],
+      "description": "",
+      "aliases": []
+    },
+    {
+      "name": "password_reset_tokens",
+      "columns": [
+        {
+          "name": "email",
+          "type": "varchar",
+          "description": "User email"
+        },
+        {
+          "name": "token",
+          "type": "varchar",
+          "description": "Reset token"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "description": "Creation timestamp"
+        }
+      ],
+      "description": "Password reset tokens.",
+      "aliases": []
+    },
+    {
+      "name": "personal_access_tokens",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "description": "Primary key"
+        },
+        {
+          "name": "tokenable_type",
+          "type": "varchar",
+          "description": "Token owner model type"
+        },
+        {
+          "name": "tokenable_id",
+          "type": "bigint",
+          "description": "Token owner id"
+        },
+        {
+          "name": "name",
+          "type": "varchar",
+          "description": "Token name"
+        },
+        {
+          "name": "token",
+          "type": "varchar",
+          "description": "Token hash"
+        },
+        {
+          "name": "abilities",
+          "type": "text",
+          "description": "Token abilities JSON"
+        },
+        {
+          "name": "last_used_at",
+          "type": "timestamp",
+          "description": "Last used timestamp"
+        },
+        {
+          "name": "expires_at",
+          "type": "timestamp",
+          "description": "Expiration timestamp"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "description": "Creation timestamp"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "description": "Update timestamp"
+        }
+      ],
+      "description": "API access tokens.",
+      "aliases": []
+    },
+    {
+      "name": "post_error_request",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "task_id",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "project_id",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "product_id",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "applier_id",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "team_leader_id",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "previous_task_status",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "task_stage",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "is_created",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "created_at",
+          "type": "datetime",
+          "description": ""
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "description": ""
+        }
+      ],
+      "description": "",
+      "aliases": []
+    },
+    {
+      "name": "precasters",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "description": ""
+        },
+        {
+          "name": "precaster_name",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "precaster_short",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "is_deleted",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "description": ""
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "description": ""
+        }
+      ],
+      "description": "",
+      "aliases": []
+    },
+    {
+      "name": "predefined_bugs",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "description": ""
+        },
+        {
+          "name": "bug_title",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "severity",
+          "type": "enum",
+          "description": ""
+        },
+        {
+          "name": "status",
+          "type": "enum",
+          "description": ""
+        },
+        {
+          "name": "is_deleted",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "description": ""
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "description": ""
+        }
+      ],
+      "description": "",
+      "aliases": []
+    },
+    {
+      "name": "products",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "description": "Primary key"
+        },
+        {
+          "name": "project_type_id",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "name",
+          "type": "varchar",
+          "description": "Product name"
+        },
+        {
+          "name": "description",
+          "type": "text",
+          "description": "Product details"
+        },
+        {
+          "name": "is_checkpoint_applicable",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "description": "Creation timestamp"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "description": "Update timestamp"
+        }
+      ],
+      "description": "Product definitions used across projects and tasks.",
+      "aliases": []
+    },
+    {
+      "name": "product_checklists",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "description": ""
+        },
+        {
+          "name": "projectid",
+          "type": "bigint",
+          "description": ""
+        },
+        {
+          "name": "productid",
+          "type": "bigint",
+          "description": ""
+        },
+        {
+          "name": "checklistid",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "mfg",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "checklist_points",
+          "type": "longtext",
+          "description": ""
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "description": ""
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "description": ""
+        }
+      ],
+      "description": "",
+      "aliases": []
+    },
+    {
+      "name": "product_task",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "description": "Primary key"
+        },
+        {
+          "name": "product_id",
+          "type": "bigint",
+          "description": "Product foreign key"
+        },
+        {
+          "name": "project_id",
+          "type": "bigint",
+          "description": "Project foreign key"
+        },
+        {
+          "name": "accessories_id",
+          "type": "int",
+          "description": "Accessories foreign key"
+        },
+        {
+          "name": "shop_mark",
+          "type": "varchar",
+          "description": "Shop mark identifier"
+        },
+        {
+          "name": "assign_member",
+          "type": "varchar",
+          "description": "Primary assigned team member"
+        },
+        {
+          "name": "assign_team_leader",
+          "type": "int",
+          "description": "Assigned team leader"
+        },
+        {
+          "name": "reviewer",
+          "type": "varchar",
+          "description": "Reviewer user id"
+        },
+        {
+          "name": "markup_assign_member",
+          "type": "int",
+          "description": "Markup assignee"
+        },
+        {
+          "name": "markup_reviewer",
+          "type": "int",
+          "description": "Markup reviewer"
+        },
+        {
+          "name": "changerequest_assign_member",
+          "type": "int",
+          "description": "Change request assignee"
+        },
+        {
+          "name": "changerequest_reviewer",
+          "type": "int",
+          "description": "Change request reviewer"
+        },
+        {
+          "name": "task_status",
+          "type": "varchar",
+          "description": "Task status"
+        },
+        {
+          "name": "is_deleted",
+          "type": "int",
+          "description": "Soft delete flag"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "description": "Creation timestamp"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "description": "Update timestamp"
+        }
+      ],
+      "description": "Project/product task assignments and ownership.",
+      "aliases": [
+        "product_tasks",
+        "products_task"
+      ]
+    },
+    {
+      "name": "product_task_details",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "description": "Primary key"
+        },
+        {
+          "name": "task_id",
+          "type": "bigint",
+          "description": "Product task foreign key"
+        },
+        {
+          "name": "description",
+          "type": "text",
+          "description": "Task detail"
+        },
+        {
+          "name": "image",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "actual_hr",
+          "type": "int",
+          "description": "Actual hours"
+        },
+        {
+          "name": "group_name",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "elevation",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "control_number",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "quantity",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "estimated_man_hr",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "type",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "estimated_hours",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "description": "Creation timestamp"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "description": "Update timestamp"
+        },
+        {
+          "name": "checked_date",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "remark",
+          "type": "varchar",
+          "description": "Planning/report remark from report catalog"
+        },
+        {
+          "name": "detailing_date",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "drawn_by",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "checked_by",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "developer_time_log",
+          "type": "longtext",
+          "description": ""
+        },
+        {
+          "name": "total_time",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "is_markup",
+          "type": "int",
+          "description": "Markup flag from report catalog"
+        },
+        {
+          "name": "markup_received_date",
+          "type": "date",
+          "description": ""
+        },
+        {
+          "name": "markup_detailing_date",
+          "type": "date",
+          "description": ""
+        },
+        {
+          "name": "markup_checking_date",
+          "type": "date",
+          "description": ""
+        },
+        {
+          "name": "markup_detailing_estimated_hrs",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "markup_corrected_by",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "markup_checking_estimated_hrs",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "markup_checked_by",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "markup_uploaded_date",
+          "type": "date",
+          "description": ""
+        },
+        {
+          "name": "changerequest_received_date",
+          "type": "datetime",
+          "description": ""
+        },
+        {
+          "name": "changerequest_uploaded_date",
+          "type": "date",
+          "description": ""
+        },
+        {
+          "name": "changerequest_detailing_date",
+          "type": "date",
+          "description": ""
+        },
+        {
+          "name": "changerequest_checking_date",
+          "type": "date",
+          "description": ""
+        },
+        {
+          "name": "changerequest_checked_by",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "changerequest_corrected_by",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "pl_estimated_checking_man_hours",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "work_mode",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "work_type",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "developer_id",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "reveiwer_id",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "changerequest_detailing_estimated_hrs",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "changerequest_checking_estimated_hrs",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "task_attachment",
+          "type": "longtext",
+          "description": ""
+        },
+        {
+          "name": "uploaded_date",
+          "type": "date",
+          "description": "Uploaded task date from report catalog"
+        },
+        {
+          "name": "task_checklist_points",
+          "type": "text",
+          "description": ""
+        },
+        {
+          "name": "checklist_status",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "is_deleted",
+          "type": "int",
+          "description": "Soft delete flag from report catalog"
+        }
+      ],
+      "description": "Detailed task work records and actual hours.",
+      "aliases": [
+        "product_task_detail"
+      ]
+    },
+    {
+      "name": "product_task_reviewer_comments",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "description": ""
+        },
+        {
+          "name": "task_id",
+          "type": "bigint",
+          "description": ""
+        },
+        {
+          "name": "developer_id",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "developer_comment",
+          "type": "text",
+          "description": ""
+        },
+        {
+          "name": "reviewer_id",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "reviewer_comment",
+          "type": "text",
+          "description": ""
+        },
+        {
+          "name": "is_markup_review",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "status",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "date",
+          "type": "date",
+          "description": ""
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "description": ""
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "description": ""
+        }
+      ],
+      "description": "",
+      "aliases": []
+    },
+    {
+      "name": "projects",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "description": "Primary key"
+        },
+        {
+          "name": "client",
+          "type": "varchar",
+          "description": "Client name"
+        },
+        {
+          "name": "precaster",
+          "type": "varchar",
+          "description": "Precaster company"
+        },
+        {
+          "name": "project_name",
+          "type": "varchar",
+          "description": "Project title"
+        },
+        {
+          "name": "project_type_id",
+          "type": "bigint",
+          "description": "Project type foreign key"
+        },
+        {
+          "name": "products",
+          "type": "longtext",
+          "description": "Products associated with the project"
+        },
+        {
+          "name": "scope",
+          "type": "varchar",
+          "description": "Project scope"
+        },
+        {
+          "name": "company_name",
+          "type": "varchar",
+          "description": "Executing company"
+        },
+        {
+          "name": "project_plan_prepared_by",
+          "type": "varchar",
+          "description": "Plan preparer"
+        },
+        {
+          "name": "project_leader",
+          "type": "varchar",
+          "description": "Project leader"
+        },
+        {
+          "name": "team_leader",
+          "type": "longtext",
+          "description": "Team leader assignments"
+        },
+        {
+          "name": "primary_team_leader",
+          "type": "int",
+          "description": "Primary team leader"
+        },
+        {
+          "name": "team_member",
+          "type": "longtext",
+          "description": "Team member assignments"
+        },
+        {
+          "name": "total_no_of_shop_tickets",
+          "type": "int",
+          "description": "Total shop tickets"
+        },
+        {
+          "name": "project_management_hrs",
+          "type": "int",
+          "description": "Project management hours"
+        },
+        {
+          "name": "total_budgeted_man_hrs",
+          "type": "int",
+          "description": "Budgeted man hours"
+        },
+        {
+          "name": "actual_man_hrs_utilized",
+          "type": "int",
+          "description": "Actual utilized man hours"
+        },
+        {
+          "name": "kick_off_meeting_date",
+          "type": "date",
+          "description": "Kickoff meeting date"
+        },
+        {
+          "name": "start_date",
+          "type": "date",
+          "description": "Start date"
+        },
+        {
+          "name": "estimated_sub_date",
+          "type": "date",
+          "description": "Estimated submission date"
+        },
+        {
+          "name": "actual_end_date",
+          "type": "date",
+          "description": "Actual completion date"
+        },
+        {
+          "name": "project_closure_report_date",
+          "type": "date",
+          "description": "Closure report date"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "description": "Creation timestamp"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "description": "Update timestamp"
+        },
+        {
+          "name": "kick_off_meeting_comments",
+          "type": "longtext",
+          "description": "Kickoff notes"
+        },
+        {
+          "name": "project_task_count",
+          "type": "longtext",
+          "description": ""
+        },
+        {
+          "name": "project_daily_task_count",
+          "type": "longtext",
+          "description": "Daily task count"
+        },
+        {
+          "name": "project_production_date",
+          "type": "date",
+          "description": "Production phase date"
+        },
+        {
+          "name": "out_for_approval_date",
+          "type": "date",
+          "description": "Sent for approval date"
+        },
+        {
+          "name": "project_status",
+          "type": "varchar",
+          "description": "Current project status"
+        },
+        {
+          "name": "project_no",
+          "type": "varchar",
+          "description": "Unique project number"
+        },
+        {
+          "name": "dai_cord",
+          "type": "int",
+          "description": "DAI coordinator"
+        },
+        {
+          "name": "project_mfg_type",
+          "type": "varchar",
+          "description": "Manufacturing type"
+        },
+        {
+          "name": "priority",
+          "type": "varchar",
+          "description": "Low, Medium, High, Critical"
+        },
+        {
+          "name": "is_edrawing_applicable",
+          "type": "int",
+          "description": "eDrawing applicability"
+        },
+        {
+          "name": "project_accessories_type",
+          "type": "varchar",
+          "description": "Accessories type"
+        },
+        {
+          "name": "accessories",
+          "type": "varchar",
+          "description": "Accessory details"
+        },
+        {
+          "name": "edrawing_scope",
+          "type": "varchar",
+          "description": "eDrawing scope"
+        },
+        {
+          "name": "effective_percentage",
+          "type": "varchar",
+          "description": "Effective completion percentage"
+        },
+        {
+          "name": "project_remarks",
+          "type": "longtext",
+          "description": "Project remarks"
+        },
+        {
+          "name": "e_drawing_checks",
+          "type": "text",
+          "description": ""
+        },
+        {
+          "name": "project_leave_remarks",
+          "type": "longtext",
+          "description": "Leave remarks"
+        },
+        {
+          "name": "is_deleted",
+          "type": "int",
+          "description": ""
+        }
+      ],
+      "description": "Project master data from kickoff through closure.",
+      "aliases": []
+    },
+    {
+      "name": "project_assistances",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "description": ""
+        },
+        {
+          "name": "project_id",
+          "type": "bigint",
+          "description": ""
+        },
+        {
+          "name": "team_leader_id",
+          "type": "bigint",
+          "description": ""
+        },
+        {
+          "name": "accepted_leader_id",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "project_comment",
+          "type": "text",
+          "description": ""
+        },
+        {
+          "name": "assistance_status",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "description": ""
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "description": ""
+        }
+      ],
+      "description": "",
+      "aliases": []
+    },
+    {
+      "name": "project_bug_management",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "bug_id",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "bug_type",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "task_id",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "project_id",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "description",
+          "type": "text",
+          "description": ""
+        },
+        {
+          "name": "category",
+          "type": "text",
+          "description": ""
+        },
+        {
+          "name": "severity",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "status",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "bug_created_by",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "bug_assign_teamleader",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "bug_reviewer_to",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "created_at",
+          "type": "datetime",
+          "description": ""
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "description": ""
+        }
+      ],
+      "description": "",
+      "aliases": []
+    },
+    {
+      "name": "project_type",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "name",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "short_form",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "description",
+          "type": "text",
+          "description": ""
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "description": ""
+        },
+        {
+          "name": "updated_at",
+          "type": "datetime",
+          "description": ""
+        }
+      ],
+      "description": "",
+      "aliases": []
+    },
+    {
+      "name": "report_audit_logs",
+      "columns": [
+        {
+          "name": "id",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "event_type",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "actor_role",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "target_role",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "report_id",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "report_category",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "action",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "before_json",
+          "type": "longtext",
+          "description": ""
+        },
+        {
+          "name": "after_json",
+          "type": "longtext",
+          "description": ""
+        },
+        {
+          "name": "metadata_json",
+          "type": "longtext",
+          "description": ""
+        },
+        {
+          "name": "created_at",
+          "type": "datetime",
+          "description": ""
+        }
+      ],
+      "description": "",
+      "aliases": []
+    },
+    {
+      "name": "revision_task_comments",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "user_id",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "comment",
+          "type": "text",
+          "description": ""
+        },
+        {
+          "name": "project_id",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "week_id",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "description": ""
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "description": ""
+        }
+      ],
+      "description": "",
+      "aliases": []
+    },
+    {
+      "name": "roles",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "description": "Primary key"
+        },
+        {
+          "name": "name",
+          "type": "varchar",
+          "description": "Role name"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "description": "Creation timestamp"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "description": "Update timestamp"
+        }
+      ],
+      "description": "Role definitions for role based access control.",
+      "aliases": []
+    },
+    {
+      "name": "role_report_permissions",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "description": ""
+        },
+        {
+          "name": "role_name",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "report_category",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "can_view",
+          "type": "tinyint",
+          "description": ""
+        },
+        {
+          "name": "can_create",
+          "type": "tinyint",
+          "description": ""
+        },
+        {
+          "name": "can_export",
+          "type": "tinyint",
+          "description": ""
+        },
+        {
+          "name": "can_save",
+          "type": "tinyint",
+          "description": ""
+        },
+        {
+          "name": "can_view_saved",
+          "type": "tinyint",
+          "description": ""
+        },
+        {
+          "name": "data_scope",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "created_at",
+          "type": "datetime",
+          "description": ""
+        },
+        {
+          "name": "updated_at",
+          "type": "datetime",
+          "description": ""
+        }
+      ],
+      "description": "",
+      "aliases": []
+    },
+    {
+      "name": "role_user",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "description": ""
+        },
+        {
+          "name": "user_id",
+          "type": "bigint",
+          "description": "User foreign key"
+        },
+        {
+          "name": "role_id",
+          "type": "bigint",
+          "description": "Role foreign key"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "description": ""
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "description": ""
+        }
+      ],
+      "description": "User-to-role pivot table.",
+      "aliases": [
+        "roles_user"
+      ]
+    },
+    {
+      "name": "saved_reports",
+      "columns": [
+        {
+          "name": "id",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "attempt_id",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "report_category",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "created_by_role",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "created_by_user_id",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "title",
+          "type": "text",
+          "description": ""
+        },
+        {
+          "name": "question",
+          "type": "text",
+          "description": ""
+        },
+        {
+          "name": "sql_text",
+          "type": "longtext",
+          "description": ""
+        },
+        {
+          "name": "explanation",
+          "type": "longtext",
+          "description": ""
+        },
+        {
+          "name": "assumptions",
+          "type": "longtext",
+          "description": ""
+        },
+        {
+          "name": "columns_json",
+          "type": "longtext",
+          "description": ""
+        },
+        {
+          "name": "rows_json",
+          "type": "longtext",
+          "description": ""
+        },
+        {
+          "name": "row_count",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "dry_run",
+          "type": "tinyint",
+          "description": ""
+        },
+        {
+          "name": "warnings",
+          "type": "longtext",
+          "description": ""
+        },
+        {
+          "name": "retry_attempts",
+          "type": "longtext",
+          "description": ""
+        },
+        {
+          "name": "created_at",
+          "type": "datetime",
+          "description": ""
+        },
+        {
+          "name": "updated_at",
+          "type": "datetime",
+          "description": ""
+        }
+      ],
+      "description": "",
+      "aliases": []
+    },
+    {
+      "name": "saved_report_shares",
+      "columns": [
+        {
+          "name": "id",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "report_id",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "shared_by_user_id",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "shared_by_role",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "shared_with_user_id",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "message",
+          "type": "text",
+          "description": ""
+        },
+        {
+          "name": "can_view",
+          "type": "tinyint",
+          "description": ""
+        },
+        {
+          "name": "can_export",
+          "type": "tinyint",
+          "description": ""
+        },
+        {
+          "name": "viewed_at",
+          "type": "datetime",
+          "description": ""
+        },
+        {
+          "name": "created_at",
+          "type": "datetime",
+          "description": ""
+        },
+        {
+          "name": "updated_at",
+          "type": "datetime",
+          "description": ""
+        }
+      ],
+      "description": "",
+      "aliases": []
+    },
+    {
+      "name": "scheduled_reports",
+      "columns": [
+        {
+          "name": "id",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "name",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "report_category",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "question",
+          "type": "text",
+          "description": ""
+        },
+        {
+          "name": "frequency",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "schedule_time",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "timezone",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "filters_json",
+          "type": "longtext",
+          "description": ""
+        },
+        {
+          "name": "recipients_json",
+          "type": "longtext",
+          "description": ""
+        },
+        {
+          "name": "current_user_role",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "sql_generation_provider",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "result_limit",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "dry_run",
+          "type": "tinyint",
+          "description": ""
+        },
+        {
+          "name": "export_formats_json",
+          "type": "longtext",
+          "description": ""
+        },
+        {
+          "name": "execution_settings_json",
+          "type": "longtext",
+          "description": ""
+        },
+        {
+          "name": "is_active",
+          "type": "tinyint",
+          "description": ""
+        },
+        {
+          "name": "next_run_at",
+          "type": "datetime",
+          "description": ""
+        },
+        {
+          "name": "last_run_at",
+          "type": "datetime",
+          "description": ""
+        },
+        {
+          "name": "last_status",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "last_error",
+          "type": "longtext",
+          "description": ""
+        },
+        {
+          "name": "created_by_role",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "created_at",
+          "type": "datetime",
+          "description": ""
+        },
+        {
+          "name": "updated_at",
+          "type": "datetime",
+          "description": ""
+        }
+      ],
+      "description": "",
+      "aliases": []
+    },
+    {
+      "name": "scheduled_report_runs",
+      "columns": [
+        {
+          "name": "id",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "scheduled_report_id",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "saved_report_id",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "status",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "started_at",
+          "type": "datetime",
+          "description": ""
+        },
+        {
+          "name": "finished_at",
+          "type": "datetime",
+          "description": ""
+        },
+        {
+          "name": "error_message",
+          "type": "longtext",
+          "description": ""
+        },
+        {
+          "name": "generated_row_count",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "metadata_json",
+          "type": "longtext",
+          "description": ""
+        }
+      ],
+      "description": "",
+      "aliases": []
+    },
+    {
+      "name": "settings",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "effective_rating_percentage",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "employee_capacity",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "platform_access_to_client_cord",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "created_at",
+          "type": "datetime",
+          "description": ""
+        },
+        {
+          "name": "updated_at",
+          "type": "datetime",
+          "description": ""
+        }
+      ],
+      "description": "",
+      "aliases": []
+    },
+    {
+      "name": "severity",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "description": ""
+        },
+        {
+          "name": "is_deleted",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "description": ""
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "description": ""
+        }
+      ],
+      "description": "",
+      "aliases": []
+    },
+    {
+      "name": "sheets",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "description": ""
+        },
+        {
+          "name": "file_id",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "sheet_name",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "file_path",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "status",
+          "type": "tinyint",
+          "description": ""
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "description": ""
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "description": ""
+        }
+      ],
+      "description": "",
+      "aliases": []
+    },
+    {
+      "name": "sheet_processing_status",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "description": ""
+        },
+        {
+          "name": "sheet_index",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "status",
+          "type": "tinyint",
+          "description": ""
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "description": ""
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "description": ""
+        }
+      ],
+      "description": "",
+      "aliases": []
+    },
+    {
+      "name": "sql_mistake_examples",
+      "columns": [
+        {
+          "name": "id",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "query_attempt_id",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "user_question",
+          "type": "text",
+          "description": ""
+        },
+        {
+          "name": "wrong_sql",
+          "type": "longtext",
+          "description": ""
+        },
+        {
+          "name": "validator_feedback",
+          "type": "longtext",
+          "description": ""
+        },
+        {
+          "name": "validation_reason",
+          "type": "longtext",
+          "description": ""
+        },
+        {
+          "name": "mistake_type",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "corrected_sql",
+          "type": "longtext",
+          "description": ""
+        },
+        {
+          "name": "final_correct_sql",
+          "type": "longtext",
+          "description": ""
+        },
+        {
+          "name": "risk_level",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "created_at",
+          "type": "datetime",
+          "description": ""
+        }
+      ],
+      "description": "",
+      "aliases": []
+    },
+    {
+      "name": "status_notes",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "description": ""
+        },
+        {
+          "name": "project_id",
+          "type": "bigint",
+          "description": ""
+        },
+        {
+          "name": "status_notes",
+          "type": "text",
+          "description": ""
+        },
+        {
+          "name": "mfg_type",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "description": ""
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "description": ""
+        },
+        {
+          "name": "is_deleted",
+          "type": "int",
+          "description": ""
+        }
+      ],
+      "description": "",
+      "aliases": []
+    },
+    {
+      "name": "task_bug_management",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "description": "Primary key"
+        },
+        {
+          "name": "bug_id",
+          "type": "bigint",
+          "description": "Bug reference id"
+        },
+        {
+          "name": "bug_type",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "task_id",
+          "type": "bigint",
+          "description": "Task where bug was found"
+        },
+        {
+          "name": "project_id",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "product_id",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "description",
+          "type": "text",
+          "description": "Bug description"
+        },
+        {
+          "name": "severity",
+          "type": "varchar",
+          "description": "Low, Medium, High, Critical"
+        },
+        {
+          "name": "status",
+          "type": "varchar",
+          "description": "Open, In Progress, Resolved, Closed"
+        },
+        {
+          "name": "bug_created_by",
+          "type": "bigint",
+          "description": "Reporter user id"
+        },
+        {
+          "name": "bug_assigned_to",
+          "type": "bigint",
+          "description": "Assignee user id"
+        },
+        {
+          "name": "bug_reviewer_to",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "bug_assign_teamleader",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "bug_document",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "cause_of_error",
+          "type": "text",
+          "description": ""
+        },
+        {
+          "name": "corrective_measures_taken",
+          "type": "text",
+          "description": ""
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "description": "Report timestamp"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "description": "Update timestamp"
+        }
+      ],
+      "description": "Bug, defect, and post-error tracking.",
+      "aliases": []
+    },
+    {
+      "name": "task_hours",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "description": "Primary key"
+        },
+        {
+          "name": "task_id",
+          "type": "bigint",
+          "description": "Task foreign key"
+        },
+        {
+          "name": "user_id",
+          "type": "bigint",
+          "description": "User foreign key"
+        },
+        {
+          "name": "date",
+          "type": "date",
+          "description": "Date tracked"
+        },
+        {
+          "name": "hours",
+          "type": "int",
+          "description": "Hours worked"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "description": "Creation timestamp"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "description": "Update timestamp"
+        }
+      ],
+      "description": "Hours allocated or worked per task and user.",
+      "aliases": []
+    },
+    {
+      "name": "task_types",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "description": ""
+        },
+        {
+          "name": "title",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "description": ""
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "description": ""
+        }
+      ],
+      "description": "",
+      "aliases": []
+    },
+    {
+      "name": "timelog_records",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "description": "Primary key"
+        },
+        {
+          "name": "task_id",
+          "type": "int",
+          "description": "Task worked on"
+        },
+        {
+          "name": "product_id",
+          "type": "int",
+          "description": "Product worked on"
+        },
+        {
+          "name": "project_id",
+          "type": "int",
+          "description": "Project worked on"
+        },
+        {
+          "name": "hours",
+          "type": "int",
+          "description": "Hour component"
+        },
+        {
+          "name": "minutes",
+          "type": "int",
+          "description": "Minute component"
+        },
+        {
+          "name": "work_type",
+          "type": "varchar",
+          "description": "Work type"
+        },
+        {
+          "name": "user_type",
+          "type": "varchar",
+          "description": "Developer, Checker, Reviewer"
+        },
+        {
+          "name": "date",
+          "type": "date",
+          "description": "Work date"
+        },
+        {
+          "name": "user_id",
+          "type": "bigint",
+          "description": "Employee who logged time"
+        },
+        {
+          "name": "work_mode",
+          "type": "varchar",
+          "description": "Office, Remote, Hybrid"
+        },
+        {
+          "name": "task_stage",
+          "type": "varchar",
+          "description": "Task stage"
+        },
+        {
+          "name": "task_stage_number",
+          "type": "varchar",
+          "description": "Task stage number"
+        },
+        {
+          "name": "approve_status",
+          "type": "int",
+          "description": "Approval status"
+        },
+        {
+          "name": "rejection_comment",
+          "type": "text",
+          "description": "Approval rejection comment"
+        },
+        {
+          "name": "non_billable_reason",
+          "type": "varchar",
+          "description": "Reason for non-billable work"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "description": "Creation timestamp"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "description": "Update timestamp"
+        },
+        {
+          "name": "changerequest_checking_estimated_hrs",
+          "type": "int",
+          "description": "Change request checking estimated hours"
+        },
+        {
+          "name": "changerequest_detailing_estimated_hrs",
+          "type": "int",
+          "description": "Change request detailing estimated hours"
+        },
+        {
+          "name": "markup_checking_estimated_hrs",
+          "type": "int",
+          "description": "Markup checking estimated hours"
+        },
+        {
+          "name": "markup_detailing_estimated_hrs",
+          "type": "int",
+          "description": "Markup detailing estimated hours"
+        },
+        {
+          "name": "estimated_man_hr",
+          "type": "int",
+          "description": "Estimated man hours"
+        },
+        {
+          "name": "pl_estimated_checking_man_hours",
+          "type": "int",
+          "description": "PL estimated checking man hours"
+        },
+        {
+          "name": "estimated_hours",
+          "type": "int",
+          "description": "Estimated hours"
+        }
+      ],
+      "description": "Detailed time logging for reporting and approval.",
+      "aliases": []
+    },
+    {
+      "name": "timesheets",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "description": "Primary key"
+        },
+        {
+          "name": "user_id",
+          "type": "bigint",
+          "description": "Employee who logged time"
+        },
+        {
+          "name": "project_id",
+          "type": "bigint",
+          "description": "Project worked on"
+        },
+        {
+          "name": "product_id",
+          "type": "bigint",
+          "description": "Product worked on"
+        },
+        {
+          "name": "task_id",
+          "type": "int",
+          "description": "Task worked on"
+        },
+        {
+          "name": "role_type",
+          "type": "varchar",
+          "description": "Role while working"
+        },
+        {
+          "name": "work_type",
+          "type": "varchar",
+          "description": "Work type"
+        },
+        {
+          "name": "date",
+          "type": "date",
+          "description": "Work date"
+        },
+        {
+          "name": "description",
+          "type": "text",
+          "description": "Work description"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "description": "Creation timestamp"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "description": "Update timestamp"
+        },
+        {
+          "name": "time_spent",
+          "type": "decimal",
+          "description": "Time spent"
+        }
+      ],
+      "description": "Timesheet entries for project/task time allocation.",
+      "aliases": []
+    },
+    {
+      "name": "tl_task",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "task_name",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "is_deleted",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "description": ""
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "description": ""
+        }
+      ],
+      "description": "",
+      "aliases": []
+    },
+    {
+      "name": "tl_task_time",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "task_id",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "project_id",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "tl_id",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "tl_hours",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "tl_minutes",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "total_minutes",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "description": ""
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "description": ""
+        }
+      ],
+      "description": "",
+      "aliases": []
+    },
+    {
+      "name": "tl_timelog_records",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "description": "Primary key"
+        },
+        {
+          "name": "project_id",
+          "type": "bigint",
+          "description": "Project foreign key"
+        },
+        {
+          "name": "tl_id",
+          "type": "bigint",
+          "description": "Team leader user id"
+        },
+        {
+          "name": "user_id",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "task_id",
+          "type": "bigint",
+          "description": "Task foreign key"
+        },
+        {
+          "name": "time_spent",
+          "type": "varchar",
+          "description": "Time spent"
+        },
+        {
+          "name": "hours",
+          "type": "varchar",
+          "description": "Hours"
+        },
+        {
+          "name": "minutes",
+          "type": "varchar",
+          "description": "Minutes"
+        },
+        {
+          "name": "date",
+          "type": "date",
+          "description": "Work date"
+        },
+        {
+          "name": "work_type",
+          "type": "varchar",
+          "description": "Work type"
+        },
+        {
+          "name": "work_mode",
+          "type": "varchar",
+          "description": "Office, Remote, Hybrid"
+        },
+        {
+          "name": "user_type",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "approve_status",
+          "type": "int",
+          "description": "Approval status"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "description": "Creation timestamp"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "description": "Update timestamp"
+        },
+        {
+          "name": "rejection_comment",
+          "type": "text",
+          "description": ""
+        },
+        {
+          "name": "non_billable_reason",
+          "type": "text",
+          "description": ""
+        }
+      ],
+      "description": "Team leader time log variant from architecture document.",
+      "aliases": []
+    },
+    {
+      "name": "tm_task",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "task_name",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "is_deleted",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "created_at",
+          "type": "datetime",
+          "description": ""
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "description": ""
+        }
+      ],
+      "description": "",
+      "aliases": []
+    },
+    {
+      "name": "tm_task_time",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "task_id",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "project_id",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "team_members",
+          "type": "text",
+          "description": ""
+        },
+        {
+          "name": "tl_id",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "tm_hours",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "tm_minutes",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "total_minutes",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "created_at",
+          "type": "datetime",
+          "description": ""
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "description": ""
+        }
+      ],
+      "description": "",
+      "aliases": []
+    },
+    {
+      "name": "tm_timelog_records",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "description": "Primary key"
+        },
+        {
+          "name": "project_id",
+          "type": "bigint",
+          "description": "Project foreign key"
+        },
+        {
+          "name": "tm_id",
+          "type": "int",
+          "description": "Team member user id"
+        },
+        {
+          "name": "tl_id",
+          "type": "bigint",
+          "description": "Team leader user id"
+        },
+        {
+          "name": "user_id",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "task_id",
+          "type": "bigint",
+          "description": "Task foreign key"
+        },
+        {
+          "name": "time_spent",
+          "type": "varchar",
+          "description": "Time spent"
+        },
+        {
+          "name": "hours",
+          "type": "varchar",
+          "description": "Hours"
+        },
+        {
+          "name": "minutes",
+          "type": "varchar",
+          "description": "Minutes"
+        },
+        {
+          "name": "date",
+          "type": "date",
+          "description": "Work date"
+        },
+        {
+          "name": "work_type",
+          "type": "varchar",
+          "description": "Work type"
+        },
+        {
+          "name": "work_mode",
+          "type": "varchar",
+          "description": "Office, Remote, Hybrid"
+        },
+        {
+          "name": "user_type",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "approve_status",
+          "type": "int",
+          "description": "Approval status"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "description": "Creation timestamp"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "description": "Update timestamp"
+        },
+        {
+          "name": "rejection_comment",
+          "type": "text",
+          "description": ""
+        },
+        {
+          "name": "non_billable_reason",
+          "type": "text",
+          "description": ""
+        }
+      ],
+      "description": "Team member time log variant from architecture document.",
+      "aliases": []
+    },
+    {
+      "name": "users",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "description": "Primary key"
+        },
+        {
+          "name": "name",
+          "type": "varchar",
+          "description": "Full employee name"
+        },
+        {
+          "name": "employee_id",
+          "type": "int",
+          "description": "Employee code from architecture document"
+        },
+        {
+          "name": "email",
+          "type": "varchar",
+          "description": "Unique login email"
+        },
+        {
+          "name": "email_verified_at",
+          "type": "timestamp",
+          "description": "Email verification timestamp"
+        },
+        {
+          "name": "password",
+          "type": "varchar",
+          "description": "Hashed password"
+        },
+        {
+          "name": "text_pass",
+          "type": "varchar",
+          "description": "Temporary text password field"
+        },
+        {
+          "name": "mobile",
+          "type": "varchar",
+          "description": "Mobile number"
+        },
+        {
+          "name": "address",
+          "type": "text",
+          "description": "Physical address"
+        },
+        {
+          "name": "user_image",
+          "type": "varchar",
+          "description": "Profile image path or URL"
+        },
+        {
+          "name": "joining_date",
+          "type": "date",
+          "description": "Employee joining date"
+        },
+        {
+          "name": "remember_token",
+          "type": "varchar",
+          "description": "Laravel remember token"
+        },
+        {
+          "name": "dai_cord",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "company_name",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "is_deleted",
+          "type": "int",
+          "description": "Soft delete flag"
+        },
+        {
+          "name": "status",
+          "type": "varchar",
+          "description": "active, disabled, suspended, inactive"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "description": "Creation timestamp"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "description": "Update timestamp"
+        },
+        {
+          "name": "password_hash",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "role_name",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "is_active",
+          "type": "tinyint",
+          "description": ""
+        },
+        {
+          "name": "created_by_user_id",
+          "type": "varchar",
+          "description": ""
+        }
+      ],
+      "description": "Employees and application users for authentication, project assignment, attendance, and time logging.",
+      "aliases": []
+    },
+    {
+      "name": "weekly_task_comments",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "user_id",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "comment",
+          "type": "text",
+          "description": ""
+        },
+        {
+          "name": "project_id",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "week_id",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "description": ""
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "description": ""
+        }
+      ],
+      "description": "",
+      "aliases": []
+    },
+    {
+      "name": "work_types",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "description": ""
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "description": ""
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "description": ""
+        }
+      ],
+      "description": "",
+      "aliases": []
+    }
+  ]
+}

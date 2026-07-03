@@ -1,0 +1,1785 @@
+{
+  "source_files": [
+    "D:/Downloads/technical-architecture-database-schema (1).docx",
+    "D:/Downloads/database_descriptions 1.sql",
+    "D:/Downloads/Devita_Reports_Enhanced (1)(DB Relations and BL).csv"
+  ],
+  "notes": [
+    "The supplied documents contain naming variants for a few entities. Aliases preserve those variants so the SQL generator can adapt to the live database.",
+    "Prefer the existing live database spelling during execution; update aliases after introspecting the database."
+  ],
+  "relationships": [
+    {
+      "from": "role_user.user_id",
+      "to": "users.id",
+      "type": "many_to_one"
+    },
+    {
+      "from": "role_user.role_id",
+      "to": "roles.id",
+      "type": "many_to_one"
+    },
+    {
+      "from": "projects.project_type_id",
+      "to": "project_types.id",
+      "type": "many_to_one"
+    },
+    {
+      "from": "product_task.project_id",
+      "to": "projects.id",
+      "type": "many_to_one"
+    },
+    {
+      "from": "product_task.product_id",
+      "to": "products.id",
+      "type": "many_to_one"
+    },
+    {
+      "from": "product_task.assign_member",
+      "to": "users.id",
+      "type": "many_to_one"
+    },
+    {
+      "from": "product_task.reviewer",
+      "to": "users.id",
+      "type": "many_to_one"
+    },
+    {
+      "from": "product_task_details.task_id",
+      "to": "product_task.id",
+      "type": "many_to_one"
+    },
+    {
+      "from": "timesheets.user_id",
+      "to": "users.id",
+      "type": "many_to_one"
+    },
+    {
+      "from": "timesheets.project_id",
+      "to": "projects.id",
+      "type": "many_to_one"
+    },
+    {
+      "from": "timesheets.product_id",
+      "to": "products.id",
+      "type": "many_to_one"
+    },
+    {
+      "from": "timesheets.task_id",
+      "to": "product_task.id",
+      "type": "many_to_one"
+    },
+    {
+      "from": "timelog_records.user_id",
+      "to": "users.id",
+      "type": "many_to_one"
+    },
+    {
+      "from": "timelog_records.project_id",
+      "to": "projects.id",
+      "type": "many_to_one"
+    },
+    {
+      "from": "timelog_records.product_id",
+      "to": "products.id",
+      "type": "many_to_one"
+    },
+    {
+      "from": "timelog_records.task_id",
+      "to": "product_task.id",
+      "type": "many_to_one"
+    },
+    {
+      "from": "task_hours.task_id",
+      "to": "product_task.id",
+      "type": "many_to_one"
+    },
+    {
+      "from": "task_hours.user_id",
+      "to": "users.id",
+      "type": "many_to_one"
+    },
+    {
+      "from": "task_bug_management.task_id",
+      "to": "product_task.id",
+      "type": "many_to_one"
+    },
+    {
+      "from": "task_bug_management.bug_created_by",
+      "to": "users.id",
+      "type": "many_to_one"
+    },
+    {
+      "from": "task_bug_management.bug_assigned_to",
+      "to": "users.id",
+      "type": "many_to_one"
+    },
+    {
+      "from": "changerequest_management.project_id",
+      "to": "projects.id",
+      "type": "many_to_one"
+    },
+    {
+      "from": "changerequest_management.product_id",
+      "to": "products.id",
+      "type": "many_to_one"
+    },
+    {
+      "from": "changerequest_management.task_id",
+      "to": "product_task.id",
+      "type": "many_to_one"
+    },
+    {
+      "from": "reviewer_comments.task_id",
+      "to": "product_task.id",
+      "type": "many_to_one"
+    },
+    {
+      "from": "reviewer_comments.reviewer_id",
+      "to": "users.id",
+      "type": "many_to_one"
+    },
+    {
+      "from": "markup_management.task_id",
+      "to": "product_task.id",
+      "type": "many_to_one"
+    },
+    {
+      "from": "attendances.user_id",
+      "to": "users.id",
+      "type": "many_to_one"
+    },
+    {
+      "from": "attendance.employee_id",
+      "to": "users.employee_id",
+      "type": "many_to_one"
+    },
+    {
+      "from": "daily_project_comments.project_id",
+      "to": "projects.id",
+      "type": "many_to_one"
+    },
+    {
+      "from": "daily_project_comments.user_id",
+      "to": "users.id",
+      "type": "many_to_one"
+    }
+  ],
+  "tables": [
+    {
+      "name": "users",
+      "description": "Employees and application users for authentication, project assignment, attendance, and time logging.",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "description": "Primary key"
+        },
+        {
+          "name": "name",
+          "type": "varchar",
+          "description": "Full employee name"
+        },
+        {
+          "name": "email",
+          "type": "varchar",
+          "description": "Unique login email"
+        },
+        {
+          "name": "email_verified_at",
+          "type": "timestamp",
+          "description": "Email verification timestamp"
+        },
+        {
+          "name": "password",
+          "type": "varchar",
+          "description": "Hashed password"
+        },
+        {
+          "name": "employee_id",
+          "type": "varchar",
+          "description": "Employee code from architecture document"
+        },
+        {
+          "name": "role",
+          "type": "enum",
+          "description": "Super Admin, HR, Project Manager, Team Leader, Team Member"
+        },
+        {
+          "name": "mobile",
+          "type": "varchar",
+          "description": "Mobile number"
+        },
+        {
+          "name": "address",
+          "type": "varchar",
+          "description": "Physical address"
+        },
+        {
+          "name": "joining_date",
+          "type": "date",
+          "description": "Employee joining date"
+        },
+        {
+          "name": "user_image",
+          "type": "varchar",
+          "description": "Profile image path or URL"
+        },
+        {
+          "name": "is_deleted",
+          "type": "tinyint",
+          "description": "Soft delete flag"
+        },
+        {
+          "name": "status",
+          "type": "varchar/enum",
+          "description": "active, disabled, suspended, inactive"
+        },
+        {
+          "name": "text_pass",
+          "type": "varchar",
+          "description": "Temporary text password field"
+        },
+        {
+          "name": "remember_token",
+          "type": "varchar",
+          "description": "Laravel remember token"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "description": "Creation timestamp"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "description": "Update timestamp"
+        }
+      ]
+    },
+    {
+      "name": "roles",
+      "description": "Role definitions for role based access control.",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "description": "Primary key"
+        },
+        {
+          "name": "name",
+          "type": "varchar",
+          "description": "Role name"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "description": "Creation timestamp"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "description": "Update timestamp"
+        }
+      ]
+    },
+    {
+      "name": "role_user",
+      "aliases": [
+        "roles_user"
+      ],
+      "description": "User-to-role pivot table.",
+      "columns": [
+        {
+          "name": "role_id",
+          "type": "bigint",
+          "description": "Role foreign key"
+        },
+        {
+          "name": "user_id",
+          "type": "bigint",
+          "description": "User foreign key"
+        }
+      ]
+    },
+    {
+      "name": "projects",
+      "description": "Project master data from kickoff through closure.",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "description": "Primary key"
+        },
+        {
+          "name": "client",
+          "type": "varchar",
+          "description": "Client name"
+        },
+        {
+          "name": "precaster",
+          "type": "varchar",
+          "description": "Precaster company"
+        },
+        {
+          "name": "project_name",
+          "type": "varchar",
+          "description": "Project title"
+        },
+        {
+          "name": "project_type_id",
+          "type": "bigint/int",
+          "description": "Project type foreign key"
+        },
+        {
+          "name": "products",
+          "type": "json",
+          "description": "Products associated with the project"
+        },
+        {
+          "name": "scope",
+          "type": "varchar/text",
+          "description": "Project scope"
+        },
+        {
+          "name": "priority",
+          "type": "varchar/enum",
+          "description": "Low, Medium, High, Critical"
+        },
+        {
+          "name": "project_status",
+          "type": "varchar/enum",
+          "description": "Current project status"
+        },
+        {
+          "name": "dai_cord",
+          "type": "varchar",
+          "description": "DAI coordinator"
+        },
+        {
+          "name": "company_name",
+          "type": "varchar",
+          "description": "Executing company"
+        },
+        {
+          "name": "project_plan_prepared_by",
+          "type": "varchar",
+          "description": "Plan preparer"
+        },
+        {
+          "name": "project_leader",
+          "type": "varchar",
+          "description": "Project leader"
+        },
+        {
+          "name": "team_leader",
+          "type": "json",
+          "description": "Team leader assignments"
+        },
+        {
+          "name": "team_member",
+          "type": "json",
+          "description": "Team member assignments"
+        },
+        {
+          "name": "primary_team_leader",
+          "type": "varchar",
+          "description": "Primary team leader"
+        },
+        {
+          "name": "project_no",
+          "type": "varchar",
+          "description": "Unique project number"
+        },
+        {
+          "name": "total_no_of_shop_tickets",
+          "type": "int",
+          "description": "Total shop tickets"
+        },
+        {
+          "name": "project_management_hrs",
+          "type": "int/decimal",
+          "description": "Project management hours"
+        },
+        {
+          "name": "total_budgeted_man_hrs",
+          "type": "int/decimal",
+          "description": "Budgeted man hours"
+        },
+        {
+          "name": "actual_man_hrs_utilized",
+          "type": "int/decimal",
+          "description": "Actual utilized man hours"
+        },
+        {
+          "name": "kick_off_meeting_date",
+          "type": "date",
+          "description": "Kickoff meeting date"
+        },
+        {
+          "name": "start_date",
+          "type": "date",
+          "description": "Start date"
+        },
+        {
+          "name": "estimated_sub_date",
+          "type": "date",
+          "description": "Estimated submission date"
+        },
+        {
+          "name": "actual_end_date",
+          "type": "date",
+          "description": "Actual completion date"
+        },
+        {
+          "name": "project_closure_report_date",
+          "type": "date",
+          "description": "Closure report date"
+        },
+        {
+          "name": "out_for_approval_date",
+          "type": "date",
+          "description": "Sent for approval date"
+        },
+        {
+          "name": "project_production_date",
+          "type": "date",
+          "description": "Production phase date"
+        },
+        {
+          "name": "kick_off_meeting_comments",
+          "type": "text",
+          "description": "Kickoff notes"
+        },
+        {
+          "name": "project_mfg_type",
+          "type": "varchar",
+          "description": "Manufacturing type"
+        },
+        {
+          "name": "project_accessories_type",
+          "type": "varchar",
+          "description": "Accessories type"
+        },
+        {
+          "name": "accessories",
+          "type": "varchar/json",
+          "description": "Accessory details"
+        },
+        {
+          "name": "is_edrawing_applicable",
+          "type": "tinyint/boolean",
+          "description": "eDrawing applicability"
+        },
+        {
+          "name": "project_remarks",
+          "type": "text",
+          "description": "Project remarks"
+        },
+        {
+          "name": "project_status_details",
+          "type": "text",
+          "description": "Status details from architecture document"
+        },
+        {
+          "name": "edrawing_scope",
+          "type": "varchar",
+          "description": "eDrawing scope"
+        },
+        {
+          "name": "effective_percentage",
+          "type": "varchar",
+          "description": "Effective completion percentage"
+        },
+        {
+          "name": "project_daily_task_count",
+          "type": "int",
+          "description": "Daily task count"
+        },
+        {
+          "name": "project_leave_remarks",
+          "type": "varchar",
+          "description": "Leave remarks"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "description": "Creation timestamp"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "description": "Update timestamp"
+        }
+      ]
+    },
+    {
+      "name": "products",
+      "description": "Product definitions used across projects and tasks.",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "description": "Primary key"
+        },
+        {
+          "name": "name",
+          "type": "varchar",
+          "description": "Product name"
+        },
+        {
+          "name": "description",
+          "type": "text",
+          "description": "Product details"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "description": "Creation timestamp"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "description": "Update timestamp"
+        }
+      ]
+    },
+    {
+      "name": "product_task",
+      "aliases": [
+        "product_tasks",
+        "products_task"
+      ],
+      "description": "Project/product task assignments and ownership.",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "description": "Primary key"
+        },
+        {
+          "name": "product_id",
+          "type": "bigint",
+          "description": "Product foreign key"
+        },
+        {
+          "name": "project_id",
+          "type": "bigint",
+          "description": "Project foreign key"
+        },
+        {
+          "name": "accessories_id",
+          "type": "bigint",
+          "description": "Accessories foreign key"
+        },
+        {
+          "name": "shop_mark",
+          "type": "varchar",
+          "description": "Shop mark identifier"
+        },
+        {
+          "name": "assign_member",
+          "type": "bigint",
+          "description": "Primary assigned team member"
+        },
+        {
+          "name": "assign_team_leader",
+          "type": "bigint",
+          "description": "Assigned team leader"
+        },
+        {
+          "name": "reviewer",
+          "type": "bigint",
+          "description": "Reviewer user id"
+        },
+        {
+          "name": "markup_assign_member",
+          "type": "bigint",
+          "description": "Markup assignee"
+        },
+        {
+          "name": "markup_reviewer",
+          "type": "bigint",
+          "description": "Markup reviewer"
+        },
+        {
+          "name": "changerequest_assign_member",
+          "type": "bigint",
+          "description": "Change request assignee"
+        },
+        {
+          "name": "changerequest_reviewer",
+          "type": "bigint",
+          "description": "Change request reviewer"
+        },
+        {
+          "name": "task_status",
+          "type": "varchar",
+          "description": "Task status"
+        },
+        {
+          "name": "is_deleted",
+          "type": "tinyint",
+          "description": "Soft delete flag"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "description": "Creation timestamp"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "description": "Update timestamp"
+        }
+      ]
+    },
+    {
+      "name": "product_task_details",
+      "aliases": [
+        "product_task_detail"
+      ],
+      "description": "Detailed task work records and actual hours.",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "description": "Primary key"
+        },
+        {
+          "name": "task_id",
+          "type": "bigint",
+          "description": "Product task foreign key"
+        },
+        {
+          "name": "description",
+          "type": "text",
+          "description": "Task detail"
+        },
+        {
+          "name": "actual_hr",
+          "type": "int",
+          "description": "Actual hours"
+        },
+        {
+          "name": "remark",
+          "type": "text",
+          "description": "Planning/report remark from report catalog"
+        },
+        {
+          "name": "is_markup",
+          "type": "tinyint",
+          "description": "Markup flag from report catalog"
+        },
+        {
+          "name": "uploaded_date",
+          "type": "date",
+          "description": "Uploaded task date from report catalog"
+        },
+        {
+          "name": "is_deleted",
+          "type": "tinyint",
+          "description": "Soft delete flag from report catalog"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "description": "Creation timestamp"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "description": "Update timestamp"
+        }
+      ]
+    },
+    {
+      "name": "timesheets",
+      "description": "Timesheet entries for project/task time allocation.",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "description": "Primary key"
+        },
+        {
+          "name": "user_id",
+          "type": "bigint",
+          "description": "Employee who logged time"
+        },
+        {
+          "name": "project_id",
+          "type": "bigint",
+          "description": "Project worked on"
+        },
+        {
+          "name": "product_id",
+          "type": "bigint",
+          "description": "Product worked on"
+        },
+        {
+          "name": "task_id",
+          "type": "bigint",
+          "description": "Task worked on"
+        },
+        {
+          "name": "work_type",
+          "type": "varchar",
+          "description": "Work type"
+        },
+        {
+          "name": "role_type",
+          "type": "varchar",
+          "description": "Role while working"
+        },
+        {
+          "name": "date",
+          "type": "date",
+          "description": "Work date"
+        },
+        {
+          "name": "description",
+          "type": "text",
+          "description": "Work description"
+        },
+        {
+          "name": "time_spent",
+          "type": "time",
+          "description": "Time spent"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "description": "Creation timestamp"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "description": "Update timestamp"
+        }
+      ]
+    },
+    {
+      "name": "timelog_records",
+      "description": "Detailed time logging for reporting and approval.",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "description": "Primary key"
+        },
+        {
+          "name": "task_id",
+          "type": "bigint",
+          "description": "Task worked on"
+        },
+        {
+          "name": "product_id",
+          "type": "bigint",
+          "description": "Product worked on"
+        },
+        {
+          "name": "project_id",
+          "type": "bigint",
+          "description": "Project worked on"
+        },
+        {
+          "name": "hours",
+          "type": "int",
+          "description": "Hour component"
+        },
+        {
+          "name": "minutes",
+          "type": "int",
+          "description": "Minute component"
+        },
+        {
+          "name": "work_type",
+          "type": "varchar",
+          "description": "Work type"
+        },
+        {
+          "name": "user_type",
+          "type": "enum",
+          "description": "Developer, Checker, Reviewer"
+        },
+        {
+          "name": "date",
+          "type": "date",
+          "description": "Work date"
+        },
+        {
+          "name": "user_id",
+          "type": "bigint",
+          "description": "Employee who logged time"
+        },
+        {
+          "name": "work_mode",
+          "type": "enum",
+          "description": "Office, Remote, Hybrid"
+        },
+        {
+          "name": "task_stage",
+          "type": "varchar",
+          "description": "Task stage"
+        },
+        {
+          "name": "task_stage_number",
+          "type": "int",
+          "description": "Task stage number"
+        },
+        {
+          "name": "approve_status",
+          "type": "enum/int",
+          "description": "Approval status"
+        },
+        {
+          "name": "rejection_comment",
+          "type": "text",
+          "description": "Approval rejection comment"
+        },
+        {
+          "name": "non_billable_reason",
+          "type": "varchar",
+          "description": "Reason for non-billable work"
+        },
+        {
+          "name": "estimated_man_hr",
+          "type": "int",
+          "description": "Estimated man hours"
+        },
+        {
+          "name": "estimated_hours",
+          "type": "int",
+          "description": "Estimated hours"
+        },
+        {
+          "name": "changerequest_checking_estimated_hrs",
+          "type": "int",
+          "description": "Change request checking estimated hours"
+        },
+        {
+          "name": "changerequest_detailing_estimated_hrs",
+          "type": "int",
+          "description": "Change request detailing estimated hours"
+        },
+        {
+          "name": "markup_checking_estimated_hrs",
+          "type": "int",
+          "description": "Markup checking estimated hours"
+        },
+        {
+          "name": "markup_detailing_estimated_hrs",
+          "type": "int",
+          "description": "Markup detailing estimated hours"
+        },
+        {
+          "name": "pl_estimated_checking_man_hours",
+          "type": "int",
+          "description": "PL estimated checking man hours"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "description": "Creation timestamp"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "description": "Update timestamp"
+        }
+      ]
+    },
+    {
+      "name": "tl_timelog_records",
+      "description": "Team leader time log variant from architecture document.",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "description": "Primary key"
+        },
+        {
+          "name": "tl_id",
+          "type": "bigint",
+          "description": "Team leader user id"
+        },
+        {
+          "name": "project_id",
+          "type": "bigint",
+          "description": "Project foreign key"
+        },
+        {
+          "name": "task_id",
+          "type": "bigint",
+          "description": "Task foreign key"
+        },
+        {
+          "name": "date",
+          "type": "date",
+          "description": "Work date"
+        },
+        {
+          "name": "hours",
+          "type": "int",
+          "description": "Hours"
+        },
+        {
+          "name": "minutes",
+          "type": "int",
+          "description": "Minutes"
+        },
+        {
+          "name": "approve_status",
+          "type": "enum",
+          "description": "Approval status"
+        },
+        {
+          "name": "work_type",
+          "type": "varchar",
+          "description": "Work type"
+        },
+        {
+          "name": "work_mode",
+          "type": "enum",
+          "description": "Office, Remote, Hybrid"
+        },
+        {
+          "name": "time_spent",
+          "type": "int",
+          "description": "Time spent"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "description": "Creation timestamp"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "description": "Update timestamp"
+        }
+      ]
+    },
+    {
+      "name": "tm_timelog_records",
+      "description": "Team member time log variant from architecture document.",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "description": "Primary key"
+        },
+        {
+          "name": "tm_id",
+          "type": "bigint",
+          "description": "Team member user id"
+        },
+        {
+          "name": "tl_id",
+          "type": "bigint",
+          "description": "Team leader user id"
+        },
+        {
+          "name": "project_id",
+          "type": "bigint",
+          "description": "Project foreign key"
+        },
+        {
+          "name": "task_id",
+          "type": "bigint",
+          "description": "Task foreign key"
+        },
+        {
+          "name": "date",
+          "type": "date",
+          "description": "Work date"
+        },
+        {
+          "name": "hours",
+          "type": "int",
+          "description": "Hours"
+        },
+        {
+          "name": "minutes",
+          "type": "int",
+          "description": "Minutes"
+        },
+        {
+          "name": "approve_status",
+          "type": "enum",
+          "description": "Approval status"
+        },
+        {
+          "name": "work_type",
+          "type": "varchar",
+          "description": "Work type"
+        },
+        {
+          "name": "work_mode",
+          "type": "enum",
+          "description": "Office, Remote, Hybrid"
+        },
+        {
+          "name": "time_spent",
+          "type": "int",
+          "description": "Time spent"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "description": "Creation timestamp"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "description": "Update timestamp"
+        }
+      ]
+    },
+    {
+      "name": "edrawing_timelog_records",
+      "description": "eDrawing time records from architecture document.",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "description": "Primary key"
+        },
+        {
+          "name": "user_id",
+          "type": "bigint",
+          "description": "Employee user id"
+        },
+        {
+          "name": "project_id",
+          "type": "bigint",
+          "description": "Project foreign key"
+        },
+        {
+          "name": "task_id",
+          "type": "bigint",
+          "description": "Task foreign key"
+        },
+        {
+          "name": "date",
+          "type": "date",
+          "description": "Work date"
+        },
+        {
+          "name": "hours",
+          "type": "int",
+          "description": "Hours"
+        },
+        {
+          "name": "minutes",
+          "type": "int",
+          "description": "Minutes"
+        },
+        {
+          "name": "approve_status",
+          "type": "enum",
+          "description": "Approval status"
+        },
+        {
+          "name": "work_details",
+          "type": "text",
+          "description": "Work details"
+        },
+        {
+          "name": "is_deleted",
+          "type": "boolean",
+          "description": "Soft delete flag"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "description": "Creation timestamp"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "description": "Update timestamp"
+        }
+      ]
+    },
+    {
+      "name": "task_hours",
+      "description": "Hours allocated or worked per task and user.",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "description": "Primary key"
+        },
+        {
+          "name": "task_id",
+          "type": "bigint",
+          "description": "Task foreign key"
+        },
+        {
+          "name": "user_id",
+          "type": "bigint",
+          "description": "User foreign key"
+        },
+        {
+          "name": "date",
+          "type": "date",
+          "description": "Date tracked"
+        },
+        {
+          "name": "hours",
+          "type": "int",
+          "description": "Hours worked"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "description": "Creation timestamp"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "description": "Update timestamp"
+        }
+      ]
+    },
+    {
+      "name": "task_bug_management",
+      "description": "Bug, defect, and post-error tracking.",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "description": "Primary key"
+        },
+        {
+          "name": "bug_id",
+          "type": "bigint",
+          "description": "Bug reference id"
+        },
+        {
+          "name": "task_id",
+          "type": "bigint",
+          "description": "Task where bug was found"
+        },
+        {
+          "name": "description",
+          "type": "text",
+          "description": "Bug description"
+        },
+        {
+          "name": "severity",
+          "type": "varchar",
+          "description": "Low, Medium, High, Critical"
+        },
+        {
+          "name": "status",
+          "type": "varchar",
+          "description": "Open, In Progress, Resolved, Closed"
+        },
+        {
+          "name": "bug_created_by",
+          "type": "bigint",
+          "description": "Reporter user id"
+        },
+        {
+          "name": "bug_assigned_to",
+          "type": "bigint",
+          "description": "Assignee user id"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "description": "Report timestamp"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "description": "Update timestamp"
+        }
+      ]
+    },
+    {
+      "name": "changerequest_management",
+      "description": "Project change requests and approvals.",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "description": "Primary key"
+        },
+        {
+          "name": "task_id",
+          "type": "bigint",
+          "description": "Affected task"
+        },
+        {
+          "name": "project_id",
+          "type": "bigint",
+          "description": "Affected project"
+        },
+        {
+          "name": "product_id",
+          "type": "bigint",
+          "description": "Affected product"
+        },
+        {
+          "name": "changerequest_document",
+          "type": "varchar",
+          "description": "Document path or URL"
+        },
+        {
+          "name": "changerequest_comment",
+          "type": "text",
+          "description": "Change details"
+        },
+        {
+          "name": "date",
+          "type": "date",
+          "description": "Submission date"
+        },
+        {
+          "name": "changerequest_added_by",
+          "type": "bigint",
+          "description": "Submitter user id"
+        },
+        {
+          "name": "changerequest_assign_to",
+          "type": "bigint",
+          "description": "Assigned user id"
+        },
+        {
+          "name": "changerequest_status",
+          "type": "varchar",
+          "description": "Pending, Approved, Rejected, Completed"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "description": "Creation timestamp"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "description": "Update timestamp"
+        }
+      ]
+    },
+    {
+      "name": "reviewer_comments",
+      "description": "Reviewer comments and feedback for task quality/rating reports.",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "description": "Primary key"
+        },
+        {
+          "name": "task_id",
+          "type": "bigint",
+          "description": "Reviewed task"
+        },
+        {
+          "name": "comments",
+          "type": "text",
+          "description": "Reviewer comments"
+        },
+        {
+          "name": "reviewer_id",
+          "type": "bigint",
+          "description": "Reviewer user id"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "description": "Creation timestamp"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "description": "Update timestamp"
+        }
+      ]
+    },
+    {
+      "name": "markup_management",
+      "description": "Markup comments, assignment, and status.",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "description": "Primary key"
+        },
+        {
+          "name": "task_id",
+          "type": "bigint",
+          "description": "Task requiring markup"
+        },
+        {
+          "name": "markup_comment",
+          "type": "text",
+          "description": "Markup comment"
+        },
+        {
+          "name": "markup_added_by",
+          "type": "bigint",
+          "description": "Markup creator user id"
+        },
+        {
+          "name": "markup_assign_to",
+          "type": "bigint",
+          "description": "Assigned reviewer user id"
+        },
+        {
+          "name": "markup_status",
+          "type": "varchar",
+          "description": "Pending, In Review, Approved, Rejected"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "description": "Creation timestamp"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "description": "Update timestamp"
+        }
+      ]
+    },
+    {
+      "name": "attendances",
+      "aliases": [
+        "attendance",
+        "attenndeces"
+      ],
+      "description": "Attendance records with check-in/check-out times and employee details.",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "description": "Primary key"
+        },
+        {
+          "name": "employee_id",
+          "type": "varchar",
+          "description": "Employee code"
+        },
+        {
+          "name": "date",
+          "type": "date",
+          "description": "Attendance date"
+        },
+        {
+          "name": "day",
+          "type": "enum",
+          "description": "Day of week"
+        },
+        {
+          "name": "status",
+          "type": "varchar/enum",
+          "description": "Present, Absent, Late, Leave or P/A/WO/H/L"
+        },
+        {
+          "name": "check_in",
+          "type": "time",
+          "description": "Check-in time"
+        },
+        {
+          "name": "check_out",
+          "type": "time",
+          "description": "Check-out time"
+        },
+        {
+          "name": "total_hours",
+          "type": "time",
+          "description": "Total hours worked"
+        },
+        {
+          "name": "employee_details",
+          "type": "text",
+          "description": "Additional attendance details"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "description": "Creation timestamp"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "description": "Update timestamp"
+        }
+      ]
+    },
+    {
+      "name": "clients",
+      "description": "Client master data from architecture document.",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "description": "Primary key"
+        },
+        {
+          "name": "client_name",
+          "type": "varchar",
+          "description": "Client name"
+        },
+        {
+          "name": "contact_person",
+          "type": "varchar",
+          "description": "Contact person"
+        },
+        {
+          "name": "email",
+          "type": "varchar",
+          "description": "Client email"
+        },
+        {
+          "name": "phone",
+          "type": "varchar",
+          "description": "Client phone"
+        },
+        {
+          "name": "address",
+          "type": "text",
+          "description": "Address"
+        },
+        {
+          "name": "city",
+          "type": "varchar",
+          "description": "City"
+        },
+        {
+          "name": "state",
+          "type": "varchar",
+          "description": "State"
+        },
+        {
+          "name": "country",
+          "type": "varchar",
+          "description": "Country"
+        },
+        {
+          "name": "postal_code",
+          "type": "varchar",
+          "description": "Postal code"
+        },
+        {
+          "name": "status",
+          "type": "enum",
+          "description": "Active or Inactive"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "description": "Creation timestamp"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "description": "Update timestamp"
+        }
+      ]
+    },
+    {
+      "name": "project_types",
+      "description": "Project type lookup from architecture document.",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "description": "Primary key"
+        },
+        {
+          "name": "type_name",
+          "type": "varchar",
+          "description": "Project type"
+        },
+        {
+          "name": "description",
+          "type": "text",
+          "description": "Description"
+        },
+        {
+          "name": "status",
+          "type": "enum",
+          "description": "Active or Inactive"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "description": "Creation timestamp"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "description": "Update timestamp"
+        }
+      ]
+    },
+    {
+      "name": "holidays",
+      "description": "Holiday calendar for attendance/capacity calculations.",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "description": "Primary key"
+        },
+        {
+          "name": "holiday_name",
+          "type": "varchar",
+          "description": "Holiday name"
+        },
+        {
+          "name": "holiday_date",
+          "type": "date",
+          "description": "Holiday date"
+        },
+        {
+          "name": "type",
+          "type": "enum",
+          "description": "National, State, Company, Religious"
+        },
+        {
+          "name": "description",
+          "type": "text",
+          "description": "Holiday description"
+        },
+        {
+          "name": "status",
+          "type": "enum",
+          "description": "Active or Inactive"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "description": "Creation timestamp"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "description": "Update timestamp"
+        }
+      ]
+    },
+    {
+      "name": "daily_project_comments",
+      "description": "Daily, weekly, revision, and kickoff project comments.",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "description": "Primary key"
+        },
+        {
+          "name": "project_id",
+          "type": "bigint",
+          "description": "Project foreign key"
+        },
+        {
+          "name": "user_id",
+          "type": "bigint",
+          "description": "Commenting user"
+        },
+        {
+          "name": "comment_date",
+          "type": "date",
+          "description": "Comment date"
+        },
+        {
+          "name": "comment",
+          "type": "text",
+          "description": "Comment text"
+        },
+        {
+          "name": "comment_type",
+          "type": "enum",
+          "description": "Daily, Weekly, Revision, Kickoff"
+        },
+        {
+          "name": "status",
+          "type": "enum",
+          "description": "Active, Resolved, Closed"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "description": "Creation timestamp"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "description": "Update timestamp"
+        }
+      ]
+    },
+    {
+      "name": "admins",
+      "description": "Administrator login records from migration descriptions.",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "description": "Primary key"
+        },
+        {
+          "name": "name",
+          "type": "varchar",
+          "description": "Administrator name"
+        },
+        {
+          "name": "email",
+          "type": "varchar",
+          "description": "Admin login email"
+        },
+        {
+          "name": "email_verified_at",
+          "type": "timestamp",
+          "description": "Email verification timestamp"
+        },
+        {
+          "name": "password",
+          "type": "varchar",
+          "description": "Hashed password"
+        },
+        {
+          "name": "remember_token",
+          "type": "varchar",
+          "description": "Remember token"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "description": "Creation timestamp"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "description": "Update timestamp"
+        }
+      ]
+    },
+    {
+      "name": "failed_jobs",
+      "description": "Laravel failed queue jobs.",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "description": "Primary key"
+        },
+        {
+          "name": "uuid",
+          "type": "varchar",
+          "description": "Failed job UUID"
+        },
+        {
+          "name": "connection",
+          "type": "text",
+          "description": "Queue connection"
+        },
+        {
+          "name": "queue",
+          "type": "text",
+          "description": "Queue name"
+        },
+        {
+          "name": "payload",
+          "type": "longtext",
+          "description": "Job payload"
+        },
+        {
+          "name": "exception",
+          "type": "longtext",
+          "description": "Exception details"
+        },
+        {
+          "name": "failed_at",
+          "type": "timestamp",
+          "description": "Failure timestamp"
+        }
+      ]
+    },
+    {
+      "name": "personal_access_tokens",
+      "description": "API access tokens.",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "description": "Primary key"
+        },
+        {
+          "name": "tokenable_type",
+          "type": "varchar",
+          "description": "Token owner model type"
+        },
+        {
+          "name": "tokenable_id",
+          "type": "bigint",
+          "description": "Token owner id"
+        },
+        {
+          "name": "name",
+          "type": "varchar",
+          "description": "Token name"
+        },
+        {
+          "name": "token",
+          "type": "varchar",
+          "description": "Token hash"
+        },
+        {
+          "name": "abilities",
+          "type": "text",
+          "description": "Token abilities JSON"
+        },
+        {
+          "name": "last_used_at",
+          "type": "timestamp",
+          "description": "Last used timestamp"
+        },
+        {
+          "name": "expires_at",
+          "type": "timestamp",
+          "description": "Expiration timestamp"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "description": "Creation timestamp"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "description": "Update timestamp"
+        }
+      ]
+    },
+    {
+      "name": "password_reset_tokens",
+      "description": "Password reset tokens.",
+      "columns": [
+        {
+          "name": "email",
+          "type": "varchar",
+          "description": "User email"
+        },
+        {
+          "name": "token",
+          "type": "varchar",
+          "description": "Reset token"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "description": "Creation timestamp"
+        }
+      ]
+    }
+  ]
+}
