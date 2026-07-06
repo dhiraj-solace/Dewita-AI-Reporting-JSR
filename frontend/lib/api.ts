@@ -415,7 +415,7 @@ export async function updateUser(id: string, payload: UserUpdatePayload): Promis
 }
 
 export async function getHealth(): Promise<Health> {
-  const response = await fetch(`${API_URL}/health`, {cache: "no-store"});
+  const response = await fetch(`${API_URL}/api/health`, {cache: "no-store"});
   if (!response.ok) {
     throw new Error("Backend health check failed");
   }

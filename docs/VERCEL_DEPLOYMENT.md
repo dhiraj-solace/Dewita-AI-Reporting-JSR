@@ -16,6 +16,19 @@ This repository deploys as one Vercel Services project:
 The frontend uses same-origin API requests in production, so
 `NEXT_PUBLIC_API_URL` should normally remain unset.
 
+If `/api/health` returns `404`, Vercel deployed only the frontend. Confirm that
+the Root Directory is blank (the repository root), the Framework Preset is
+`Services`, and the deployment includes the root `vercel.json`.
+
+Vercel Services currently requires Private Beta access. Without Services
+access, create two Vercel projects:
+
+1. Backend project with Root Directory set to `backend`.
+2. Frontend project with Root Directory set to `frontend`.
+3. Set `NEXT_PUBLIC_API_URL=https://<backend-project>.vercel.app` on the
+   frontend project.
+4. Add the frontend production URL to `CORS_ORIGINS` on the backend project.
+
 ## Required Production Variables
 
 - `DATABASE_URL`
