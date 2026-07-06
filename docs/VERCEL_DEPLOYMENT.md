@@ -26,6 +26,18 @@ The frontend uses same-origin API requests in production, so
 Use `AI_PROVIDER=openrouter` and `LLM_VALIDATOR_PROVIDER=openrouter`.
 Local Ollama URLs are not reachable from Vercel.
 
+## Temporary Direct Admin
+
+To allow Super Admin access without changing the existing database schema, set:
+
+- `DIRECT_ADMIN_ENABLED=true`
+- `DIRECT_ADMIN_EMAIL` to the temporary admin email
+- `DIRECT_ADMIN_PASSWORD` to a strong temporary password
+
+The matching login and its signed session validation bypass the database.
+Remove these variables or set `DIRECT_ADMIN_ENABLED=false` after database-backed
+authentication is ready.
+
 ## Scheduled Reports
 
 The in-process scheduler is disabled automatically on Vercel. Configure a

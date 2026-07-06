@@ -55,6 +55,9 @@ class Settings(BaseSettings):
     query_timeout_seconds: int = 60
     auth_secret_key: str = "devita-local-auth-secret-change-me"
     auth_token_ttl_minutes: int = 720
+    direct_admin_enabled: bool = False
+    direct_admin_email: str | None = None
+    direct_admin_password: str | None = None
     scheduler_enabled: bool = True
     cron_secret: str | None = None
 
