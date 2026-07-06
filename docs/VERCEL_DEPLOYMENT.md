@@ -16,12 +16,12 @@ This repository deploys as one Vercel Services project:
 The frontend uses same-origin API requests in production, so
 `NEXT_PUBLIC_API_URL` should normally remain unset.
 
-If `/api/health` returns `404`, Vercel deployed only the frontend. Confirm that
-the Root Directory is blank (the repository root), the Framework Preset is
-`Services`, and the deployment includes the root `vercel.json`.
+If `/api/health` returns `404`, confirm that the Root Directory is blank (the
+repository root), the Framework Preset is `Services`, and the deployment
+includes the root `vercel.json`. Top-level rewrites send `/api/*` to FastAPI
+while preserving the original request path.
 
-Vercel Services currently requires Private Beta access. Without Services
-access, create two Vercel projects:
+If the Services preset is unavailable, create two Vercel projects:
 
 1. Backend project with Root Directory set to `backend`.
 2. Frontend project with Root Directory set to `frontend`.

@@ -1,22 +1,35 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "fluid": true,
-  "experimentalServices": {
+  "services": {
     "frontend": {
-      "entrypoint": "frontend",
-      "routePrefix": "/",
+      "root": "frontend",
       "framework": "nextjs"
     },
     "backend": {
-      "entrypoint": "backend/main.py",
-      "routePrefix": "/api",
+      "root": "backend",
+      "entrypoint": "main:app",
       "framework": "fastapi",
       "maxDuration": 300,
       "excludeFiles": [
-        "backend/.deps/**",
-        "backend/.venv/**",
-        "backend/app/data/vector_store/**"
+        ".deps/**",
+        ".venv/**",
+        "app/data/vector_store/**"
       ]
     }
-  }
+  },
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": {
+        "service": "backend"
+      }
+    },
+    {
+      "source": "/(.*)",
+      "destination": {
+        "service": "frontend"
+      }
+    }
+  ]
 }
