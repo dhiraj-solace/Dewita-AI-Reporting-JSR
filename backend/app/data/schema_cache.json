@@ -2,10 +2,10 @@
   "source_files": [
     "live_database"
   ],
-  "fetched_at": "2026-06-04T18:40:37.923608",
+  "fetched_at": "2026-07-06T16:19:56.880804",
   "notes": [
     "Schema fetched from live database",
-    "Last updated: 2026-06-04T18:40:37.923608",
+    "Last updated: 2026-07-06T16:19:56.880804",
     "Static schema metadata preserved where available"
   ],
   "relationships": [
@@ -4039,6 +4039,51 @@
           "description": ""
         },
         {
+          "name": "use_in_context",
+          "type": "tinyint",
+          "description": ""
+        },
+        {
+          "name": "validation_stage",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "validator_source",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "missing_table",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "missing_column",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "fix_hint",
+          "type": "longtext",
+          "description": ""
+        },
+        {
+          "name": "mistake_fingerprint",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "generated_output_number",
+          "type": "int",
+          "description": ""
+        },
+        {
+          "name": "retry_number",
+          "type": "int",
+          "description": ""
+        },
+        {
           "name": "created_at",
           "type": "datetime",
           "description": ""
@@ -4861,7 +4906,7 @@
         },
         {
           "name": "address",
-          "type": "text",
+          "type": "varchar",
           "description": "Physical address"
         },
         {

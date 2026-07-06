@@ -120,6 +120,62 @@
         "token:who"
       ]
     },
+    "0fa8f8739615ca94ad8f86bba3d408478050b8c31e4b27fb7986f63ad7bffedc": {
+      "cache_policy": {
+        "created_at": "2026-07-06T11:56:50.097014+00:00",
+        "expires_at": "2026-07-08T11:56:50.097014+00:00",
+        "ttl_days": 2
+      },
+      "intent": {
+        "canonical_tokens": [
+          "2026",
+          "june",
+          "project",
+          "revision",
+          "summary"
+        ],
+        "date_tokens": [
+          "2026"
+        ],
+        "end_date": "2026-06-30",
+        "limit": 500,
+        "report_category": "revision",
+        "start_date": "2026-06-01"
+      },
+      "key": "0fa8f8739615ca94ad8f86bba3d408478050b8c31e4b27fb7986f63ad7bffedc",
+      "query": {
+        "normalized": "show june 2026 revision summary by projects",
+        "original": "Show june 2026 revision summary by projects"
+      },
+      "response": {
+        "explanation": "",
+        "sql": "SELECT p.project_name, u.name AS team_leader_name, COUNT(cm.id) AS revision_count\nFROM changerequest_management cm\nJOIN projects p ON cm.project_id = p.id\nJOIN users u ON p.primary_team_leader = u.id\nWHERE cm.date BETWEEN '2026-06-01' AND '2026-06-30'\nGROUP BY p.id, u.id\nORDER BY revision_count DESC\nLIMIT 10",
+        "title": "SQL Report"
+      },
+      "sources": {
+        "schema_version": "bf2e33e9cf4c72d5"
+      },
+      "stats": {
+        "hit_count": 0,
+        "invalidated_reason": null,
+        "last_hit_at": null,
+        "last_invalidated_at": null
+      },
+      "tags": [
+        "cache_key:0fa8f8739615ca94ad8f86bba3d408478050b8c31e4b27fb7986f63ad7bffedc",
+        "end:2026-06-30",
+        "llm_sql",
+        "start:2026-06-01",
+        "table:changerequest_management",
+        "table:projects",
+        "table:users",
+        "token:2026",
+        "token:june",
+        "token:project",
+        "token:revision",
+        "token:summary"
+      ]
+    },
     "19d1726bbd094f0c7ad6a9daeb61731946c7542eea12197f579a06a76c7c57fd": {
       "cache_policy": {
         "created_at": "2026-05-29T12:48:47.864155+00:00",
@@ -939,6 +995,61 @@
         "token:who"
       ]
     },
+    "79bf415072b12d78f0cf062d3ad5f4b816af65b8890118d5469a0d13cd66b51a": {
+      "cache_policy": {
+        "created_at": "2026-07-06T11:57:49.495197+00:00",
+        "expires_at": "2026-07-08T11:57:49.495197+00:00",
+        "ttl_days": 2
+      },
+      "intent": {
+        "canonical_tokens": [
+          "2026",
+          "leaders",
+          "names",
+          "project",
+          "team"
+        ],
+        "date_tokens": [
+          "2026"
+        ],
+        "end_date": "2026-12-31",
+        "limit": 500,
+        "report_category": "team_employee",
+        "start_date": "2026-01-01"
+      },
+      "key": "79bf415072b12d78f0cf062d3ad5f4b816af65b8890118d5469a0d13cd66b51a",
+      "query": {
+        "normalized": "show 2026 team leaders names by projects",
+        "original": "Show 2026 team leaders names by projects"
+      },
+      "response": {
+        "explanation": "",
+        "sql": "SELECT u.name AS team_leader_name, COUNT(DISTINCT p.id) AS project_count\nFROM users u\nJOIN projects p ON u.id = p.primary_team_leader\nWHERE p.start_date BETWEEN '2026-01-01' AND '2026-12-31'\nGROUP BY u.id, u.name\nORDER BY project_count DESC\nLIMIT 2026",
+        "title": "SQL Report"
+      },
+      "sources": {
+        "schema_version": "bf2e33e9cf4c72d5"
+      },
+      "stats": {
+        "hit_count": 0,
+        "invalidated_reason": null,
+        "last_hit_at": null,
+        "last_invalidated_at": null
+      },
+      "tags": [
+        "cache_key:79bf415072b12d78f0cf062d3ad5f4b816af65b8890118d5469a0d13cd66b51a",
+        "end:2026-12-31",
+        "llm_sql",
+        "start:2026-01-01",
+        "table:projects",
+        "table:users",
+        "token:2026",
+        "token:leaders",
+        "token:names",
+        "token:project",
+        "token:team"
+      ]
+    },
     "7e465d59dcf4970f0f4660729af677bb1685ce6e098423884cb5e4b593c58865": {
       "cache_policy": {
         "created_at": "2026-05-26T07:58:10.813107+00:00",
@@ -1164,6 +1275,66 @@
       },
       "tags": [
         "cache_key:9be00873507a1c945adadf8cf9746a787a2ba656f14d2e7313bb71c5e4271c4c",
+        "end:2026-04-30",
+        "llm_sql",
+        "start:2026-04-01",
+        "table:changerequest_management",
+        "table:projects",
+        "table:users",
+        "token:2026",
+        "token:april",
+        "token:leader",
+        "token:project",
+        "token:revision",
+        "token:summary",
+        "token:team"
+      ]
+    },
+    "a7aaf4e0def2b5e99b0b977af193aa795cd883333d0aecf0a196b9e640d3aeeb": {
+      "cache_policy": {
+        "created_at": "2026-07-06T10:50:17.572664+00:00",
+        "expires_at": "2026-07-08T10:50:17.572664+00:00",
+        "ttl_days": 2
+      },
+      "intent": {
+        "canonical_tokens": [
+          "2026",
+          "april",
+          "leader",
+          "project",
+          "revision",
+          "summary",
+          "team"
+        ],
+        "date_tokens": [
+          "2026"
+        ],
+        "end_date": "2026-04-30",
+        "limit": 500,
+        "report_category": "revision",
+        "start_date": "2026-04-01"
+      },
+      "key": "a7aaf4e0def2b5e99b0b977af193aa795cd883333d0aecf0a196b9e640d3aeeb",
+      "query": {
+        "normalized": "show april 2026 revision summary by project and team leader",
+        "original": "Show April 2026 revision summary by project and team leader"
+      },
+      "response": {
+        "explanation": "",
+        "sql": "SELECT p.project_name, u.name AS team_leader_name, COUNT(cm.id) AS revision_count \nFROM changerequest_management cm \nJOIN projects p ON cm.project_id = p.id \nJOIN users u ON p.primary_team_leader = u.id \nWHERE cm.date BETWEEN '2026-04-01' AND '2026-04-30' \nGROUP BY p.id, u.id \nORDER BY revision_count DESC \nLIMIT 10",
+        "title": "SQL Report"
+      },
+      "sources": {
+        "schema_version": "bf2e33e9cf4c72d5"
+      },
+      "stats": {
+        "hit_count": 0,
+        "invalidated_reason": null,
+        "last_hit_at": null,
+        "last_invalidated_at": null
+      },
+      "tags": [
+        "cache_key:a7aaf4e0def2b5e99b0b977af193aa795cd883333d0aecf0a196b9e640d3aeeb",
         "end:2026-04-30",
         "llm_sql",
         "start:2026-04-01",
@@ -2024,10 +2195,12 @@
     "09ccd58bd69688dd342ca7710eb65d7ac1ad94edfcafec457e491426f0635e5e": "6bfa98d911a52c1e99514aea56676863e16f8886c35d734ffafad0acb5c122ff",
     "1267a1b718909949a9e2e5b9c0946f765ea2beedcead874266f12b25f148268a": "1c0da1ecebacd36e82f3a755a6e524c6320296ec4a0140ff13cd7e5954b1503e",
     "1f5a88c1491e0d0349ca03c673dbc7457b1892b409f0f4c9a5fb87f06387e9db": "f37bddf3e86dd0fd8b9d023cd0f71ef38f84e8e6ee9ae2a4e19c89295b57b2c0",
+    "222711ab6d6633d1de5a14b4585de3ef2ba11f150d6e7c63e24642cbd5dcdd70": "a7aaf4e0def2b5e99b0b977af193aa795cd883333d0aecf0a196b9e640d3aeeb",
     "23e3f5945382b91d86625232301493a71f22765c842bce6e50450c3b7597a87f": "6034c448384a20e7f1d3b5b8e48ff3485b8a53c1e1323a5bf96a8e7617c67b98",
     "27ff334fbffd9829dcba7a70fde25981f3822e53e7a817c77b5287f66e16e883": "5da7c4011ebe1f9416a000b6efa72666319bdeeea1520ca7c459300d67eccfdb",
     "2e884a9e48c61d686b116b5f57953dcf673d2a6de08c753c8603271d58111886": "b505ddb004273ef0b1ce38b2f805efc711bf9ca9ea5233a1a7f254214c22fba9",
     "38e555cff309eacf2cd0e06610434eae46f0a4fc0445039947e86e2292f9d074": "265ef3a6f3b60948829c8485ac1b747165d2a81c22be35d507f1bd7a20d5726b",
+    "56217e85ec4ced843d21187d8cd5ee6f2f49e4e6c1f715806c35d12b9e7ec680": "0fa8f8739615ca94ad8f86bba3d408478050b8c31e4b27fb7986f63ad7bffedc",
     "5785961f9c71ab45ecf368c0f9ffd0041da4d7d0a34394cede62e4e95fb7ebc8": "fd27606e7fedfde8383e260ba8701717f677376a8c311e11f2232f0efe8bea2b",
     "5a1788979781d8b373b3bb6ca2c00a1dda7ac87a071298ed9f3ee2ddcc30b291": "003436a35b721542f87d280b69a395b0c883b05fb6a5bcd8921eaed3d6dee1ea",
     "5fc709709067967ae578fb8dfa1ef87b99b1539c08c58806aed4f04d42e4fdc1": "cb768a01b7f0ef060b43a95b8510863796f4d0dc8c49dbfde13eedd06388a863",
@@ -2039,6 +2212,7 @@
     "8af8e2fe4de5def3473f82e865bc9cffe1b3a486020fd2d31a293ed105c3b9b7": "d62c7459ffee2c64159f5b1f5d00532d3df102e1cf72a23e6d583e94b889cadd",
     "8e02e176eff62d8f8f6ba2203c427a460af0d39533a084b24288b1d0e0bec10e": "19d1726bbd094f0c7ad6a9daeb61731946c7542eea12197f579a06a76c7c57fd",
     "9577eeec2bd2c7d3ebde901f8a5fc374cb70dc7928a600877014e21163ef29a2": "0d87a2c11a381ebb3915d5a2250c5787541d8137918ba1a16b75db8bc2e1a61f",
+    "9b17e820a66d0739206ecffb0431a5acb988ce74d7b7f65625388704cfe80354": "79bf415072b12d78f0cf062d3ad5f4b816af65b8890118d5469a0d13cd66b51a",
     "a38f95c0e39422422d6be204a4252b39a45400648e27a83bf5b3474c0946e484": "9be00873507a1c945adadf8cf9746a787a2ba656f14d2e7313bb71c5e4271c4c",
     "a4933ae46f794e949e6fd7d1b5a5f4416e8dbf6552483e76885775ec92152856": "52822310166876f5317e5ad1ea1808561c8efbd1a7a5fed55d7ef7471dbfc47f",
     "a9941f4fa3b44e6ab75004c71f22b1acd646d7655538a15001f9e9e822b14441": "345a89fdb6a0dd5756d050324480299860d2e21ab7e50da64d2833084e2c5ba6",
@@ -2056,6 +2230,7 @@
   "intent_index": {
     "003436a35b721542f87d280b69a395b0c883b05fb6a5bcd8921eaed3d6dee1ea": "003436a35b721542f87d280b69a395b0c883b05fb6a5bcd8921eaed3d6dee1ea",
     "0d87a2c11a381ebb3915d5a2250c5787541d8137918ba1a16b75db8bc2e1a61f": "0d87a2c11a381ebb3915d5a2250c5787541d8137918ba1a16b75db8bc2e1a61f",
+    "0fa8f8739615ca94ad8f86bba3d408478050b8c31e4b27fb7986f63ad7bffedc": "0fa8f8739615ca94ad8f86bba3d408478050b8c31e4b27fb7986f63ad7bffedc",
     "19d1726bbd094f0c7ad6a9daeb61731946c7542eea12197f579a06a76c7c57fd": "19d1726bbd094f0c7ad6a9daeb61731946c7542eea12197f579a06a76c7c57fd",
     "1c0da1ecebacd36e82f3a755a6e524c6320296ec4a0140ff13cd7e5954b1503e": "1c0da1ecebacd36e82f3a755a6e524c6320296ec4a0140ff13cd7e5954b1503e",
     "265ef3a6f3b60948829c8485ac1b747165d2a81c22be35d507f1bd7a20d5726b": "265ef3a6f3b60948829c8485ac1b747165d2a81c22be35d507f1bd7a20d5726b",
@@ -2069,10 +2244,12 @@
     "6bfa98d911a52c1e99514aea56676863e16f8886c35d734ffafad0acb5c122ff": "6bfa98d911a52c1e99514aea56676863e16f8886c35d734ffafad0acb5c122ff",
     "6c45f95092382368182644f367b0f23b71d9edc18fad52e9d8f2f60f6db5976d": "6c45f95092382368182644f367b0f23b71d9edc18fad52e9d8f2f60f6db5976d",
     "6cc6d8c4cb6b94acba3154f1287e83d099cbdff8b978bc8a1b99b359919f676c": "6cc6d8c4cb6b94acba3154f1287e83d099cbdff8b978bc8a1b99b359919f676c",
+    "79bf415072b12d78f0cf062d3ad5f4b816af65b8890118d5469a0d13cd66b51a": "79bf415072b12d78f0cf062d3ad5f4b816af65b8890118d5469a0d13cd66b51a",
     "7e465d59dcf4970f0f4660729af677bb1685ce6e098423884cb5e4b593c58865": "7e465d59dcf4970f0f4660729af677bb1685ce6e098423884cb5e4b593c58865",
     "8ddb990f8fd3e11896c98f7073c7d344230b17140693770bf826f744c9d06bec": "8ddb990f8fd3e11896c98f7073c7d344230b17140693770bf826f744c9d06bec",
     "98ef54ecb4ce633e9210e60f17f002dc6960b9ad00b6bfabca440b8cdcf3926e": "98ef54ecb4ce633e9210e60f17f002dc6960b9ad00b6bfabca440b8cdcf3926e",
     "9be00873507a1c945adadf8cf9746a787a2ba656f14d2e7313bb71c5e4271c4c": "9be00873507a1c945adadf8cf9746a787a2ba656f14d2e7313bb71c5e4271c4c",
+    "a7aaf4e0def2b5e99b0b977af193aa795cd883333d0aecf0a196b9e640d3aeeb": "a7aaf4e0def2b5e99b0b977af193aa795cd883333d0aecf0a196b9e640d3aeeb",
     "a845eb9aa91870ef0130f7b771029548770eb441299b7d34b873a733c2b0a6dd": "a845eb9aa91870ef0130f7b771029548770eb441299b7d34b873a733c2b0a6dd",
     "ae4e06274d7d337b000de4a02bbdfc95f727686b62ea83f36484bc3a2a5b835c": "ae4e06274d7d337b000de4a02bbdfc95f727686b62ea83f36484bc3a2a5b835c",
     "b505ddb004273ef0b1ce38b2f805efc711bf9ca9ea5233a1a7f254214c22fba9": "b505ddb004273ef0b1ce38b2f805efc711bf9ca9ea5233a1a7f254214c22fba9",
