@@ -9,13 +9,7 @@
     "backend": {
       "root": "backend",
       "entrypoint": "main:app",
-      "framework": "fastapi",
-      "maxDuration": 300,
-      "excludeFiles": [
-        ".deps/**",
-        ".venv/**",
-        "app/data/vector_store/**"
-      ]
+      "framework": "fastapi"
     }
   },
   "rewrites": [
