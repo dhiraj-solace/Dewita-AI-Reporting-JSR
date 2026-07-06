@@ -31,7 +31,13 @@ from app.services.users import authenticate_user, create_auth_token, create_user
 
 settings = get_settings()
 
-app = FastAPI(title=settings.app_name, version="0.1.0")
+app = FastAPI(
+    title=settings.app_name,
+    version="0.1.0",
+    docs_url="/api/docs",
+    redoc_url="/api/redoc",
+    openapi_url="/api/openapi.json",
+)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.allowed_origins,
