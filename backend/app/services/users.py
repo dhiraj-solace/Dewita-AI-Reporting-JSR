@@ -15,6 +15,9 @@ from app.services.audit_log import create_audit_log
 from app.services.report_permissions import DEFAULT_ROLES
 
 
+DIRECT_ADMIN_ID = "direct-super-admin"
+
+
 def ensure_users_table() -> None:
     ddl = """
     CREATE TABLE IF NOT EXISTS users (
@@ -185,6 +188,12 @@ def update_user(user_id: str, payload: dict[str, Any], actor: dict[str, Any] | N
 
 
 def authenticate_user(email: str, password: str) -> dict[str, Any] | None:
+    direct_admin = _configured_direct_admin()
+    if direct_admin and hmac.compare_digest(_normalize_email(email), direct_admin["email"]):
+        if not hmac.compare_digest(password, get_settings().direct_admin_password or ""):
+            return None
+        return direct_admin
+
     ensure_users_table()
     with get_engine().connect() as conn:
         row = conn.execute(
@@ -240,6 +249,16 @@ def get_user_from_token(token: str | None) -> dict[str, Any] | None:
         return None
     if int(payload.get("exp") or 0) < int(datetime.now(UTC).timestamp()):
         return None
+    direct_admin = _configured_direct_admin()
+    if (
+        direct_admin
+        and hmac.compare_digest(str(payload.get("sub") or ""), direct_admin["id"])
+        and hmac.compare_digest(
+            _normalize_email(payload.get("email")),
+            direct_admin["email"],
+        )
+    ):
+        return direct_admin
     user = get_user(str(payload.get("sub") or ""))
     if not user or not user.get("is_active"):
         return None
@@ -291,6 +310,23 @@ def get_user_by_email(email: str | None) -> dict[str, Any] | None:
 def require_super_admin_user(user: dict[str, Any] | None) -> None:
     if not user or str(user.get("role_name") or "").strip().lower() != "super admin":
         raise PermissionError("Only Super Admin can manage users.")
+
+
+def _configured_direct_admin() -> dict[str, Any] | None:
+    settings = get_settings()
+    email = str(settings.direct_admin_email or "").strip().lower()
+    password = settings.direct_admin_password or ""
+    if not settings.direct_admin_enabled or not email or not password or "@" not in email:
+        return None
+    return {
+        "id": DIRECT_ADMIN_ID,
+        "name": "Super Admin",
+        "email": email,
+        "role_name": "Super Admin",
+        "is_active": True,
+        "created_at": None,
+        "updated_at": None,
+    }
 
 
 def _seed_default_admin(conn: Any) -> None:

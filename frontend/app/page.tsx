@@ -236,8 +236,8 @@ export default function Home() {
   const [year, setYear] = useState("2026");
   const [reportCategory, setReportCategory] = useState("auto");
   const [currentUser, setCurrentUser] = useState<UserPublic | null>(null);
-  const [loginEmail, setLoginEmail] = useState("admin@devita.local");
-  const [loginPassword, setLoginPassword] = useState("Admin@12345");
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
   const [loginLoading, setLoginLoading] = useState(false);
   const [loginError, setLoginError] = useState("");
   const [reportCategories, setReportCategories] = useState<ReportCategory[]>(fallbackReportCategories);
@@ -502,7 +502,7 @@ export default function Home() {
               {loginLoading ? <Loader2 className="spin" size={18} /> : <User size={18} />}
               {loginLoading ? "Signing in" : "Sign In"}
             </button>
-            <p>Default local admin: admin@devita.local / Admin@12345</p>
+            <p>Use the administrator credentials configured for this deployment.</p>
           </form>
         </section>
       </main>
