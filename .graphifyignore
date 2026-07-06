@@ -1,0 +1,24 @@
+# Dependencies
+node_modules/
+venv/
+.venv/
+env/
+__pycache__/
+
+# Next.js Build Output
+.next/
+out/
+build/
+
+# FastAPI / Python
+*.pyc
+.pytest_cache/
+.mypy_cache/
+
+# Environment & Secrets
+.env
+*.local
+
+# Logs and OS files
+*.log
+.DS_Store

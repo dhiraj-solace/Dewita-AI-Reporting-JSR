@@ -1,0 +1,2091 @@
+{
+  "entries": {
+    "003436a35b721542f87d280b69a395b0c883b05fb6a5bcd8921eaed3d6dee1ea": {
+      "cache_policy": {
+        "created_at": "2026-05-25T13:44:44.817503+00:00",
+        "expires_at": "2026-05-27T13:44:44.817503+00:00",
+        "ttl_days": 2
+      },
+      "intent": {
+        "canonical_tokens": [
+          "2026",
+          "june",
+          "leader",
+          "project",
+          "revision",
+          "summary",
+          "team"
+        ],
+        "date_tokens": [
+          "2026"
+        ],
+        "end_date": "2026-06-30",
+        "limit": 500,
+        "report_category": "project",
+        "start_date": "2026-06-01"
+      },
+      "key": "003436a35b721542f87d280b69a395b0c883b05fb6a5bcd8921eaed3d6dee1ea",
+      "query": {
+        "normalized": "show june 2026 revision summary by project and team leader",
+        "original": "Show June 2026 revision summary by project and team leader"
+      },
+      "response": {
+        "explanation": "",
+        "sql": "SELECT \n    p.project_name, \n    u.name AS team_leader_name, \n    COUNT(cm.id) AS revision_count\nFROM \n    changerequest_management cm\nJOIN \n    projects p ON cm.project_id = p.id\nJOIN \n    users u ON p.primary_team_leader = u.id\nWHERE \n    cm.date BETWEEN '2026-06-01' AND '2026-06-30'\nGROUP BY \n    p.id, u.id\nORDER BY \n    revision_count DESC\nLIMIT 10",
+        "title": "SQL Report"
+      },
+      "sources": {
+        "schema_version": "ecb2b73f92f14b42"
+      },
+      "stats": {
+        "hit_count": 0,
+        "invalidated_reason": null,
+        "last_hit_at": null,
+        "last_invalidated_at": null
+      },
+      "tags": [
+        "cache_key:003436a35b721542f87d280b69a395b0c883b05fb6a5bcd8921eaed3d6dee1ea",
+        "end:2026-06-30",
+        "llm_sql",
+        "start:2026-06-01",
+        "table:changerequest_management",
+        "table:projects",
+        "table:users",
+        "token:2026",
+        "token:june",
+        "token:leader",
+        "token:project",
+        "token:revision",
+        "token:summary",
+        "token:team"
+      ]
+    },
+    "0d87a2c11a381ebb3915d5a2250c5787541d8137918ba1a16b75db8bc2e1a61f": {
+      "cache_policy": {
+        "created_at": "2026-06-01T09:53:59.010305+00:00",
+        "expires_at": "2026-06-03T09:53:59.010305+00:00",
+        "ttl_days": 2
+      },
+      "intent": {
+        "canonical_tokens": [
+          "5",
+          "has",
+          "leaders",
+          "less",
+          "productivity",
+          "team",
+          "top",
+          "who"
+        ],
+        "date_tokens": [
+          "5"
+        ],
+        "end_date": null,
+        "limit": 500,
+        "report_category": "custom",
+        "start_date": null
+      },
+      "key": "0d87a2c11a381ebb3915d5a2250c5787541d8137918ba1a16b75db8bc2e1a61f",
+      "query": {
+        "normalized": "show me top 5 team leaders who has less productivity",
+        "original": "Show me top 5  team leaders who has less productivity "
+      },
+      "response": {
+        "explanation": "",
+        "sql": "SELECT u.id, u.name AS team_leader_name, COALESCE(SUM(tr.hours) + SUM(tr.minutes)/60, 0) AS total_hours_worked, COUNT(DISTINCT pt.id) AS tasks_assigned, SUM(CASE WHEN pt.task_status = 'Completed' THEN 1 ELSE 0 END) AS tasks_completed, CASE WHEN (SUM(tr.hours) + SUM(tr.minutes)/60) > 0 THEN SUM(CASE WHEN pt.task_status = 'Completed' THEN 1 ELSE 0 END) / (SUM(tr.hours) + SUM(tr.minutes)/60) ELSE 0 END AS productivity FROM users u LEFT JOIN product_task pt ON u.id = pt.assign_team_leader LEFT JOIN timelog_records tr ON u.id = tr.user_id WHERE u.is_deleted = 0 GROUP BY u.id, u.name ORDER BY productivity ASC LIMIT 5",
+        "title": "SQL Report"
+      },
+      "sources": {
+        "schema_version": "2850b450694b429c"
+      },
+      "stats": {
+        "hit_count": 0,
+        "invalidated_reason": null,
+        "last_hit_at": null,
+        "last_invalidated_at": null
+      },
+      "tags": [
+        "cache_key:0d87a2c11a381ebb3915d5a2250c5787541d8137918ba1a16b75db8bc2e1a61f",
+        "llm_sql",
+        "table:product_task",
+        "table:timelog_records",
+        "table:users",
+        "token:5",
+        "token:has",
+        "token:leaders",
+        "token:less",
+        "token:productivity",
+        "token:team",
+        "token:top",
+        "token:who"
+      ]
+    },
+    "19d1726bbd094f0c7ad6a9daeb61731946c7542eea12197f579a06a76c7c57fd": {
+      "cache_policy": {
+        "created_at": "2026-05-29T12:48:47.864155+00:00",
+        "expires_at": "2026-05-31T12:48:47.864155+00:00",
+        "ttl_days": 2
+      },
+      "intent": {
+        "canonical_tokens": [
+          "2026",
+          "leader",
+          "may",
+          "project",
+          "revision",
+          "summary",
+          "team"
+        ],
+        "date_tokens": [
+          "2026"
+        ],
+        "end_date": "2026-05-31",
+        "limit": 500,
+        "report_category": "custom",
+        "start_date": "2026-05-01"
+      },
+      "key": "19d1726bbd094f0c7ad6a9daeb61731946c7542eea12197f579a06a76c7c57fd",
+      "query": {
+        "normalized": "show may 2026 revision summary by project and team leader",
+        "original": "Show may 2026 revision summary by project and team leader"
+      },
+      "response": {
+        "explanation": "",
+        "sql": "SELECT p.project_name, u.name AS team_leader_name, COUNT(cm.id) AS revision_count FROM changerequest_management cm JOIN projects p ON cm.project_id = p.id JOIN users u ON p.primary_team_leader = u.id WHERE cm.date BETWEEN '2026-05-01' AND '2026-05-31' GROUP BY p.id, u.id ORDER BY revision_count DESC LIMIT 10",
+        "title": "SQL Report"
+      },
+      "sources": {
+        "schema_version": "3e7b15831b8fe479"
+      },
+      "stats": {
+        "hit_count": 0,
+        "invalidated_reason": null,
+        "last_hit_at": null,
+        "last_invalidated_at": null
+      },
+      "tags": [
+        "cache_key:19d1726bbd094f0c7ad6a9daeb61731946c7542eea12197f579a06a76c7c57fd",
+        "end:2026-05-31",
+        "llm_sql",
+        "start:2026-05-01",
+        "table:changerequest_management",
+        "table:projects",
+        "table:users",
+        "token:2026",
+        "token:leader",
+        "token:may",
+        "token:project",
+        "token:revision",
+        "token:summary",
+        "token:team"
+      ]
+    },
+    "1c0da1ecebacd36e82f3a755a6e524c6320296ec4a0140ff13cd7e5954b1503e": {
+      "cache_policy": {
+        "created_at": "2026-06-01T10:20:37.606485+00:00",
+        "expires_at": "2026-06-03T10:20:37.606485+00:00",
+        "ttl_days": 2
+      },
+      "intent": {
+        "canonical_tokens": [
+          "7",
+          "has",
+          "leaders",
+          "less",
+          "productivity",
+          "team",
+          "top",
+          "who"
+        ],
+        "date_tokens": [
+          "7"
+        ],
+        "end_date": null,
+        "limit": 500,
+        "report_category": "custom",
+        "start_date": null
+      },
+      "key": "1c0da1ecebacd36e82f3a755a6e524c6320296ec4a0140ff13cd7e5954b1503e",
+      "query": {
+        "normalized": "show me top 7 team leaders who has less productivity",
+        "original": "Show me top 7  team leaders who has less productivity "
+      },
+      "response": {
+        "explanation": "",
+        "sql": "SELECT u.id, u.name AS team_leader_name, COALESCE(SUM(tr.hours) + SUM(tr.minutes)/60, 0) AS total_hours_worked, COUNT(DISTINCT pt.id) AS tasks_assigned, SUM(CASE WHEN pt.task_status = 'Completed' THEN 1 ELSE 0 END) AS tasks_completed, CASE WHEN (SUM(tr.hours) + SUM(tr.minutes)/60) > 0 THEN SUM(CASE WHEN pt.task_status = 'Completed' THEN 1 ELSE 0 END) / (SUM(tr.hours) + SUM(tr.minutes)/60) ELSE 0 END AS productivity FROM users u LEFT JOIN product_task pt ON u.id = pt.assign_team_leader LEFT JOIN timelog_records tr ON u.id = tr.user_id WHERE u.is_deleted = 0 GROUP BY u.id, u.name ORDER BY productivity ASC LIMIT 7",
+        "title": "SQL Report"
+      },
+      "sources": {
+        "schema_version": "2850b450694b429c"
+      },
+      "stats": {
+        "hit_count": 0,
+        "invalidated_reason": null,
+        "last_hit_at": null,
+        "last_invalidated_at": null
+      },
+      "tags": [
+        "cache_key:1c0da1ecebacd36e82f3a755a6e524c6320296ec4a0140ff13cd7e5954b1503e",
+        "llm_sql",
+        "table:product_task",
+        "table:timelog_records",
+        "table:users",
+        "token:7",
+        "token:has",
+        "token:leaders",
+        "token:less",
+        "token:productivity",
+        "token:team",
+        "token:top",
+        "token:who"
+      ]
+    },
+    "265ef3a6f3b60948829c8485ac1b747165d2a81c22be35d507f1bd7a20d5726b": {
+      "cache_policy": {
+        "created_at": "2026-05-29T09:43:24.210247+00:00",
+        "expires_at": "2026-05-31T09:43:24.210247+00:00",
+        "ttl_days": 2
+      },
+      "intent": {
+        "canonical_tokens": [
+          "2025",
+          "april",
+          "attendece",
+          "corresponding",
+          "project"
+        ],
+        "date_tokens": [
+          "2025"
+        ],
+        "end_date": "2025-04-30",
+        "limit": 500,
+        "report_category": "custom",
+        "start_date": "2025-04-01"
+      },
+      "key": "265ef3a6f3b60948829c8485ac1b747165d2a81c22be35d507f1bd7a20d5726b",
+      "query": {
+        "normalized": "show april 2025 attendece report corresponding with projects",
+        "original": "Show april 2025 attendece report corresponding with projects"
+      },
+      "response": {
+        "explanation": "",
+        "sql": "SELECT a.date, a.name AS employee_name, a.employee_id, a.total_hours AS attendance_hours, a.status AS attendance_status, p.project_name, t.hours AS work_hours, t.minutes AS work_minutes, t.work_type, t.task_stage\nFROM attendances a\nLEFT JOIN timelog_records t ON a.employee_id = t.user_id AND a.date = t.date\nLEFT JOIN projects p ON t.project_id = p.id\nWHERE a.date BETWEEN '2025-04-01' AND '2025-04-30'\nORDER BY a.date, a.name\nLIMIT 100",
+        "title": "SQL Report"
+      },
+      "sources": {
+        "schema_version": "c1194e7700622c8b"
+      },
+      "stats": {
+        "hit_count": 0,
+        "invalidated_reason": null,
+        "last_hit_at": null,
+        "last_invalidated_at": null
+      },
+      "tags": [
+        "cache_key:265ef3a6f3b60948829c8485ac1b747165d2a81c22be35d507f1bd7a20d5726b",
+        "end:2025-04-30",
+        "llm_sql",
+        "start:2025-04-01",
+        "table:attendances",
+        "table:projects",
+        "table:timelog_records",
+        "token:2025",
+        "token:april",
+        "token:attendece",
+        "token:corresponding",
+        "token:project"
+      ]
+    },
+    "2c20f9dda846e1583372be8ced50ae618b9391a1ba040fbdfcdaa2e3f06131e3": {
+      "cache_policy": {
+        "created_at": "2026-06-01T11:21:04.287505+00:00",
+        "expires_at": "2026-06-03T11:21:04.287505+00:00",
+        "ttl_days": 2
+      },
+      "intent": {
+        "canonical_tokens": [
+          "equivalent",
+          "last",
+          "leaders",
+          "team",
+          "tickets",
+          "top",
+          "year"
+        ],
+        "date_tokens": [
+          "last",
+          "year"
+        ],
+        "end_date": null,
+        "limit": 500,
+        "report_category": "team_employee",
+        "start_date": null
+      },
+      "key": "2c20f9dda846e1583372be8ced50ae618b9391a1ba040fbdfcdaa2e3f06131e3",
+      "query": {
+        "normalized": "top team leaders with equivalent tickets last year",
+        "original": "Top team leaders with equivalent tickets last year"
+      },
+      "response": {
+        "explanation": "",
+        "sql": "SELECT u.id, u.name AS team_leader_name, COUNT(DISTINCT pt.id) AS ticket_count FROM users u LEFT JOIN product_task pt ON u.id = pt.assign_team_leader AND pt.is_deleted = 0 AND pt.created_at BETWEEN '2024-01-01' AND '2024-12-31' WHERE u.is_deleted = 0 GROUP BY u.id, u.name ORDER BY ticket_count DESC LIMIT 10",
+        "title": "SQL Report"
+      },
+      "sources": {
+        "schema_version": "2850b450694b429c"
+      },
+      "stats": {
+        "hit_count": 0,
+        "invalidated_reason": null,
+        "last_hit_at": null,
+        "last_invalidated_at": null
+      },
+      "tags": [
+        "cache_key:2c20f9dda846e1583372be8ced50ae618b9391a1ba040fbdfcdaa2e3f06131e3",
+        "llm_sql",
+        "table:product_task",
+        "table:users",
+        "token:equivalent",
+        "token:last",
+        "token:leaders",
+        "token:team",
+        "token:tickets",
+        "token:top",
+        "token:year"
+      ]
+    },
+    "345a89fdb6a0dd5756d050324480299860d2e21ab7e50da64d2833084e2c5ba6": {
+      "cache_policy": {
+        "created_at": "2026-05-29T09:37:45.038356+00:00",
+        "expires_at": "2026-05-31T09:37:45.038356+00:00",
+        "ttl_days": 2
+      },
+      "intent": {
+        "canonical_tokens": [
+          "2025",
+          "actual",
+          "assigned",
+          "greater",
+          "hours",
+          "project",
+          "revision",
+          "than",
+          "where"
+        ],
+        "date_tokens": [
+          "2025"
+        ],
+        "end_date": "2025-12-31",
+        "limit": 500,
+        "report_category": "custom",
+        "start_date": "2025-01-01"
+      },
+      "key": "345a89fdb6a0dd5756d050324480299860d2e21ab7e50da64d2833084e2c5ba6",
+      "query": {
+        "normalized": "projects where actual revision hours are greater than assigned hours from 2025",
+        "original": "Projects where actual revision hours are greater than assigned hours from 2025"
+      },
+      "response": {
+        "explanation": "",
+        "sql": "SELECT p.project_name, SUM(COALESCE(tl.hours, 0) + COALESCE(tl.minutes, 0) / 60.0) AS actual_hours, SUM(COALESCE(cm.changerequest_detailing_estimated_hrs, 0) + COALESCE(cm.changerequest_checking_estimated_hrs, 0)) AS assigned_hours FROM changerequest_management cm JOIN projects p ON cm.project_id = p.id LEFT JOIN timelog_records tl ON cm.task_id = tl.task_id AND cm.project_id = tl.project_id WHERE cm.is_deleted = 0 AND cm.date BETWEEN '2025-01-01' AND '2025-12-31' GROUP BY p.id, p.project_name HAVING actual_hours > assigned_hours LIMIT 100",
+        "title": "SQL Report"
+      },
+      "sources": {
+        "schema_version": "c1194e7700622c8b"
+      },
+      "stats": {
+        "hit_count": 0,
+        "invalidated_reason": null,
+        "last_hit_at": null,
+        "last_invalidated_at": null
+      },
+      "tags": [
+        "cache_key:345a89fdb6a0dd5756d050324480299860d2e21ab7e50da64d2833084e2c5ba6",
+        "end:2025-12-31",
+        "llm_sql",
+        "start:2025-01-01",
+        "table:changerequest_management",
+        "table:projects",
+        "table:timelog_records",
+        "token:2025",
+        "token:actual",
+        "token:assigned",
+        "token:greater",
+        "token:hours",
+        "token:project",
+        "token:revision",
+        "token:than",
+        "token:where"
+      ]
+    },
+    "3cfc9080f9a12fc77359aa25dd4a42f422a93bb2000467c7ee6a9f57d3fa8c5d": {
+      "cache_policy": {
+        "created_at": "2026-05-29T10:40:23.371538+00:00",
+        "expires_at": "2026-05-31T10:40:23.371538+00:00",
+        "ttl_days": 2
+      },
+      "intent": {
+        "canonical_tokens": [
+          "20",
+          "assigned",
+          "but",
+          "completed",
+          "find",
+          "hours",
+          "leader",
+          "members",
+          "more",
+          "project",
+          "tasks",
+          "team",
+          "than",
+          "timeline",
+          "total",
+          "zero"
+        ],
+        "date_tokens": [
+          "20"
+        ],
+        "end_date": null,
+        "limit": 500,
+        "report_category": "custom",
+        "start_date": null
+      },
+      "key": "3cfc9080f9a12fc77359aa25dd4a42f422a93bb2000467c7ee6a9f57d3fa8c5d",
+      "query": {
+        "normalized": "find projects with zero completed tasks but more than 20 total tasks with team leader assigned team members total assigned hours and timeline",
+        "original": "Find projects with zero completed tasks but more than 20 total tasks with team leader , assigned team members, total assigned hours and timeline"
+      },
+      "response": {
+        "explanation": "",
+        "sql": "SELECT p.project_name, u.name AS team_leader, COUNT(pt.id) AS total_tasks, COUNT(DISTINCT pt.assign_member) AS assigned_team_members, COALESCE(SUM(ptd.estimated_man_hr), 0) + COALESCE(SUM(ptd.estimated_hours), 0) AS total_assigned_hours, p.start_date, p.estimated_sub_date AS timeline FROM projects p JOIN product_task pt ON p.id = pt.project_id LEFT JOIN users u ON p.primary_team_leader = u.id LEFT JOIN product_task_details ptd ON pt.id = ptd.task_id WHERE pt.is_deleted = 0 GROUP BY p.id, p.project_name, u.name, p.start_date, p.estimated_sub_date HAVING COUNT(CASE WHEN pt.task_status = 'Completed' THEN 1 END) = 0 AND COUNT(pt.id) > 20 LIMIT 100",
+        "title": "SQL Report"
+      },
+      "sources": {
+        "schema_version": "c1194e7700622c8b"
+      },
+      "stats": {
+        "hit_count": 0,
+        "invalidated_reason": null,
+        "last_hit_at": null,
+        "last_invalidated_at": null
+      },
+      "tags": [
+        "cache_key:3cfc9080f9a12fc77359aa25dd4a42f422a93bb2000467c7ee6a9f57d3fa8c5d",
+        "llm_sql",
+        "table:product_task",
+        "table:product_task_details",
+        "table:projects",
+        "table:users",
+        "token:20",
+        "token:assigned",
+        "token:but",
+        "token:completed",
+        "token:find",
+        "token:hours",
+        "token:leader",
+        "token:members",
+        "token:more",
+        "token:project",
+        "token:tasks",
+        "token:team",
+        "token:than",
+        "token:timeline",
+        "token:total",
+        "token:zero"
+      ]
+    },
+    "52822310166876f5317e5ad1ea1808561c8efbd1a7a5fed55d7ef7471dbfc47f": {
+      "cache_policy": {
+        "created_at": "2026-05-25T10:41:36.610295+00:00",
+        "expires_at": "2026-05-27T10:41:36.610295+00:00",
+        "ttl_days": 2
+      },
+      "intent": {
+        "canonical_tokens": [
+          "5",
+          "count",
+          "group",
+          "project",
+          "type",
+          "week"
+        ],
+        "date_tokens": [
+          "5",
+          "week"
+        ],
+        "end_date": null,
+        "limit": 500,
+        "report_category": "custom",
+        "start_date": null
+      },
+      "key": "52822310166876f5317e5ad1ea1808561c8efbd1a7a5fed55d7ef7471dbfc47f",
+      "query": {
+        "normalized": "week 5 report with totals grouped by project type",
+        "original": "Week 5 report with totals grouped by project type"
+      },
+      "response": {
+        "explanation": "",
+        "sql": "SELECT \n    pt.name AS project_type_name,\n    COUNT(pdt.id) AS ticket_count\nFROM \n    project_type pt\nLEFT JOIN \n    projects p ON pt.id = p.project_type_id\nLEFT JOIN \n    product_task pdt ON p.id = pdt.project_id AND pdt.is_deleted = 0\nGROUP BY \n    pt.id, pt.name\nORDER BY \n    ticket_count DESC\nLIMIT 100",
+        "title": "SQL Report"
+      },
+      "sources": {
+        "schema_version": "ecb2b73f92f14b42"
+      },
+      "stats": {
+        "hit_count": 1,
+        "invalidated_reason": null,
+        "last_hit_at": "2026-05-25T11:51:38.205863+00:00",
+        "last_invalidated_at": null
+      },
+      "tags": [
+        "cache_key:52822310166876f5317e5ad1ea1808561c8efbd1a7a5fed55d7ef7471dbfc47f",
+        "llm_sql",
+        "table:product_task",
+        "table:project_type",
+        "table:projects",
+        "token:5",
+        "token:count",
+        "token:group",
+        "token:project",
+        "token:type",
+        "token:week"
+      ]
+    },
+    "5353cdf537199d7a65f5d17de325d828315b428e922c906c3bb4545ce95326c5": {
+      "cache_policy": {
+        "created_at": "2026-06-05T09:23:36.683580+00:00",
+        "expires_at": "2026-06-07T09:23:36.683580+00:00",
+        "ttl_days": 2
+      },
+      "intent": {
+        "canonical_tokens": [
+          "5",
+          "all",
+          "bugs",
+          "change",
+          "employees",
+          "have",
+          "more",
+          "no",
+          "on",
+          "pending",
+          "project",
+          "requests",
+          "than",
+          "that",
+          "who",
+          "worked"
+        ],
+        "date_tokens": [
+          "5"
+        ],
+        "end_date": null,
+        "limit": 500,
+        "report_category": "quality",
+        "start_date": null
+      },
+      "key": "5353cdf537199d7a65f5d17de325d828315b428e922c906c3bb4545ce95326c5",
+      "query": {
+        "normalized": "show all employees who worked on projects that have more than 5 bugs and no pending change requests",
+        "original": "Show all employees who worked on projects that have more than 5 bugs and no pending change requests."
+      },
+      "response": {
+        "explanation": "",
+        "sql": "SELECT DISTINCT u.id, u.name, u.employee_id, u.email\nFROM users u\nJOIN timelog_records t ON u.id = t.user_id\nJOIN projects p ON t.project_id = p.id\nJOIN (\n    SELECT project_id, COUNT(*) AS bug_count\n    FROM project_bug_management\n    GROUP BY project_id\n    HAVING COUNT(*) > 5\n) pb ON p.id = pb.project_id\nWHERE NOT EXISTS (\n    SELECT 1\n    FROM changerequest_management cr\n    WHERE cr.project_id = p.id\n    AND cr.changerequest_status = 'pending'\n)\nLIMIT 100",
+        "title": "SQL Report"
+      },
+      "sources": {
+        "schema_version": "74b4a42621d1a370"
+      },
+      "stats": {
+        "hit_count": 0,
+        "invalidated_reason": null,
+        "last_hit_at": null,
+        "last_invalidated_at": null
+      },
+      "tags": [
+        "cache_key:5353cdf537199d7a65f5d17de325d828315b428e922c906c3bb4545ce95326c5",
+        "llm_sql",
+        "table:changerequest_management",
+        "table:project_bug_management",
+        "table:projects",
+        "table:timelog_records",
+        "table:users",
+        "token:5",
+        "token:all",
+        "token:bugs",
+        "token:change",
+        "token:employees",
+        "token:have",
+        "token:more",
+        "token:no",
+        "token:on",
+        "token:pending",
+        "token:project",
+        "token:requests",
+        "token:than",
+        "token:that",
+        "token:who",
+        "token:worked"
+      ]
+    },
+    "5da7c4011ebe1f9416a000b6efa72666319bdeeea1520ca7c459300d67eccfdb": {
+      "cache_policy": {
+        "created_at": "2026-06-01T10:06:10.566343+00:00",
+        "expires_at": "2026-06-03T10:06:10.566343+00:00",
+        "ttl_days": 2
+      },
+      "intent": {
+        "canonical_tokens": [
+          "12",
+          "assigned",
+          "but",
+          "completed",
+          "find",
+          "hours",
+          "leader",
+          "members",
+          "more",
+          "project",
+          "tasks",
+          "team",
+          "than",
+          "timeline",
+          "total",
+          "zero"
+        ],
+        "date_tokens": [
+          "12"
+        ],
+        "end_date": null,
+        "limit": 500,
+        "report_category": "custom",
+        "start_date": null
+      },
+      "key": "5da7c4011ebe1f9416a000b6efa72666319bdeeea1520ca7c459300d67eccfdb",
+      "query": {
+        "normalized": "find projects with zero completed tasks but more than 12 total tasks with team leader assigned team members total assigned hours and timeline",
+        "original": "Find projects with zero completed tasks but more than 12 total tasks with team leader , assigned team members, total assigned hours and timeline"
+      },
+      "response": {
+        "explanation": "",
+        "sql": "SELECT p.project_name, u.name AS team_leader, COUNT(pt.id) AS total_tasks, COUNT(DISTINCT pt.assign_member) AS assigned_team_members, COALESCE(SUM(ptd.estimated_man_hr), 0) + COALESCE(SUM(ptd.estimated_hours), 0) AS total_assigned_hours, p.start_date, p.estimated_sub_date AS timeline FROM projects p JOIN product_task pt ON p.id = pt.project_id LEFT JOIN users u ON p.primary_team_leader = u.id LEFT JOIN product_task_details ptd ON pt.id = ptd.task_id WHERE pt.is_deleted = 0 GROUP BY p.id, p.project_name, u.name, p.start_date, p.estimated_sub_date HAVING COUNT(CASE WHEN pt.task_status = 'Completed' THEN 1 END) = 0 AND COUNT(pt.id) > 12 LIMIT 100",
+        "title": "SQL Report"
+      },
+      "sources": {
+        "schema_version": "2850b450694b429c"
+      },
+      "stats": {
+        "hit_count": 0,
+        "invalidated_reason": null,
+        "last_hit_at": null,
+        "last_invalidated_at": null
+      },
+      "tags": [
+        "cache_key:5da7c4011ebe1f9416a000b6efa72666319bdeeea1520ca7c459300d67eccfdb",
+        "llm_sql",
+        "table:product_task",
+        "table:product_task_details",
+        "table:projects",
+        "table:users",
+        "token:12",
+        "token:assigned",
+        "token:but",
+        "token:completed",
+        "token:find",
+        "token:hours",
+        "token:leader",
+        "token:members",
+        "token:more",
+        "token:project",
+        "token:tasks",
+        "token:team",
+        "token:than",
+        "token:timeline",
+        "token:total",
+        "token:zero"
+      ]
+    },
+    "6034c448384a20e7f1d3b5b8e48ff3485b8a53c1e1323a5bf96a8e7617c67b98": {
+      "cache_policy": {
+        "created_at": "2026-06-01T11:15:28.582039+00:00",
+        "expires_at": "2026-06-03T11:15:28.582039+00:00",
+        "ttl_days": 2
+      },
+      "intent": {
+        "canonical_tokens": [
+          "equivalent",
+          "leaders",
+          "team",
+          "this",
+          "tickets",
+          "top",
+          "year"
+        ],
+        "date_tokens": [
+          "this",
+          "year"
+        ],
+        "end_date": "2026-12-31",
+        "limit": 500,
+        "report_category": "team_employee",
+        "start_date": "2026-01-01"
+      },
+      "key": "6034c448384a20e7f1d3b5b8e48ff3485b8a53c1e1323a5bf96a8e7617c67b98",
+      "query": {
+        "normalized": "top team leaders with equivalent tickets this year",
+        "original": "Top team leaders with equivalent tickets this year"
+      },
+      "response": {
+        "explanation": "",
+        "sql": "SELECT u.id, u.name AS team_leader_name, COUNT(DISTINCT pt.id) AS ticket_count FROM users u LEFT JOIN product_task pt ON u.id = pt.assign_team_leader AND pt.is_deleted = 0 AND pt.created_at BETWEEN '2026-01-01' AND '2026-12-31' WHERE u.is_deleted = 0 GROUP BY u.id, u.name ORDER BY ticket_count DESC LIMIT 10",
+        "title": "SQL Report"
+      },
+      "sources": {
+        "schema_version": "2850b450694b429c"
+      },
+      "stats": {
+        "hit_count": 0,
+        "invalidated_reason": null,
+        "last_hit_at": null,
+        "last_invalidated_at": null
+      },
+      "tags": [
+        "cache_key:6034c448384a20e7f1d3b5b8e48ff3485b8a53c1e1323a5bf96a8e7617c67b98",
+        "end:2026-12-31",
+        "llm_sql",
+        "start:2026-01-01",
+        "table:product_task",
+        "table:users",
+        "token:equivalent",
+        "token:leaders",
+        "token:team",
+        "token:this",
+        "token:tickets",
+        "token:top",
+        "token:year"
+      ]
+    },
+    "6bfa98d911a52c1e99514aea56676863e16f8886c35d734ffafad0acb5c122ff": {
+      "cache_policy": {
+        "created_at": "2026-05-25T08:03:42.733369+00:00",
+        "expires_at": "2026-05-27T08:03:42.733369+00:00",
+        "ttl_days": 2
+      },
+      "intent": {
+        "canonical_tokens": [
+          "2026",
+          "april",
+          "leader",
+          "project",
+          "revision",
+          "summary",
+          "team"
+        ],
+        "date_tokens": [
+          "2026"
+        ],
+        "end_date": "2026-04-30",
+        "limit": 500,
+        "report_category": "team_employee",
+        "start_date": "2026-04-01"
+      },
+      "key": "6bfa98d911a52c1e99514aea56676863e16f8886c35d734ffafad0acb5c122ff",
+      "query": {
+        "normalized": "show april 2026 revision summary by project and team leader",
+        "original": "Show April 2026 revision summary by project and team leader"
+      },
+      "response": {
+        "explanation": "",
+        "sql": "SELECT \n    p.project_name,\n    u.name AS team_leader_name,\n    COUNT(cm.id) AS revision_count\nFROM \n    changerequest_management cm\nJOIN \n    projects p ON cm.project_id = p.id\nJOIN \n    users u ON p.primary_team_leader = u.id\nWHERE \n    cm.date BETWEEN '2026-04-01' AND '2026-04-30'\nGROUP BY \n    p.id, u.id\nORDER BY \n    revision_count DESC\nLIMIT 10",
+        "title": "SQL Report"
+      },
+      "sources": {
+        "schema_version": "ecb2b73f92f14b42"
+      },
+      "stats": {
+        "hit_count": 0,
+        "invalidated_reason": null,
+        "last_hit_at": null,
+        "last_invalidated_at": null
+      },
+      "tags": [
+        "cache_key:6bfa98d911a52c1e99514aea56676863e16f8886c35d734ffafad0acb5c122ff",
+        "end:2026-04-30",
+        "llm_sql",
+        "start:2026-04-01",
+        "table:changerequest_management",
+        "table:projects",
+        "table:users",
+        "token:2026",
+        "token:april",
+        "token:leader",
+        "token:project",
+        "token:revision",
+        "token:summary",
+        "token:team"
+      ]
+    },
+    "6c45f95092382368182644f367b0f23b71d9edc18fad52e9d8f2f60f6db5976d": {
+      "cache_policy": {
+        "created_at": "2026-05-28T08:03:13.584719+00:00",
+        "expires_at": "2026-05-30T08:03:13.584719+00:00",
+        "ttl_days": 2
+      },
+      "intent": {
+        "canonical_tokens": [
+          "employees",
+          "has",
+          "less",
+          "productivity",
+          "who"
+        ],
+        "date_tokens": [],
+        "end_date": null,
+        "limit": 500,
+        "report_category": "custom",
+        "start_date": null
+      },
+      "key": "6c45f95092382368182644f367b0f23b71d9edc18fad52e9d8f2f60f6db5976d",
+      "query": {
+        "normalized": "show employees who has less productivity",
+        "original": "Show employees who has less productivity"
+      },
+      "response": {
+        "explanation": "",
+        "sql": "SELECT u.id, u.name, u.employee_id, COALESCE(SUM(tr.hours) + SUM(tr.minutes)/60, 0) AS total_hours_worked, COUNT(DISTINCT th.task_id) AS tasks_completed, CASE WHEN (SUM(tr.hours) + SUM(tr.minutes)/60) > 0 THEN COUNT(DISTINCT th.task_id) / (SUM(tr.hours) + SUM(tr.minutes)/60) ELSE 0 END AS productivity FROM users u LEFT JOIN timelog_records tr ON u.id = tr.user_id LEFT JOIN task_hours th ON u.id = th.user_id WHERE u.is_deleted = 0 GROUP BY u.id, u.name, u.employee_id ORDER BY productivity ASC LIMIT 10",
+        "title": "SQL Report"
+      },
+      "sources": {
+        "schema_version": "0d608f525ed65867"
+      },
+      "stats": {
+        "hit_count": 0,
+        "invalidated_reason": null,
+        "last_hit_at": null,
+        "last_invalidated_at": null
+      },
+      "tags": [
+        "cache_key:6c45f95092382368182644f367b0f23b71d9edc18fad52e9d8f2f60f6db5976d",
+        "llm_sql",
+        "table:task_hours",
+        "table:timelog_records",
+        "table:users",
+        "token:employees",
+        "token:has",
+        "token:less",
+        "token:productivity",
+        "token:who"
+      ]
+    },
+    "6cc6d8c4cb6b94acba3154f1287e83d099cbdff8b978bc8a1b99b359919f676c": {
+      "cache_policy": {
+        "created_at": "2026-06-01T09:40:19.364355+00:00",
+        "expires_at": "2026-06-03T09:40:19.364355+00:00",
+        "ttl_days": 2
+      },
+      "intent": {
+        "canonical_tokens": [
+          "2",
+          "has",
+          "leaders",
+          "less",
+          "productivity",
+          "team",
+          "top",
+          "who"
+        ],
+        "date_tokens": [
+          "2"
+        ],
+        "end_date": null,
+        "limit": 500,
+        "report_category": "attendance",
+        "start_date": null
+      },
+      "key": "6cc6d8c4cb6b94acba3154f1287e83d099cbdff8b978bc8a1b99b359919f676c",
+      "query": {
+        "normalized": "show me top 2 team leaders who has less productivity",
+        "original": "Show me top 2 team leaders who has less productivity "
+      },
+      "response": {
+        "explanation": "",
+        "sql": "SELECT u.name AS team_leader_name, COUNT(DISTINCT pt.id) AS total_tasks, SUM(CASE WHEN pt.task_status = 'Completed' THEN 1 ELSE 0 END) AS completed_tasks, COALESCE(SUM(tr.hours) + SUM(tr.minutes)/60, 0) AS total_hours_worked, CASE WHEN (SUM(tr.hours) + SUM(tr.minutes)/60) > 0 THEN SUM(CASE WHEN pt.task_status = 'Completed' THEN 1 ELSE 0 END) / (SUM(tr.hours) + SUM(tr.minutes)/60) ELSE 0 END AS productivity FROM users u LEFT JOIN product_task pt ON u.id = pt.assign_team_leader LEFT JOIN timelog_records tr ON u.id = tr.user_id WHERE u.is_deleted = 0 GROUP BY u.id, u.name ORDER BY productivity ASC LIMIT 2",
+        "title": "SQL Report"
+      },
+      "sources": {
+        "schema_version": "2850b450694b429c"
+      },
+      "stats": {
+        "hit_count": 0,
+        "invalidated_reason": null,
+        "last_hit_at": null,
+        "last_invalidated_at": null
+      },
+      "tags": [
+        "cache_key:6cc6d8c4cb6b94acba3154f1287e83d099cbdff8b978bc8a1b99b359919f676c",
+        "llm_sql",
+        "table:product_task",
+        "table:timelog_records",
+        "table:users",
+        "token:2",
+        "token:has",
+        "token:leaders",
+        "token:less",
+        "token:productivity",
+        "token:team",
+        "token:top",
+        "token:who"
+      ]
+    },
+    "7e465d59dcf4970f0f4660729af677bb1685ce6e098423884cb5e4b593c58865": {
+      "cache_policy": {
+        "created_at": "2026-05-26T07:58:10.813107+00:00",
+        "expires_at": "2026-05-28T07:58:10.813107+00:00",
+        "ttl_days": 2
+      },
+      "intent": {
+        "canonical_tokens": [
+          "2026",
+          "april",
+          "leader",
+          "project",
+          "revision",
+          "summary",
+          "team"
+        ],
+        "date_tokens": [
+          "2026"
+        ],
+        "end_date": "2026-04-30",
+        "limit": 500,
+        "report_category": "custom",
+        "start_date": "2026-04-01"
+      },
+      "key": "7e465d59dcf4970f0f4660729af677bb1685ce6e098423884cb5e4b593c58865",
+      "query": {
+        "normalized": "show april 2026 revision summary by project and team leader",
+        "original": "Show April 2026 revision summary by project and team leader"
+      },
+      "response": {
+        "explanation": "",
+        "sql": "SELECT p.project_name, u.name AS team_leader_name, COUNT(cm.id) AS revision_count FROM changerequest_management cm JOIN projects p ON cm.project_id = p.id JOIN users u ON p.primary_team_leader = u.id WHERE cm.date BETWEEN '2026-04-01' AND '2026-04-30' GROUP BY p.id, u.id ORDER BY revision_count DESC LIMIT 10",
+        "title": "SQL Report"
+      },
+      "sources": {
+        "schema_version": "48d49ea6343c5a44"
+      },
+      "stats": {
+        "hit_count": 0,
+        "invalidated_reason": null,
+        "last_hit_at": null,
+        "last_invalidated_at": null
+      },
+      "tags": [
+        "cache_key:7e465d59dcf4970f0f4660729af677bb1685ce6e098423884cb5e4b593c58865",
+        "end:2026-04-30",
+        "llm_sql",
+        "start:2026-04-01",
+        "table:changerequest_management",
+        "table:projects",
+        "table:users",
+        "token:2026",
+        "token:april",
+        "token:leader",
+        "token:project",
+        "token:revision",
+        "token:summary",
+        "token:team"
+      ]
+    },
+    "8ddb990f8fd3e11896c98f7073c7d344230b17140693770bf826f744c9d06bec": {
+      "cache_policy": {
+        "created_at": "2026-05-25T12:26:56.581918+00:00",
+        "expires_at": "2026-05-27T12:26:56.581918+00:00",
+        "ttl_days": 2
+      },
+      "intent": {
+        "canonical_tokens": [
+          "equivalent",
+          "leaders",
+          "new",
+          "team",
+          "this",
+          "tickets",
+          "top",
+          "year"
+        ],
+        "date_tokens": [
+          "this",
+          "year"
+        ],
+        "end_date": "2026-12-31",
+        "limit": 500,
+        "report_category": "custom",
+        "start_date": "2026-01-01"
+      },
+      "key": "8ddb990f8fd3e11896c98f7073c7d344230b17140693770bf826f744c9d06bec",
+      "query": {
+        "normalized": "top team leaders by equivalent new tickets this year",
+        "original": "Top team leaders by equivalent new tickets this year"
+      },
+      "response": {
+        "explanation": "",
+        "sql": "SELECT \n    u.name AS team_leader_name,\n    COUNT(pt.id) AS new_ticket_count\nFROM product_task pt\nJOIN users u ON pt.assign_team_leader = u.id\nWHERE pt.created_at BETWEEN '2026-01-01' AND '2026-12-31'\n    AND pt.is_deleted = 0\n    AND pt.assign_team_leader IS NOT NULL\nGROUP BY pt.assign_team_leader, u.name\nORDER BY new_ticket_count DESC\nLIMIT 10",
+        "title": "SQL Report"
+      },
+      "sources": {
+        "schema_version": "ecb2b73f92f14b42"
+      },
+      "stats": {
+        "hit_count": 0,
+        "invalidated_reason": null,
+        "last_hit_at": null,
+        "last_invalidated_at": null
+      },
+      "tags": [
+        "cache_key:8ddb990f8fd3e11896c98f7073c7d344230b17140693770bf826f744c9d06bec",
+        "end:2026-12-31",
+        "llm_sql",
+        "start:2026-01-01",
+        "table:product_task",
+        "table:users",
+        "token:equivalent",
+        "token:leaders",
+        "token:new",
+        "token:team",
+        "token:this",
+        "token:tickets",
+        "token:top",
+        "token:year"
+      ]
+    },
+    "98ef54ecb4ce633e9210e60f17f002dc6960b9ad00b6bfabca440b8cdcf3926e": {
+      "cache_policy": {
+        "created_at": "2026-05-25T11:56:05.006367+00:00",
+        "expires_at": "2026-05-27T11:56:05.006367+00:00",
+        "ttl_days": 2
+      },
+      "intent": {
+        "canonical_tokens": [
+          "actual",
+          "assigned",
+          "greater",
+          "hours",
+          "project",
+          "revision",
+          "than",
+          "where"
+        ],
+        "date_tokens": [],
+        "end_date": null,
+        "limit": 500,
+        "report_category": "custom",
+        "start_date": null
+      },
+      "key": "98ef54ecb4ce633e9210e60f17f002dc6960b9ad00b6bfabca440b8cdcf3926e",
+      "query": {
+        "normalized": "projects where actual revision hours are greater than assigned hours",
+        "original": "Projects where actual revision hours are greater than assigned hours"
+      },
+      "response": {
+        "explanation": "",
+        "sql": "SELECT p.project_name, SUM(COALESCE(tl.hours, 0) + COALESCE(tl.minutes, 0) / 60.0) AS actual_hours, SUM(COALESCE(cm.changerequest_detailing_estimated_hrs, 0) + COALESCE(cm.changerequest_checking_estimated_hrs, 0)) AS assigned_hours FROM changerequest_management cm JOIN projects p ON cm.project_id = p.id LEFT JOIN timelog_records tl ON cm.task_id = tl.task_id AND cm.project_id = tl.project_id WHERE cm.is_deleted = 0 GROUP BY p.id, p.project_name HAVING actual_hours > assigned_hours LIMIT 100",
+        "title": "SQL Report"
+      },
+      "sources": {
+        "schema_version": "ecb2b73f92f14b42"
+      },
+      "stats": {
+        "hit_count": 0,
+        "invalidated_reason": null,
+        "last_hit_at": null,
+        "last_invalidated_at": null
+      },
+      "tags": [
+        "cache_key:98ef54ecb4ce633e9210e60f17f002dc6960b9ad00b6bfabca440b8cdcf3926e",
+        "llm_sql",
+        "table:changerequest_management",
+        "table:projects",
+        "table:timelog_records",
+        "token:actual",
+        "token:assigned",
+        "token:greater",
+        "token:hours",
+        "token:project",
+        "token:revision",
+        "token:than",
+        "token:where"
+      ]
+    },
+    "9be00873507a1c945adadf8cf9746a787a2ba656f14d2e7313bb71c5e4271c4c": {
+      "cache_policy": {
+        "created_at": "2026-05-25T13:28:41.103029+00:00",
+        "expires_at": "2026-05-27T13:28:41.103029+00:00",
+        "ttl_days": 2
+      },
+      "intent": {
+        "canonical_tokens": [
+          "2026",
+          "april",
+          "leader",
+          "project",
+          "revision",
+          "summary",
+          "team"
+        ],
+        "date_tokens": [
+          "2026"
+        ],
+        "end_date": "2026-04-30",
+        "limit": 500,
+        "report_category": "custom",
+        "start_date": "2026-04-01"
+      },
+      "key": "9be00873507a1c945adadf8cf9746a787a2ba656f14d2e7313bb71c5e4271c4c",
+      "query": {
+        "normalized": "show april 2026 revision summary by project and team leader",
+        "original": "Show April 2026 revision summary by project and team leader"
+      },
+      "response": {
+        "explanation": "",
+        "sql": "SELECT p.project_name, u.name AS team_leader_name, COUNT(cm.id) AS revision_count FROM changerequest_management cm JOIN projects p ON cm.project_id = p.id JOIN users u ON p.primary_team_leader = u.id WHERE cm.date BETWEEN '2026-04-01' AND '2026-04-30' GROUP BY p.id, u.id ORDER BY revision_count DESC LIMIT 10",
+        "title": "SQL Report"
+      },
+      "sources": {
+        "schema_version": "ecb2b73f92f14b42"
+      },
+      "stats": {
+        "hit_count": 0,
+        "invalidated_reason": null,
+        "last_hit_at": null,
+        "last_invalidated_at": null
+      },
+      "tags": [
+        "cache_key:9be00873507a1c945adadf8cf9746a787a2ba656f14d2e7313bb71c5e4271c4c",
+        "end:2026-04-30",
+        "llm_sql",
+        "start:2026-04-01",
+        "table:changerequest_management",
+        "table:projects",
+        "table:users",
+        "token:2026",
+        "token:april",
+        "token:leader",
+        "token:project",
+        "token:revision",
+        "token:summary",
+        "token:team"
+      ]
+    },
+    "a845eb9aa91870ef0130f7b771029548770eb441299b7d34b873a733c2b0a6dd": {
+      "cache_policy": {
+        "created_at": "2026-06-01T11:24:00.110398+00:00",
+        "expires_at": "2026-06-03T11:24:00.110398+00:00",
+        "ttl_days": 2
+      },
+      "intent": {
+        "canonical_tokens": [
+          "2026",
+          "equivalent",
+          "leaders",
+          "team",
+          "tickets",
+          "top"
+        ],
+        "date_tokens": [
+          "2026"
+        ],
+        "end_date": "2026-12-31",
+        "limit": 500,
+        "report_category": "team_employee",
+        "start_date": "2026-01-01"
+      },
+      "key": "a845eb9aa91870ef0130f7b771029548770eb441299b7d34b873a733c2b0a6dd",
+      "query": {
+        "normalized": "top team leaders with equivalent tickets from 2026",
+        "original": "Top team leaders with equivalent tickets from 2026"
+      },
+      "response": {
+        "explanation": "",
+        "sql": "SELECT u.id, u.name AS team_leader_name, COUNT(DISTINCT pt.id) AS ticket_count FROM users u LEFT JOIN product_task pt ON u.id = pt.assign_team_leader AND pt.is_deleted = 0 AND pt.created_at BETWEEN '2026-01-01' AND '2026-12-31' WHERE u.is_deleted = 0 GROUP BY u.id, u.name ORDER BY ticket_count DESC LIMIT 10",
+        "title": "SQL Report"
+      },
+      "sources": {
+        "schema_version": "2850b450694b429c"
+      },
+      "stats": {
+        "hit_count": 0,
+        "invalidated_reason": null,
+        "last_hit_at": null,
+        "last_invalidated_at": null
+      },
+      "tags": [
+        "cache_key:a845eb9aa91870ef0130f7b771029548770eb441299b7d34b873a733c2b0a6dd",
+        "end:2026-12-31",
+        "llm_sql",
+        "start:2026-01-01",
+        "table:product_task",
+        "table:users",
+        "token:2026",
+        "token:equivalent",
+        "token:leaders",
+        "token:team",
+        "token:tickets",
+        "token:top"
+      ]
+    },
+    "ae4e06274d7d337b000de4a02bbdfc95f727686b62ea83f36484bc3a2a5b835c": {
+      "cache_policy": {
+        "created_at": "2026-06-05T06:37:31.045805+00:00",
+        "expires_at": "2026-06-07T06:37:31.045805+00:00",
+        "ttl_days": 2
+      },
+      "intent": {
+        "canonical_tokens": [
+          "10",
+          "2",
+          "all",
+          "at",
+          "bugs",
+          "change",
+          "employees",
+          "have",
+          "least",
+          "more",
+          "on",
+          "pending",
+          "project",
+          "requests",
+          "than",
+          "that",
+          "who",
+          "worked"
+        ],
+        "date_tokens": [
+          "10",
+          "2"
+        ],
+        "end_date": null,
+        "limit": 500,
+        "report_category": "team_employee",
+        "start_date": null
+      },
+      "key": "ae4e06274d7d337b000de4a02bbdfc95f727686b62ea83f36484bc3a2a5b835c",
+      "query": {
+        "normalized": "show all employees who worked on projects that have more than 10 bugs and at least 2 pending change requests",
+        "original": "Show all employees who worked on projects that have more than 10 bugs and at least 2 pending change requests."
+      },
+      "response": {
+        "explanation": "",
+        "sql": "SELECT DISTINCT u.id, u.name, u.employee_id, u.email\nFROM users u\nJOIN timelog_records t ON u.id = t.user_id\nJOIN projects p ON t.project_id = p.id\nJOIN (\n    SELECT project_id, COUNT(*) AS bug_count\n    FROM project_bug_management\n    GROUP BY project_id\n    HAVING COUNT(*) > 10\n) pb ON p.id = pb.project_id\nJOIN (\n    SELECT project_id, COUNT(*) AS pending_cr_count\n    FROM changerequest_management\n    WHERE changerequest_status = 'pending'\n    GROUP BY project_id\n    HAVING COUNT(*) >= 2\n) cr ON p.id = cr.project_id\nLIMIT 100",
+        "title": "SQL Report"
+      },
+      "sources": {
+        "schema_version": "74b4a42621d1a370"
+      },
+      "stats": {
+        "hit_count": 0,
+        "invalidated_reason": null,
+        "last_hit_at": null,
+        "last_invalidated_at": null
+      },
+      "tags": [
+        "cache_key:ae4e06274d7d337b000de4a02bbdfc95f727686b62ea83f36484bc3a2a5b835c",
+        "llm_sql",
+        "table:changerequest_management",
+        "table:project_bug_management",
+        "table:projects",
+        "table:timelog_records",
+        "table:users",
+        "token:10",
+        "token:2",
+        "token:all",
+        "token:at",
+        "token:bugs",
+        "token:change",
+        "token:employees",
+        "token:have",
+        "token:least",
+        "token:more",
+        "token:on",
+        "token:pending",
+        "token:project",
+        "token:requests",
+        "token:than",
+        "token:that",
+        "token:who",
+        "token:worked"
+      ]
+    },
+    "b505ddb004273ef0b1ce38b2f805efc711bf9ca9ea5233a1a7f254214c22fba9": {
+      "cache_policy": {
+        "created_at": "2026-05-07T12:31:33.234665+00:00",
+        "expires_at": "2026-05-09T12:31:33.234665+00:00",
+        "ttl_days": 2
+      },
+      "intent": {
+        "canonical_tokens": [
+          "2026",
+          "equivalent",
+          "leaders",
+          "new",
+          "team",
+          "tickets",
+          "top"
+        ],
+        "date_tokens": [
+          "2026"
+        ],
+        "end_date": "2026-12-31",
+        "limit": 500,
+        "start_date": "2026-01-01"
+      },
+      "key": "b505ddb004273ef0b1ce38b2f805efc711bf9ca9ea5233a1a7f254214c22fba9",
+      "query": {
+        "normalized": "top team leaders by equivalent new tickets from 2026",
+        "original": "Top team leaders by equivalent new tickets from 2026"
+      },
+      "response": {
+        "explanation": "",
+        "sql": "SELECT u.name AS team_leader, COUNT(pt.id) AS new_tickets\nFROM product_task pt\nJOIN users u ON pt.assign_team_leader = u.id\nWHERE pt.created_at BETWEEN '2026-01-01' AND '2026-12-31'\n  AND pt.is_deleted = 0\nGROUP BY u.id, u.name\nORDER BY new_tickets DESC\nLIMIT 10",
+        "title": "SQL Report"
+      },
+      "sources": {
+        "schema_version": "40faa2f8bc8d828a"
+      },
+      "stats": {
+        "hit_count": 0,
+        "invalidated_reason": null,
+        "last_hit_at": null,
+        "last_invalidated_at": null
+      },
+      "tags": [
+        "cache_key:b505ddb004273ef0b1ce38b2f805efc711bf9ca9ea5233a1a7f254214c22fba9",
+        "end:2026-12-31",
+        "llm_sql",
+        "start:2026-01-01",
+        "table:product_task",
+        "table:users",
+        "token:2026",
+        "token:equivalent",
+        "token:leaders",
+        "token:new",
+        "token:team",
+        "token:tickets",
+        "token:top"
+      ]
+    },
+    "c31a76c1fb466e34a3202d4327b683b27caacecfdc80c450de3230d07ea8b452": {
+      "cache_policy": {
+        "created_at": "2026-05-25T12:39:31.681209+00:00",
+        "expires_at": "2026-05-27T12:39:31.681209+00:00",
+        "ttl_days": 2
+      },
+      "intent": {
+        "canonical_tokens": [
+          "2025",
+          "attendece",
+          "corresponding",
+          "june",
+          "project"
+        ],
+        "date_tokens": [
+          "2025"
+        ],
+        "end_date": "2025-06-30",
+        "limit": 500,
+        "report_category": "attendance",
+        "start_date": "2025-06-01"
+      },
+      "key": "c31a76c1fb466e34a3202d4327b683b27caacecfdc80c450de3230d07ea8b452",
+      "query": {
+        "normalized": "show june 2025 attendece report corresponding with projects",
+        "original": "Show june 2025 attendece report corresponding with projects"
+      },
+      "response": {
+        "explanation": "",
+        "sql": "SELECT \n    u.name AS employee_name,\n    u.employee_id,\n    COUNT(CASE WHEN a.status = 'present' THEN 1 END) AS present_count,\n    COUNT(CASE WHEN a.status = 'absent' THEN 1 END) AS absent_count,\n    COUNT(CASE WHEN a.status = 'late' THEN 1 END) AS late_count,\n    SUM(a.total_hours) AS work_hours\nFROM attendances a\nJOIN users u ON a.employee_id = u.id\nWHERE a.date BETWEEN '2025-06-01' AND '2025-06-30'\nGROUP BY u.id, u.name, u.employee_id\nORDER BY u.name\nLIMIT 100",
+        "title": "SQL Report"
+      },
+      "sources": {
+        "schema_version": "ecb2b73f92f14b42"
+      },
+      "stats": {
+        "hit_count": 1,
+        "invalidated_reason": null,
+        "last_hit_at": "2026-05-25T12:59:58.447053+00:00",
+        "last_invalidated_at": null
+      },
+      "tags": [
+        "cache_key:c31a76c1fb466e34a3202d4327b683b27caacecfdc80c450de3230d07ea8b452",
+        "end:2025-06-30",
+        "llm_sql",
+        "start:2025-06-01",
+        "table:attendances",
+        "table:users",
+        "token:2025",
+        "token:attendece",
+        "token:corresponding",
+        "token:june",
+        "token:project"
+      ]
+    },
+    "cb768a01b7f0ef060b43a95b8510863796f4d0dc8c49dbfde13eedd06388a863": {
+      "cache_policy": {
+        "created_at": "2026-05-29T10:49:34.407585+00:00",
+        "expires_at": "2026-05-31T10:49:34.407585+00:00",
+        "ttl_days": 2
+      },
+      "intent": {
+        "canonical_tokens": [
+          "2025",
+          "april",
+          "project",
+          "revision",
+          "summary"
+        ],
+        "date_tokens": [
+          "2025"
+        ],
+        "end_date": "2025-04-30",
+        "limit": 500,
+        "report_category": "custom",
+        "start_date": "2025-04-01"
+      },
+      "key": "cb768a01b7f0ef060b43a95b8510863796f4d0dc8c49dbfde13eedd06388a863",
+      "query": {
+        "normalized": "show april 2025 revision summary by project",
+        "original": "Show april 2025 revision summary by project"
+      },
+      "response": {
+        "explanation": "",
+        "sql": "SELECT p.project_name, COUNT(cm.id) AS revision_count FROM changerequest_management cm JOIN projects p ON cm.project_id = p.id WHERE cm.date BETWEEN '2025-04-01' AND '2025-04-30' GROUP BY p.id ORDER BY revision_count DESC LIMIT 10",
+        "title": "SQL Report"
+      },
+      "sources": {
+        "schema_version": "c1194e7700622c8b"
+      },
+      "stats": {
+        "hit_count": 0,
+        "invalidated_reason": null,
+        "last_hit_at": null,
+        "last_invalidated_at": null
+      },
+      "tags": [
+        "cache_key:cb768a01b7f0ef060b43a95b8510863796f4d0dc8c49dbfde13eedd06388a863",
+        "end:2025-04-30",
+        "llm_sql",
+        "start:2025-04-01",
+        "table:changerequest_management",
+        "table:projects",
+        "token:2025",
+        "token:april",
+        "token:project",
+        "token:revision",
+        "token:summary"
+      ]
+    },
+    "d62c7459ffee2c64159f5b1f5d00532d3df102e1cf72a23e6d583e94b889cadd": {
+      "cache_policy": {
+        "created_at": "2026-05-28T08:50:53.548650+00:00",
+        "expires_at": "2026-05-30T08:50:53.548650+00:00",
+        "ttl_days": 2
+      },
+      "intent": {
+        "canonical_tokens": [
+          "10",
+          "employees",
+          "has",
+          "less",
+          "productivity",
+          "top",
+          "who"
+        ],
+        "date_tokens": [
+          "10"
+        ],
+        "end_date": null,
+        "limit": 500,
+        "report_category": "custom",
+        "start_date": null
+      },
+      "key": "d62c7459ffee2c64159f5b1f5d00532d3df102e1cf72a23e6d583e94b889cadd",
+      "query": {
+        "normalized": "show top 10 employees who has less productivity",
+        "original": "Show top 10  employees who has less productivity "
+      },
+      "response": {
+        "explanation": "",
+        "sql": "SELECT \n    u.name AS employee_name,\n    COUNT(pt.id) AS task_count,\n    SUM(CASE WHEN pt.task_status = 'Completed' THEN 1 ELSE 0 END) AS completed_tasks,\n    SUM(CASE WHEN pt.task_status = 'Pending' THEN 1 ELSE 0 END) AS pending_tasks\nFROM \n    users u\nJOIN \n    product_task pt ON u.id = pt.assign_member\nWHERE \n    pt.is_deleted = 0\nGROUP BY \n    u.name\nORDER BY \n    completed_tasks DESC, pending_tasks ASC\nLIMIT 10",
+        "title": "SQL Report"
+      },
+      "sources": {
+        "schema_version": "0d608f525ed65867"
+      },
+      "stats": {
+        "hit_count": 1,
+        "invalidated_reason": null,
+        "last_hit_at": "2026-05-28T09:04:50.386717+00:00",
+        "last_invalidated_at": null
+      },
+      "tags": [
+        "cache_key:d62c7459ffee2c64159f5b1f5d00532d3df102e1cf72a23e6d583e94b889cadd",
+        "llm_sql",
+        "table:product_task",
+        "table:users",
+        "token:10",
+        "token:employees",
+        "token:has",
+        "token:less",
+        "token:productivity",
+        "token:top",
+        "token:who"
+      ]
+    },
+    "d84c46ad295b92c42e9b874c1e6761f273c1dfd573598f95d7787227665b6fb2": {
+      "cache_policy": {
+        "created_at": "2026-05-29T10:03:09.437099+00:00",
+        "expires_at": "2026-05-31T10:03:09.437099+00:00",
+        "ttl_days": 2
+      },
+      "intent": {
+        "canonical_tokens": [
+          "10",
+          "assigned",
+          "but",
+          "completed",
+          "find",
+          "hours",
+          "leader",
+          "members",
+          "more",
+          "project",
+          "tasks",
+          "team",
+          "than",
+          "timeline",
+          "total",
+          "zero"
+        ],
+        "date_tokens": [
+          "10"
+        ],
+        "end_date": null,
+        "limit": 500,
+        "report_category": "custom",
+        "start_date": null
+      },
+      "key": "d84c46ad295b92c42e9b874c1e6761f273c1dfd573598f95d7787227665b6fb2",
+      "query": {
+        "normalized": "find projects with zero completed tasks but more than 10 total tasks with team leader assigned team members total assigned hours and timeline",
+        "original": "Find projects with zero completed tasks but more than 10  total tasks with team leader , assigned team members, total assigned hours and timeline"
+      },
+      "response": {
+        "explanation": "",
+        "sql": "SELECT p.project_name, u.name AS team_leader, COUNT(pt.id) AS total_tasks, COUNT(DISTINCT pt.assign_member) AS assigned_team_members, COALESCE(SUM(ptd.estimated_man_hr), 0) + COALESCE(SUM(ptd.estimated_hours), 0) AS total_assigned_hours, p.start_date, p.estimated_sub_date AS timeline FROM projects p JOIN product_task pt ON p.id = pt.project_id LEFT JOIN users u ON p.primary_team_leader = u.id LEFT JOIN product_task_details ptd ON pt.id = ptd.task_id WHERE pt.is_deleted = 0 GROUP BY p.id, p.project_name, u.name, p.start_date, p.estimated_sub_date HAVING COUNT(CASE WHEN pt.task_status = 'Completed' THEN 1 END) = 0 AND COUNT(pt.id) > 10 LIMIT 100",
+        "title": "SQL Report"
+      },
+      "sources": {
+        "schema_version": "c1194e7700622c8b"
+      },
+      "stats": {
+        "hit_count": 0,
+        "invalidated_reason": null,
+        "last_hit_at": null,
+        "last_invalidated_at": null
+      },
+      "tags": [
+        "cache_key:d84c46ad295b92c42e9b874c1e6761f273c1dfd573598f95d7787227665b6fb2",
+        "llm_sql",
+        "table:product_task",
+        "table:product_task_details",
+        "table:projects",
+        "table:users",
+        "token:10",
+        "token:assigned",
+        "token:but",
+        "token:completed",
+        "token:find",
+        "token:hours",
+        "token:leader",
+        "token:members",
+        "token:more",
+        "token:project",
+        "token:tasks",
+        "token:team",
+        "token:than",
+        "token:timeline",
+        "token:total",
+        "token:zero"
+      ]
+    },
+    "d99c434dabeb40afb92b82052ae4c26f1b2d37e806446d9b66d5b19da2862532": {
+      "cache_policy": {
+        "created_at": "2026-06-05T09:20:24.657356+00:00",
+        "expires_at": "2026-06-07T09:20:24.657356+00:00",
+        "ttl_days": 2
+      },
+      "intent": {
+        "canonical_tokens": [
+          "10",
+          "all",
+          "bugs",
+          "change",
+          "employees",
+          "have",
+          "more",
+          "no",
+          "on",
+          "pending",
+          "project",
+          "requests",
+          "than",
+          "that",
+          "who",
+          "worked"
+        ],
+        "date_tokens": [
+          "10"
+        ],
+        "end_date": null,
+        "limit": 500,
+        "report_category": "team_employee",
+        "start_date": null
+      },
+      "key": "d99c434dabeb40afb92b82052ae4c26f1b2d37e806446d9b66d5b19da2862532",
+      "query": {
+        "normalized": "show all employees who worked on projects that have more than 10 bugs and no pending change requests",
+        "original": "Show all employees who worked on projects that have more than 10 bugs and no pending change requests."
+      },
+      "response": {
+        "explanation": "",
+        "sql": "SELECT DISTINCT u.id, u.name, u.employee_id, u.email\nFROM users u\nJOIN timelog_records t ON u.id = t.user_id\nJOIN projects p ON t.project_id = p.id\nJOIN (\n    SELECT project_id, COUNT(*) AS bug_count\n    FROM project_bug_management\n    GROUP BY project_id\n    HAVING COUNT(*) > 10\n) pb ON p.id = pb.project_id\nWHERE NOT EXISTS (\n    SELECT 1\n    FROM changerequest_management cr\n    WHERE cr.project_id = p.id\n    AND cr.changerequest_status = 'pending'\n)\nLIMIT 100",
+        "title": "SQL Report"
+      },
+      "sources": {
+        "schema_version": "74b4a42621d1a370"
+      },
+      "stats": {
+        "hit_count": 0,
+        "invalidated_reason": null,
+        "last_hit_at": null,
+        "last_invalidated_at": null
+      },
+      "tags": [
+        "cache_key:d99c434dabeb40afb92b82052ae4c26f1b2d37e806446d9b66d5b19da2862532",
+        "llm_sql",
+        "table:changerequest_management",
+        "table:project_bug_management",
+        "table:projects",
+        "table:timelog_records",
+        "table:users",
+        "token:10",
+        "token:all",
+        "token:bugs",
+        "token:change",
+        "token:employees",
+        "token:have",
+        "token:more",
+        "token:no",
+        "token:on",
+        "token:pending",
+        "token:project",
+        "token:requests",
+        "token:than",
+        "token:that",
+        "token:who",
+        "token:worked"
+      ]
+    },
+    "da85a99415bd39b61dfc85a6ea1cb956a96667bd23a9b163d9144e881a49e162": {
+      "cache_policy": {
+        "created_at": "2026-05-27T10:42:38.849339+00:00",
+        "expires_at": "2026-05-29T10:42:38.849339+00:00",
+        "ttl_days": 2
+      },
+      "intent": {
+        "canonical_tokens": [
+          "2026",
+          "april",
+          "leader",
+          "project",
+          "revision",
+          "summary",
+          "team"
+        ],
+        "date_tokens": [
+          "2026"
+        ],
+        "end_date": "2026-05-31",
+        "limit": 500,
+        "report_category": "custom",
+        "start_date": "2026-05-01"
+      },
+      "key": "da85a99415bd39b61dfc85a6ea1cb956a96667bd23a9b163d9144e881a49e162",
+      "query": {
+        "normalized": "show april 2026 revision summary by project and team leader",
+        "original": "Show April 2026 revision summary by project and team leader"
+      },
+      "response": {
+        "explanation": "",
+        "sql": "SELECT p.project_name, u.name AS team_leader_name, COUNT(cm.id) AS revision_count FROM changerequest_management cm JOIN projects p ON cm.project_id = p.id JOIN users u ON p.primary_team_leader = u.id WHERE cm.date BETWEEN '2026-04-01' AND '2026-04-30' GROUP BY p.id, u.id ORDER BY revision_count DESC LIMIT 10",
+        "title": "SQL Report"
+      },
+      "sources": {
+        "schema_version": "0d608f525ed65867"
+      },
+      "stats": {
+        "hit_count": 1,
+        "invalidated_reason": null,
+        "last_hit_at": "2026-05-28T06:05:35.824662+00:00",
+        "last_invalidated_at": null
+      },
+      "tags": [
+        "cache_key:da85a99415bd39b61dfc85a6ea1cb956a96667bd23a9b163d9144e881a49e162",
+        "end:2026-05-31",
+        "llm_sql",
+        "start:2026-05-01",
+        "table:changerequest_management",
+        "table:projects",
+        "table:users",
+        "token:2026",
+        "token:april",
+        "token:leader",
+        "token:project",
+        "token:revision",
+        "token:summary",
+        "token:team"
+      ]
+    },
+    "f24e015e0003cc866749623ef76012317febbd9518eb5ff1a9032515702c0031": {
+      "cache_policy": {
+        "created_at": "2026-05-07T12:26:37.937659+00:00",
+        "expires_at": "2026-05-09T12:26:37.937659+00:00",
+        "ttl_days": 2
+      },
+      "intent": {
+        "canonical_tokens": [
+          "equivalent",
+          "leaders",
+          "new",
+          "team",
+          "this",
+          "tickets",
+          "top",
+          "year"
+        ],
+        "date_tokens": [
+          "this",
+          "year"
+        ],
+        "end_date": "2026-12-31",
+        "limit": 500,
+        "start_date": "2026-01-01"
+      },
+      "key": "f24e015e0003cc866749623ef76012317febbd9518eb5ff1a9032515702c0031",
+      "query": {
+        "normalized": "top team leaders by equivalent new tickets this year",
+        "original": "Top team leaders by equivalent new tickets this year"
+      },
+      "response": {
+        "explanation": "",
+        "sql": "SELECT u.name AS team_leader_name, COUNT(pt.id) AS equivalent_new_tickets\nFROM product_task pt\nJOIN users u ON pt.assign_team_leader = u.id\nWHERE pt.created_at >= '2026-01-01' \n  AND pt.created_at <= '2026-12-31'\n  AND pt.is_deleted = 0\n  AND pt.assign_team_leader IS NOT NULL\nGROUP BY u.id, u.name\nORDER BY equivalent_new_tickets DESC\nLIMIT 10",
+        "title": "SQL Report"
+      },
+      "sources": {
+        "schema_version": "40faa2f8bc8d828a"
+      },
+      "stats": {
+        "hit_count": 1,
+        "invalidated_reason": null,
+        "last_hit_at": "2026-05-07T12:26:54.909905+00:00",
+        "last_invalidated_at": null
+      },
+      "tags": [
+        "cache_key:f24e015e0003cc866749623ef76012317febbd9518eb5ff1a9032515702c0031",
+        "end:2026-12-31",
+        "llm_sql",
+        "start:2026-01-01",
+        "table:product_task",
+        "table:users",
+        "token:equivalent",
+        "token:leaders",
+        "token:new",
+        "token:team",
+        "token:this",
+        "token:tickets",
+        "token:top",
+        "token:year"
+      ]
+    },
+    "f37bddf3e86dd0fd8b9d023cd0f71ef38f84e8e6ee9ae2a4e19c89295b57b2c0": {
+      "cache_policy": {
+        "created_at": "2026-05-22T11:08:38.013472+00:00",
+        "expires_at": "2026-05-24T11:08:38.013472+00:00",
+        "ttl_days": 2
+      },
+      "intent": {
+        "canonical_tokens": [
+          "2026",
+          "april",
+          "leader",
+          "project",
+          "revision",
+          "summary",
+          "team"
+        ],
+        "date_tokens": [
+          "2026"
+        ],
+        "end_date": "2026-04-30",
+        "limit": 500,
+        "report_category": "project",
+        "start_date": "2026-04-01"
+      },
+      "key": "f37bddf3e86dd0fd8b9d023cd0f71ef38f84e8e6ee9ae2a4e19c89295b57b2c0",
+      "query": {
+        "normalized": "show april 2026 revision summary by project and team leader",
+        "original": "Show April 2026 revision summary by project and team leader"
+      },
+      "response": {
+        "explanation": "",
+        "sql": "SELECT p.project_name, u.name AS team_leader_name, COUNT(cm.id) AS revision_count FROM changerequest_management cm JOIN projects p ON cm.project_id = p.id JOIN users u ON p.primary_team_leader = u.id WHERE cm.date BETWEEN '2026-04-01' AND '2026-04-30' GROUP BY p.id, u.id ORDER BY revision_count DESC LIMIT 10",
+        "title": "SQL Report"
+      },
+      "sources": {
+        "schema_version": "dc4f3cc68149517f"
+      },
+      "stats": {
+        "hit_count": 0,
+        "invalidated_reason": null,
+        "last_hit_at": null,
+        "last_invalidated_at": null
+      },
+      "tags": [
+        "cache_key:f37bddf3e86dd0fd8b9d023cd0f71ef38f84e8e6ee9ae2a4e19c89295b57b2c0",
+        "end:2026-04-30",
+        "llm_sql",
+        "start:2026-04-01",
+        "table:changerequest_management",
+        "table:projects",
+        "table:users",
+        "token:2026",
+        "token:april",
+        "token:leader",
+        "token:project",
+        "token:revision",
+        "token:summary",
+        "token:team"
+      ]
+    },
+    "fad9a713fb5b1fe17529dadcb503abef3650bd3632bd3a147510a1350b979a1c": {
+      "cache_policy": {
+        "created_at": "2026-06-01T10:31:04.349101+00:00",
+        "expires_at": "2026-06-03T10:31:04.349101+00:00",
+        "ttl_days": 2
+      },
+      "intent": {
+        "canonical_tokens": [
+          "4",
+          "assigned",
+          "but",
+          "completed",
+          "find",
+          "hours",
+          "leader",
+          "members",
+          "more",
+          "project",
+          "tasks",
+          "team",
+          "than",
+          "timeline",
+          "total",
+          "zero"
+        ],
+        "date_tokens": [
+          "4"
+        ],
+        "end_date": null,
+        "limit": 500,
+        "report_category": "custom",
+        "start_date": null
+      },
+      "key": "fad9a713fb5b1fe17529dadcb503abef3650bd3632bd3a147510a1350b979a1c",
+      "query": {
+        "normalized": "find projects with zero completed tasks but more than 4 total tasks with team leader assigned team members total assigned hours and timeline",
+        "original": "Find projects with zero completed tasks but more than 4 total tasks with team leader , assigned team members, total assigned hours and timeline"
+      },
+      "response": {
+        "explanation": "",
+        "sql": "SELECT p.project_name, u.name AS team_leader, COUNT(pt.id) AS total_tasks, COUNT(DISTINCT pt.assign_member) AS assigned_team_members, COALESCE(SUM(ptd.estimated_man_hr), 0) + COALESCE(SUM(ptd.estimated_hours), 0) AS total_assigned_hours, p.start_date, p.estimated_sub_date AS timeline FROM projects p JOIN product_task pt ON p.id = pt.project_id LEFT JOIN users u ON p.primary_team_leader = u.id LEFT JOIN product_task_details ptd ON pt.id = ptd.task_id WHERE pt.is_deleted = 0 GROUP BY p.id, p.project_name, u.name, p.start_date, p.estimated_sub_date HAVING COUNT(CASE WHEN pt.task_status = 'Completed' THEN 1 END) = 0 AND COUNT(pt.id) > 4 LIMIT 100",
+        "title": "SQL Report"
+      },
+      "sources": {
+        "schema_version": "2850b450694b429c"
+      },
+      "stats": {
+        "hit_count": 0,
+        "invalidated_reason": null,
+        "last_hit_at": null,
+        "last_invalidated_at": null
+      },
+      "tags": [
+        "cache_key:fad9a713fb5b1fe17529dadcb503abef3650bd3632bd3a147510a1350b979a1c",
+        "llm_sql",
+        "table:product_task",
+        "table:product_task_details",
+        "table:projects",
+        "table:users",
+        "token:4",
+        "token:assigned",
+        "token:but",
+        "token:completed",
+        "token:find",
+        "token:hours",
+        "token:leader",
+        "token:members",
+        "token:more",
+        "token:project",
+        "token:tasks",
+        "token:team",
+        "token:than",
+        "token:timeline",
+        "token:total",
+        "token:zero"
+      ]
+    },
+    "fd27606e7fedfde8383e260ba8701717f677376a8c311e11f2232f0efe8bea2b": {
+      "cache_policy": {
+        "created_at": "2026-06-01T09:47:33.965486+00:00",
+        "expires_at": "2026-06-03T09:47:33.965486+00:00",
+        "ttl_days": 2
+      },
+      "intent": {
+        "canonical_tokens": [
+          "4",
+          "has",
+          "leaders",
+          "less",
+          "productivity",
+          "team",
+          "top",
+          "who"
+        ],
+        "date_tokens": [
+          "4"
+        ],
+        "end_date": null,
+        "limit": 500,
+        "report_category": "custom",
+        "start_date": null
+      },
+      "key": "fd27606e7fedfde8383e260ba8701717f677376a8c311e11f2232f0efe8bea2b",
+      "query": {
+        "normalized": "show me top 4 team leaders who has less productivity",
+        "original": "Show me top 4 team leaders who has less productivity "
+      },
+      "response": {
+        "explanation": "",
+        "sql": "SELECT \n    u.id,\n    u.name AS team_leader_name,\n    COALESCE(SUM(tr.hours) + SUM(tr.minutes)/60, 0) AS total_hours_worked,\n    COUNT(DISTINCT th.task_id) AS tasks_completed,\n    CASE \n        WHEN (SUM(tr.hours) + SUM(tr.minutes)/60) > 0 \n        THEN COUNT(DISTINCT th.task_id) / (SUM(tr.hours) + SUM(tr.minutes)/60) \n        ELSE 0 \n    END AS productivity\nFROM users u\nLEFT JOIN timelog_records tr ON u.id = tr.user_id\nLEFT JOIN task_hours th ON u.id = th.user_id\nWHERE u.is_deleted = 0\n    AND (\n        u.id = (SELECT primary_team_leader FROM projects WHERE primary_team_leader IS NOT NULL LIMIT 1)\n        OR FIND_IN_SET(CAST(u.id AS CHAR), REPLACE(REPLACE(REPLACE(COALESCE((SELECT team_leader FROM projects WHERE team_leader IS NOT NULL LIMIT 1), ''), '[', ''), ']', ''), '\"', '')) > 0\n    )\nGROUP BY u.id, u.name\nORDER BY productivity ASC\nLIMIT 4",
+        "title": "SQL Report"
+      },
+      "sources": {
+        "schema_version": "2850b450694b429c"
+      },
+      "stats": {
+        "hit_count": 1,
+        "invalidated_reason": null,
+        "last_hit_at": "2026-06-01T09:55:14.052169+00:00",
+        "last_invalidated_at": null
+      },
+      "tags": [
+        "cache_key:fd27606e7fedfde8383e260ba8701717f677376a8c311e11f2232f0efe8bea2b",
+        "llm_sql",
+        "table:projects",
+        "table:task_hours",
+        "table:timelog_records",
+        "table:users",
+        "token:4",
+        "token:has",
+        "token:leaders",
+        "token:less",
+        "token:productivity",
+        "token:team",
+        "token:top",
+        "token:who"
+      ]
+    }
+  },
+  "exact_index": {
+    "00c2a87d111ea63e72c7f951bbd002920614b5d1fdce206b7bb787ea55dec348": "98ef54ecb4ce633e9210e60f17f002dc6960b9ad00b6bfabca440b8cdcf3926e",
+    "09ccd58bd69688dd342ca7710eb65d7ac1ad94edfcafec457e491426f0635e5e": "6bfa98d911a52c1e99514aea56676863e16f8886c35d734ffafad0acb5c122ff",
+    "1267a1b718909949a9e2e5b9c0946f765ea2beedcead874266f12b25f148268a": "1c0da1ecebacd36e82f3a755a6e524c6320296ec4a0140ff13cd7e5954b1503e",
+    "1f5a88c1491e0d0349ca03c673dbc7457b1892b409f0f4c9a5fb87f06387e9db": "f37bddf3e86dd0fd8b9d023cd0f71ef38f84e8e6ee9ae2a4e19c89295b57b2c0",
+    "23e3f5945382b91d86625232301493a71f22765c842bce6e50450c3b7597a87f": "6034c448384a20e7f1d3b5b8e48ff3485b8a53c1e1323a5bf96a8e7617c67b98",
+    "27ff334fbffd9829dcba7a70fde25981f3822e53e7a817c77b5287f66e16e883": "5da7c4011ebe1f9416a000b6efa72666319bdeeea1520ca7c459300d67eccfdb",
+    "2e884a9e48c61d686b116b5f57953dcf673d2a6de08c753c8603271d58111886": "b505ddb004273ef0b1ce38b2f805efc711bf9ca9ea5233a1a7f254214c22fba9",
+    "38e555cff309eacf2cd0e06610434eae46f0a4fc0445039947e86e2292f9d074": "265ef3a6f3b60948829c8485ac1b747165d2a81c22be35d507f1bd7a20d5726b",
+    "5785961f9c71ab45ecf368c0f9ffd0041da4d7d0a34394cede62e4e95fb7ebc8": "fd27606e7fedfde8383e260ba8701717f677376a8c311e11f2232f0efe8bea2b",
+    "5a1788979781d8b373b3bb6ca2c00a1dda7ac87a071298ed9f3ee2ddcc30b291": "003436a35b721542f87d280b69a395b0c883b05fb6a5bcd8921eaed3d6dee1ea",
+    "5fc709709067967ae578fb8dfa1ef87b99b1539c08c58806aed4f04d42e4fdc1": "cb768a01b7f0ef060b43a95b8510863796f4d0dc8c49dbfde13eedd06388a863",
+    "6150050b69982b2cb3896461bbd52d7e92c4061e2a6eb13155eb4f6ab87d11dc": "6cc6d8c4cb6b94acba3154f1287e83d099cbdff8b978bc8a1b99b359919f676c",
+    "7904fea47bd099b90fe2b85a805c14b699b36661825e0c9164eb3e604d59beb1": "5353cdf537199d7a65f5d17de325d828315b428e922c906c3bb4545ce95326c5",
+    "7e53935072512a0b4aa40e6df6209ca4cb2db57c473d5f0f02ef9a295f332a4a": "fad9a713fb5b1fe17529dadcb503abef3650bd3632bd3a147510a1350b979a1c",
+    "81faec0803dcb17d125c52388163f951ca2dbc359603baff654d4700ca968487": "f24e015e0003cc866749623ef76012317febbd9518eb5ff1a9032515702c0031",
+    "8502e6a571fd0590d9212eb020be13b569d451c9ac4e923f02c45919c431f083": "a845eb9aa91870ef0130f7b771029548770eb441299b7d34b873a733c2b0a6dd",
+    "8af8e2fe4de5def3473f82e865bc9cffe1b3a486020fd2d31a293ed105c3b9b7": "d62c7459ffee2c64159f5b1f5d00532d3df102e1cf72a23e6d583e94b889cadd",
+    "8e02e176eff62d8f8f6ba2203c427a460af0d39533a084b24288b1d0e0bec10e": "19d1726bbd094f0c7ad6a9daeb61731946c7542eea12197f579a06a76c7c57fd",
+    "9577eeec2bd2c7d3ebde901f8a5fc374cb70dc7928a600877014e21163ef29a2": "0d87a2c11a381ebb3915d5a2250c5787541d8137918ba1a16b75db8bc2e1a61f",
+    "a38f95c0e39422422d6be204a4252b39a45400648e27a83bf5b3474c0946e484": "9be00873507a1c945adadf8cf9746a787a2ba656f14d2e7313bb71c5e4271c4c",
+    "a4933ae46f794e949e6fd7d1b5a5f4416e8dbf6552483e76885775ec92152856": "52822310166876f5317e5ad1ea1808561c8efbd1a7a5fed55d7ef7471dbfc47f",
+    "a9941f4fa3b44e6ab75004c71f22b1acd646d7655538a15001f9e9e822b14441": "345a89fdb6a0dd5756d050324480299860d2e21ab7e50da64d2833084e2c5ba6",
+    "b0128704f2b6814adfd01b1d64b231cacf37236ec1919a4e1915555254db3fdd": "d99c434dabeb40afb92b82052ae4c26f1b2d37e806446d9b66d5b19da2862532",
+    "bbd4d172304b152d96037eeb31447fce8403900c227abd09be50a3d8e0a52276": "7e465d59dcf4970f0f4660729af677bb1685ce6e098423884cb5e4b593c58865",
+    "c26ff0c91a066c6472651eabcb7fb977fd7a05ff47e6b62d029544e2dbd39db8": "3cfc9080f9a12fc77359aa25dd4a42f422a93bb2000467c7ee6a9f57d3fa8c5d",
+    "caf047279c27078abefee4e8aa2f29b745cee73855f96035c1d082eb05f354f0": "6c45f95092382368182644f367b0f23b71d9edc18fad52e9d8f2f60f6db5976d",
+    "d418e1f26305d579d9491ffc2bd4e383b59e83d9cba9251027a16819db0321fc": "8ddb990f8fd3e11896c98f7073c7d344230b17140693770bf826f744c9d06bec",
+    "d6bbf84249162606a1cac8deda08502b96198585d4dc57c3e04c6034b9d2abad": "ae4e06274d7d337b000de4a02bbdfc95f727686b62ea83f36484bc3a2a5b835c",
+    "d8c35df3f0cd9cb52140eb700ed761c317f59b387a4b299b0b83c7363e8515d8": "d84c46ad295b92c42e9b874c1e6761f273c1dfd573598f95d7787227665b6fb2",
+    "e04d2161661eec73279d0d395974a5f5cf93f60d4c46ccd7ef4ac8be868c7af9": "da85a99415bd39b61dfc85a6ea1cb956a96667bd23a9b163d9144e881a49e162",
+    "f0649ab0d8fe785ad2c687ce020e284fd631bf5a149e177bdec973184a3f1350": "2c20f9dda846e1583372be8ced50ae618b9391a1ba040fbdfcdaa2e3f06131e3",
+    "ff7b72f7ccdebd428fea7701187b5a9f6725519264e4fb2d2ad963b773518e26": "c31a76c1fb466e34a3202d4327b683b27caacecfdc80c450de3230d07ea8b452"
+  },
+  "intent_index": {
+    "003436a35b721542f87d280b69a395b0c883b05fb6a5bcd8921eaed3d6dee1ea": "003436a35b721542f87d280b69a395b0c883b05fb6a5bcd8921eaed3d6dee1ea",
+    "0d87a2c11a381ebb3915d5a2250c5787541d8137918ba1a16b75db8bc2e1a61f": "0d87a2c11a381ebb3915d5a2250c5787541d8137918ba1a16b75db8bc2e1a61f",
+    "19d1726bbd094f0c7ad6a9daeb61731946c7542eea12197f579a06a76c7c57fd": "19d1726bbd094f0c7ad6a9daeb61731946c7542eea12197f579a06a76c7c57fd",
+    "1c0da1ecebacd36e82f3a755a6e524c6320296ec4a0140ff13cd7e5954b1503e": "1c0da1ecebacd36e82f3a755a6e524c6320296ec4a0140ff13cd7e5954b1503e",
+    "265ef3a6f3b60948829c8485ac1b747165d2a81c22be35d507f1bd7a20d5726b": "265ef3a6f3b60948829c8485ac1b747165d2a81c22be35d507f1bd7a20d5726b",
+    "2c20f9dda846e1583372be8ced50ae618b9391a1ba040fbdfcdaa2e3f06131e3": "2c20f9dda846e1583372be8ced50ae618b9391a1ba040fbdfcdaa2e3f06131e3",
+    "345a89fdb6a0dd5756d050324480299860d2e21ab7e50da64d2833084e2c5ba6": "345a89fdb6a0dd5756d050324480299860d2e21ab7e50da64d2833084e2c5ba6",
+    "3cfc9080f9a12fc77359aa25dd4a42f422a93bb2000467c7ee6a9f57d3fa8c5d": "3cfc9080f9a12fc77359aa25dd4a42f422a93bb2000467c7ee6a9f57d3fa8c5d",
+    "52822310166876f5317e5ad1ea1808561c8efbd1a7a5fed55d7ef7471dbfc47f": "52822310166876f5317e5ad1ea1808561c8efbd1a7a5fed55d7ef7471dbfc47f",
+    "5353cdf537199d7a65f5d17de325d828315b428e922c906c3bb4545ce95326c5": "5353cdf537199d7a65f5d17de325d828315b428e922c906c3bb4545ce95326c5",
+    "5da7c4011ebe1f9416a000b6efa72666319bdeeea1520ca7c459300d67eccfdb": "5da7c4011ebe1f9416a000b6efa72666319bdeeea1520ca7c459300d67eccfdb",
+    "6034c448384a20e7f1d3b5b8e48ff3485b8a53c1e1323a5bf96a8e7617c67b98": "6034c448384a20e7f1d3b5b8e48ff3485b8a53c1e1323a5bf96a8e7617c67b98",
+    "6bfa98d911a52c1e99514aea56676863e16f8886c35d734ffafad0acb5c122ff": "6bfa98d911a52c1e99514aea56676863e16f8886c35d734ffafad0acb5c122ff",
+    "6c45f95092382368182644f367b0f23b71d9edc18fad52e9d8f2f60f6db5976d": "6c45f95092382368182644f367b0f23b71d9edc18fad52e9d8f2f60f6db5976d",
+    "6cc6d8c4cb6b94acba3154f1287e83d099cbdff8b978bc8a1b99b359919f676c": "6cc6d8c4cb6b94acba3154f1287e83d099cbdff8b978bc8a1b99b359919f676c",
+    "7e465d59dcf4970f0f4660729af677bb1685ce6e098423884cb5e4b593c58865": "7e465d59dcf4970f0f4660729af677bb1685ce6e098423884cb5e4b593c58865",
+    "8ddb990f8fd3e11896c98f7073c7d344230b17140693770bf826f744c9d06bec": "8ddb990f8fd3e11896c98f7073c7d344230b17140693770bf826f744c9d06bec",
+    "98ef54ecb4ce633e9210e60f17f002dc6960b9ad00b6bfabca440b8cdcf3926e": "98ef54ecb4ce633e9210e60f17f002dc6960b9ad00b6bfabca440b8cdcf3926e",
+    "9be00873507a1c945adadf8cf9746a787a2ba656f14d2e7313bb71c5e4271c4c": "9be00873507a1c945adadf8cf9746a787a2ba656f14d2e7313bb71c5e4271c4c",
+    "a845eb9aa91870ef0130f7b771029548770eb441299b7d34b873a733c2b0a6dd": "a845eb9aa91870ef0130f7b771029548770eb441299b7d34b873a733c2b0a6dd",
+    "ae4e06274d7d337b000de4a02bbdfc95f727686b62ea83f36484bc3a2a5b835c": "ae4e06274d7d337b000de4a02bbdfc95f727686b62ea83f36484bc3a2a5b835c",
+    "b505ddb004273ef0b1ce38b2f805efc711bf9ca9ea5233a1a7f254214c22fba9": "b505ddb004273ef0b1ce38b2f805efc711bf9ca9ea5233a1a7f254214c22fba9",
+    "c31a76c1fb466e34a3202d4327b683b27caacecfdc80c450de3230d07ea8b452": "c31a76c1fb466e34a3202d4327b683b27caacecfdc80c450de3230d07ea8b452",
+    "cb768a01b7f0ef060b43a95b8510863796f4d0dc8c49dbfde13eedd06388a863": "cb768a01b7f0ef060b43a95b8510863796f4d0dc8c49dbfde13eedd06388a863",
+    "d62c7459ffee2c64159f5b1f5d00532d3df102e1cf72a23e6d583e94b889cadd": "d62c7459ffee2c64159f5b1f5d00532d3df102e1cf72a23e6d583e94b889cadd",
+    "d84c46ad295b92c42e9b874c1e6761f273c1dfd573598f95d7787227665b6fb2": "d84c46ad295b92c42e9b874c1e6761f273c1dfd573598f95d7787227665b6fb2",
+    "d99c434dabeb40afb92b82052ae4c26f1b2d37e806446d9b66d5b19da2862532": "d99c434dabeb40afb92b82052ae4c26f1b2d37e806446d9b66d5b19da2862532",
+    "da85a99415bd39b61dfc85a6ea1cb956a96667bd23a9b163d9144e881a49e162": "da85a99415bd39b61dfc85a6ea1cb956a96667bd23a9b163d9144e881a49e162",
+    "f24e015e0003cc866749623ef76012317febbd9518eb5ff1a9032515702c0031": "f24e015e0003cc866749623ef76012317febbd9518eb5ff1a9032515702c0031",
+    "f37bddf3e86dd0fd8b9d023cd0f71ef38f84e8e6ee9ae2a4e19c89295b57b2c0": "f37bddf3e86dd0fd8b9d023cd0f71ef38f84e8e6ee9ae2a4e19c89295b57b2c0",
+    "fad9a713fb5b1fe17529dadcb503abef3650bd3632bd3a147510a1350b979a1c": "fad9a713fb5b1fe17529dadcb503abef3650bd3632bd3a147510a1350b979a1c",
+    "fd27606e7fedfde8383e260ba8701717f677376a8c311e11f2232f0efe8bea2b": "fd27606e7fedfde8383e260ba8701717f677376a8c311e11f2232f0efe8bea2b"
+  },
+  "version": 1
+}

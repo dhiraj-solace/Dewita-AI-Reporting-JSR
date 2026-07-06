@@ -1,0 +1,103 @@
+{
+  "source_file": "D:/Downloads/Devita_Reports_Enhanced (1)(Devita Reports (Enhanced)).csv",
+  "reports": [
+    {
+      "name": "Attendance Report",
+      "type": "Attendance / HR",
+      "tables": ["attendances", "users"],
+      "required_columns": ["attendances.user_id", "attendances.date", "attendances.check_in", "attendances.check_out", "attendances.status", "attendances.created_at"],
+      "metrics": ["work_hours = check_out - check_in", "status = determineAttendanceStatus(check_in, check_out)"]
+    },
+    {
+      "name": "Team Timesheet Report",
+      "type": "Time Tracking",
+      "tables": ["timelog_records", "users", "projects", "products", "product_task"],
+      "required_columns": ["timelog_records.user_id", "timelog_records.project_id", "timelog_records.product_id", "timelog_records.task_id", "timelog_records.date", "timelog_records.time_spent", "timelog_records.work_type", "timelog_records.role_type"],
+      "metrics": ["weekly_time = SUM(time_spent WHERE date BETWEEN weekStart AND weekEnd)", "worked_hours = diff(check_in, check_out)"]
+    },
+    {
+      "name": "Team Lead Timesheet",
+      "type": "Performance",
+      "tables": ["projects", "product_task", "timelog_records"],
+      "required_columns": ["projects.id", "projects.team_leader", "product_task.assign_member", "product_task.reviewer", "product_task.project_id", "timelog_records.user_id", "timelog_records.project_id"],
+      "metrics": ["team_efficiency = (actualHours / plannedHours) * 100", "project_progress = (completedTasks / totalTasks) * 100"]
+    },
+    {
+      "name": "HR Timesheet Report",
+      "type": "HR Analytics",
+      "tables": ["attendances", "timelog_records", "task_hours"],
+      "required_columns": ["attendances.user_id", "attendances.date", "attendances.status", "timelog_records.user_id", "timelog_records.time_spent", "timelog_records.date", "task_hours.user_id", "task_hours.hours"],
+      "metrics": ["attendance_rate = (presentDays / totalDays) * 100", "productivity = tasksCompleted / hoursWorked"]
+    },
+    {
+      "name": "Daily Report",
+      "type": "Progress Tracking",
+      "tables": ["projects", "product_task", "product_task_details"],
+      "required_columns": ["projects.id", "projects.project_status", "projects.project_mfg_type", "projects.start_date", "product_task.project_id", "product_task.assign_member", "product_task.is_deleted", "product_task_details.task_id", "product_task_details.actual_hr"],
+      "metrics": ["task_count = COUNT(product_task WHERE is_deleted=0)", "active_projects = WHERE project_status != Completed"]
+    },
+    {
+      "name": "Week Five Report",
+      "type": "Planning",
+      "tables": ["projects", "product_task"],
+      "required_columns": ["projects.id", "projects.client", "projects.project_type_id", "projects.project_mfg_type", "projects.total_no_of_shop_tickets", "product_task.project_id", "product_task.is_deleted"],
+      "metrics": ["ticket_count = COUNT(product_task WHERE project_id)", "progress = completedTasks / totalTickets"]
+    },
+    {
+      "name": "DAI Week Five Report",
+      "type": "Advanced Planning",
+      "tables": ["projects", "product_task_details"],
+      "required_columns": ["projects.client", "projects.project_status", "projects.project_mfg_type", "product_task_details.task_id", "product_task_details.remark", "product_task_details.is_markup", "product_task_details.uploaded_date", "product_task_details.is_deleted"],
+      "metrics": ["till_today = COUNT(uploaded tasks WHERE uploaded_date <= today)", "balance = open_tasks - planned_tasks"]
+    },
+    {
+      "name": "Team Efficiency Report",
+      "type": "Performance",
+      "tables": ["projects", "product_task"],
+      "required_columns": ["projects.total_budgeted_man_hrs", "projects.actual_man_hrs_utilized", "product_task.project_id"],
+      "metrics": ["efficiency = (actual / planned) * 100", "utilization = workedHours / availableHours"]
+    },
+    {
+      "name": "Employee Capacity Report",
+      "type": "Resource Planning",
+      "tables": ["users", "timelog_records"],
+      "required_columns": ["users.id", "timelog_records.user_id", "timelog_records.time_spent", "timelog_records.date"],
+      "metrics": ["total_capacity = workingDays * dailyHours", "utilization = allocatedHours / totalCapacity"]
+    },
+    {
+      "name": "Project Summary Report",
+      "type": "Management",
+      "tables": ["projects", "product_task"],
+      "required_columns": ["projects.id", "projects.client", "projects.project_status", "projects.start_date", "projects.actual_end_date", "projects.total_budgeted_man_hrs", "projects.actual_man_hrs_utilized", "product_task.project_id"],
+      "metrics": ["progress = completedTasks / totalTasks", "budget_variance = actualCost - plannedBudget"]
+    },
+    {
+      "name": "Individual Rating Report",
+      "type": "Performance",
+      "tables": ["product_task_details", "task_bug_management", "reviewer_comments"],
+      "required_columns": ["product_task_details.task_id", "product_task_details.actual_hr", "task_bug_management.task_id", "task_bug_management.severity", "task_bug_management.status", "reviewer_comments.task_id", "reviewer_comments.reviewer_id"],
+      "metrics": ["completion_rate = completed / assigned", "overall_rating = weighted(task_quality, timeliness, bugs)"]
+    },
+    {
+      "name": "Markup Report",
+      "type": "Quality",
+      "tables": ["markup_management"],
+      "required_columns": ["markup_management.task_id", "markup_management.markup_comment", "markup_management.markup_status", "markup_management.markup_added_by", "markup_management.markup_assign_to", "markup_management.created_at"],
+      "metrics": ["resolution_time = avg(time_to_resolve)", "quality_score = based_on_markup_reviews"]
+    },
+    {
+      "name": "CR Report",
+      "type": "Change Management",
+      "tables": ["changerequest_management"],
+      "required_columns": ["changerequest_management.task_id", "changerequest_management.project_id", "changerequest_management.product_id", "changerequest_management.changerequest_status", "changerequest_management.date", "changerequest_management.changerequest_added_by", "changerequest_management.changerequest_assign_to"],
+      "metrics": ["approval_rate = approved / total", "resolution_time = avg(time)"]
+    },
+    {
+      "name": "Post Error Report",
+      "type": "Quality",
+      "tables": ["task_bug_management"],
+      "required_columns": ["task_bug_management.task_id", "task_bug_management.bug_id", "task_bug_management.severity", "task_bug_management.status", "task_bug_management.bug_created_by", "task_bug_management.bug_assigned_to", "task_bug_management.created_at"],
+      "metrics": ["bug_density = bugCount / tasks", "resolution_time = avg(bug_resolution_time)"]
+    }
+  ]
+}

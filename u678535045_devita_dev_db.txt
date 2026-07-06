@@ -1,0 +1,349 @@
+
+                                       PDF export page
+
+                                       Table of contents
+
+1 admins                                                                     Page number: 4
+2 attendances                                                                Page number: 5
+3 bim_errors                                                                 Page number: 6
+4 bsl_assign_task                                                            Page number: 7
+5 bsl_changerequest                                                          Page number: 9
+6 bsl_project                                                                Page number: 10
+7 bsl_project_bug                                                            Page number: 11
+8 bsl_project_task_logs                                                      Page number: 12
+9 bsl_task                                                                   Page number: 13
+10 bsl_task_type                                                             Page number: 14
+11 bsl_timelog_records                                                       Page number: 15
+12 bug_category                                                              Page number: 16
+13 cache                                                                     Page number: 17
+14 cache_locks                                                               Page number: 18
+15 changerequest_management                                                  Page number: 19
+16 change_open_value                                                         Page number: 20
+17 checklists                                                                Page number: 21
+18 clients                                                                   Page number: 22
+19 daily_project_comments                                                    Page number: 23
+20 edrawing_bug_management                                                   Page number: 24
+21 edrawing_task                                                             Page number: 25
+22 edrawing_task_details                                                     Page number: 26
+23 edrawing_timelog_records                                                  Page number: 27
+24 errors                                                                    Page number: 28
+25 failed_jobs                                                               Page number: 29
+26 files                                                                     Page number: 30
+27 holidays                                                                  Page number: 31
+
+                                Page number: 1/76                       Apr 28, 2026 at 10:17 AM
+
+                                      PDF export page
+
+28 jobs                                                                    Page number: 32
+29 kickoff_meeting_comments                                                Page number: 33
+30 markup_management                                                       Page number: 34
+31 master_bsl_project                                                      Page number: 35
+32 migrations                                                              Page number: 36
+33 non_billable_task                                                       Page number: 37
+34 password_reset_tokens                                                   Page number: 38
+35 personal_access_tokens                                                  Page number: 39
+36 post_error_request                                                      Page number: 40
+37 precasters                                                              Page number: 41
+38 predefined_bugs                                                         Page number: 42
+39 products                                                                Page number: 43
+40 product_checklists                                                      Page number: 44
+41 product_task                                                            Page number: 45
+42 product_task_details                                                    Page number: 46
+43 product_task_reviewer_comments                                          Page number: 49
+44 projects                                                                Page number: 50
+45 project_assistances                                                     Page number: 52
+46 project_bug_management                                                  Page number: 53
+47 project_type                                                            Page number: 54
+48 revision_task_comments                                                  Page number: 55
+49 roles                                                                   Page number: 56
+50 role_user                                                               Page number: 57
+51 settings                                                                Page number: 58
+52 severity                                                                Page number: 59
+53 sheets                                                                  Page number: 60
+54 status_notes                                                            Page number: 61
+55 task_bug_management                                                     Page number: 62
+56 task_hours                                                              Page number: 63
+
+                               Page number: 2/76                      Apr 28, 2026 at 10:17 AM
+
+                                      PDF export page
+57 task_types                                                              Page number: 64
+58 timelog_records                                                         Page number: 65
+59 timesheets                                                              Page number: 67
+60 tl_task                                                                 Page number: 68
+61 tl_task_time                                                            Page number: 69
+62 tl_timelog_records                                                      Page number: 70
+63 tm_task                                                                 Page number: 71
+64 tm_task_time                                                            Page number: 72
+65 tm_timelog_records                                                      Page number: 73
+66 users                                                                   Page number: 74
+67 weekly_task_comments                                                    Page number: 75
+68 Relational schema                                                       Page number: 76
+
+
+
+
+
+
+
+                               Page number: 3/76                      Apr 28, 2026 at 10:17 AM
+
+                                                                               PDF export page
+                                                                                   1 admins
+
+Creation: Apr 23, 2026 at 12:14 PM
+Last update: Apr 23, 2026 at 12:14 PM
+
+   Column           Type       Attributes    Null     Default         Extra                  Links to                             Comments                                  MIME
+id               bigint(20)    UNSIGNED     No                   auto_increment
+name             varchar(255                No
+                 )
+email            varchar(255                No
+                 )
+email_verified_atimestamp                   Yes    NULL
+t
+password         varchar(255                No
+                 )
+remember_toke    varchar(100                Yes    NULL
+n                )
+created_at       timestamp                  Yes    NULL
+updated_at       timestamp                  Yes    NULL
+
+
+
+
+
+
+
+
+                                                                Page number: 4/76                                                                 Apr 28, 2026 at 10:17 AM
+
+                                                                                PDF export page
+
+                                                                               2 attendances
+
+Creation: Apr 23, 2026 at 12:14 PM
+Last update: Apr 23, 2026 at 12:14 PM
+
+   Column            Type       Attributes    Null     Default          Extra                  Links to                              Comments                                  MIME
+id               bigint(20)    UNSIGNED      No                    auto_increment
+date             date                        No
+day              varchar(255                 No
+                 )
+total_hours      varchar(255                 No
+                 )
+status           varchar(255                 No
+                 )
+created_at       timestamp                   Yes    NULL
+updated_at       timestamp                   Yes    NULL
+department       varchar(255                 Yes    NULL
+                 )
+designation      varchar(255                 Yes    NULL
+                 )
+employee_id      varchar(255                 Yes    NULL
+                 )
+name             varchar(255                 Yes    NULL
+                 )
+for_month        varchar(255                 Yes    NULL
+                 )
+
+
+
+
+
+
+
+
+                                                                  Page number: 5/76                                                                  Apr 28, 2026 at 10:17 AM
+
+                                                                                                       PDF export page
+                                                                                                       3 bim_errors
+Creation: Apr 23, 2026 at 12:14 PM
+Last update: Apr 23, 2026 at 12:14 PM
+    Column                 Type          Attributes        Null       Default               Extra                         Links to                                        Comments                                               MIME
+id                    int(11)                             No                         auto_increment
+name                  text                                No
+severity              varchar(255                         No
+                      )
+category              varchar(255                         No
+                      )
+is_deleted            int(11)                             No
+status                varchar(255                         No
+                      )
+created_at            datetime                            No
+updated_at            timestamp                           No
+
+
+
+
+
+
+
+
+                                                                                    Page number: 6/76                                                                                          Apr 28, 2026 at 10:17 AM
+
+                                                                                                       PDF export page
+
+
+                                                                                                4 bsl_assign_task
+
+
+Creation: Apr 23, 2026 at 12:14 PM
+Last update: Apr 23, 2026 at 12:14 PM
+
+
+    Column                 Type          Attributes        Null       Default               Extra                         Links to                                        Comments                                               MIME
+
+task_descriptio       text                                No
+n
+id                    int(11)                             No                         auto_increment
+master_project_       int(11)                             No
+id
+project_id            int(11)                             No
+task_id               varchar(255                         No
+                      )
+task_type             varchar(255                         Yes      NULL
+                      )
+detailer              varchar(255                         Yes      NULL
+                      )
+checker               varchar(255                         Yes      NULL
+                      )
+changerequest_        varchar(255                         Yes      NULL
+detailing_time        )
+changerequest_        varchar(255                         Yes      NULL
+checking_time         )
+changerequest_        varchar(255                         Yes      NULL
+detailer              )
+changerequest_        varchar(255                         Yes      NULL
+checker               )
+project_leader        varchar(255                         Yes      NULL
+                      )
+client_cord           varchar(255                         Yes      NULL
+                      )
+team_leader           varchar(255                         Yes      NULL
+                      )
+detailing_time        varchar(255                         Yes      NULL
+                      )
+checking_time         varchar(255                         Yes      NULL
+                      )
+changerequest_        date                                Yes      NULL
+detailing_date
+changerequest_        date                                Yes      NULL
+checking_date
+changerequest_        date                                Yes      NULL
+upload_date
+
+                                                                                    Page number: 7/76                                                                                          Apr 28, 2026 at 10:17 AM
+
+                                                                               PDF export page
+detailing_date   date                        Yes    NULL
+checking_date    date                        Yes    NULL
+upload_date      date                        Yes    NULL
+is_deleted       int(11)                     Yes    0
+assign_date      date                        Yes    NULL
+remark           text                        Yes    NULL
+task_stage       varchar(255                 Yes    NULL
+                 )
+created_at       timestamp                   No
+updated_at       timestamp                   No
+
+
+
+
+
+
+
+                                                                 Page number: 8/76                                                                 Apr 28, 2026 at 10:17 AM
+
+                                                                                                       PDF export page
+
+                                                                                          5 bsl_changerequest
+
+Creation: Apr 23, 2026 at 12:14 PM
+Last update: Apr 23, 2026 at 12:14 PM
+
+    Column                 Type          Attributes        Null       Default               Extra                         Links to                                        Comments                                               MIME
+id                    int(11)                             No                         auto_increment
+task_id               int(11)                             No
+project_id            int(11)                             No
+date                  date                                Yes      NULL
+changerequest_        date                                Yes      NULL
+upload_date
+changerequest_        date                                Yes      NULL
+detailing_date
+changerequest_        date                                Yes      NULL
+checking_date
+changerequest_        varchar(255                         Yes      NULL
+added_by              )
+changerequest_        varchar(255                         Yes      NULL
+assign_to             )
+changerequest_        varchar(255                         Yes      NULL
+reviewer_to           )
+changerequest_        varchar(255                         Yes      NULL
+status                )
+changerequest_        varchar(255                         Yes      NULL
+checking_estim        )
+ated_hrs
+changerequest_        varchar(255                         Yes      NULL
+detailing_estim       )
+ated_hrs
+created_at            timestamp                           No
+updated_at            timestamp                           No
+
+
+
+
+
+
+
+                                                                                    Page number: 9/76                                                                                          Apr 28, 2026 at 10:17 AM
+
+                                                                                        PDF export page
+
+                                                                                         6 bsl_project
+
+
+Creation: Apr 23, 2026 at 12:14 PM
+Last update: Apr 23, 2026 at 12:14 PM
+
+
+    Column             Type        Attributes      Null     Default            Extra                     Links to                                  Comments                                      MIME
+id                 int(11)                        No                     auto_increment
+master_project_    int(11)                        No
+id
+project_name       varchar(255                    No
+                   )
+priority           varchar(255                    Yes     NULL
+                   )
+project_status     varchar(255                    Yes     NULL
+                   )
+detailer           varchar(255                    Yes     NULL
+                   )
+task_id            varchar(255                    Yes     NULL
+                   )
+project_plan_pr    varchar(255                    Yes     NULL
+epared_by          )
+project_leader     varchar(255                    Yes     NULL
+                   )
+team_member        varchar(255                    Yes     NULL
+                   )
+client_cord        varchar(255                    Yes     NULL
+                   )
+team_leader        varchar(255                    Yes     NULL
+                   )
+primary_team_l     varchar(255                    Yes     NULL
+eader              )
+project_no         varchar(255                    Yes     NULL
+                   )
+start_date         date                           No
+project_remarks text                              Yes     NULL
+is_deleted         int(11)                        No      0
+created_at         timestamp                      No
+updated_at         timestamp                      No
+
+
+
+
+                                                                        Page number: 10/76                                                                           Apr 28, 2026 at 10:17 AM
+
