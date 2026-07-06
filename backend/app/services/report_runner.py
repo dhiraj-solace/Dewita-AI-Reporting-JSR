@@ -41,6 +41,7 @@ from app.services.sql_safety_validator import SafetyValidationResult, validate_s
 from app.services.query_safety import validate_user_query_safety
 from app.services.report_permissions import ReportPermissionError, assert_report_permission
 from app.services.templates import find_template
+from app.services.week_five_presentation import build_report_presentation
 
 logger = logging.getLogger(__name__)
 
@@ -192,6 +193,21 @@ async def build_report(request: ReportRequest) -> GeneratedReport:
     cache_entry: dict[str, Any] | None = None
     generated_source: str | None = None
     generation_elapsed_ms = 0
+    preferred_template = find_template(request.question, category_id)
+    if preferred_template and preferred_template.title == "Week Five Report":
+        generated = {
+            "title": preferred_template.title,
+            "sql": preferred_template.sql,
+            "explanation": preferred_template.explanation,
+        }
+        generated_source = "template"
+        warnings.append("Used the built-in Week Five report definition for consistent columns and color coding.")
+        _console_attempt_log(attempt_id, "generation", "using built-in Week Five report definition")
+        _console_attempt_detail(
+            attempt_id,
+            "generation",
+            {"source": "template", "generated_sql": preferred_template.sql},
+        )
     _console_attempt_log(attempt_id, "request", f"received user question: {_short_reason(request.question)}")
     _console_attempt_log(attempt_id, "category", f"using report category: {category_label} ({category_id})")
     _console_attempt_log(attempt_id, "schema", f"loaded schema with {_schema_table_count(schema_snapshot)} table(s)")
@@ -199,50 +215,51 @@ async def build_report(request: ReportRequest) -> GeneratedReport:
     _console_validation_log("request started")
     _console_validation_detail("user query", {"question": request.question, "limit": request.limit, "dry_run": request.dry_run})
     try:
-        cache_entry, cache_match_type = get_cached_sql(
-            request.question,
-            resolved_dates.start_date,
-            resolved_dates.end_date,
-            request.limit,
-            schema_snapshot,
-            category_id,
-        )
-        if cache_entry:
-            generated = {
-                "title": cache_entry.get("response", {}).get("title") or "SQL Report",
-                "sql": cache_entry.get("response", {}).get("sql") or "",
-                "explanation": cache_entry.get("response", {}).get("explanation") or "",
-            }
-            _console_attempt_log(attempt_id, "cache", f"hit via {cache_match_type} match")
-            _console_attempt_detail(
-                attempt_id,
-                "cache",
-                {
-                    "cache_key": cache_entry.get("key"),
-                    "matched_query": cache_entry.get("query", {}).get("original"),
-                    "tags": cache_entry.get("tags") or [],
-                },
+        if generated is None:
+            cache_entry, cache_match_type = get_cached_sql(
+                request.question,
+                resolved_dates.start_date,
+                resolved_dates.end_date,
+                request.limit,
+                schema_snapshot,
+                category_id,
             )
-            try:
-                cached_sql = _validate_cached_sql(
-                    generated["sql"],
-                    request,
-                    resolved_dates.start_date,
-                    resolved_dates.end_date,
-                    warnings,
-                    retry_attempts,
+            if cache_entry:
+                generated = {
+                    "title": cache_entry.get("response", {}).get("title") or "SQL Report",
+                    "sql": cache_entry.get("response", {}).get("sql") or "",
+                    "explanation": cache_entry.get("response", {}).get("explanation") or "",
+                }
+                _console_attempt_log(attempt_id, "cache", f"hit via {cache_match_type} match")
+                _console_attempt_detail(
+                    attempt_id,
+                    "cache",
+                    {
+                        "cache_key": cache_entry.get("key"),
+                        "matched_query": cache_entry.get("query", {}).get("original"),
+                        "tags": cache_entry.get("tags") or [],
+                    },
                 )
-                update_attempt(attempt_id, generated_sql=generated.get("sql"), final_sql=cached_sql)
-                generated_source = "cache"
-                _console_attempt_log(attempt_id, "cache", "cached SQL accepted by backend validation")
-            except Exception as exc:
-                invalidate_cache([f"cache_key:{cache_entry.get('key')}"], reason=str(exc))
-                generated = None
-                cached_sql = None
-                generated_source = None
-                _console_attempt_log(attempt_id, "cache", f"cached SQL rejected: {_short_reason(str(exc))}")
-        else:
-            _console_attempt_log(attempt_id, "cache", f"miss ({cache_match_type})")
+                try:
+                    cached_sql = _validate_cached_sql(
+                        generated["sql"],
+                        request,
+                        resolved_dates.start_date,
+                        resolved_dates.end_date,
+                        warnings,
+                        retry_attempts,
+                    )
+                    update_attempt(attempt_id, generated_sql=generated.get("sql"), final_sql=cached_sql)
+                    generated_source = "cache"
+                    _console_attempt_log(attempt_id, "cache", "cached SQL accepted by backend validation")
+                except Exception as exc:
+                    invalidate_cache([f"cache_key:{cache_entry.get('key')}"], reason=str(exc))
+                    generated = None
+                    cached_sql = None
+                    generated_source = None
+                    _console_attempt_log(attempt_id, "cache", f"cached SQL rejected: {_short_reason(str(exc))}")
+            else:
+                _console_attempt_log(attempt_id, "cache", f"miss ({cache_match_type})")
 
         if generated is None:
             _console_attempt_log(attempt_id, "examples", "searching previous gold examples")
@@ -330,6 +347,11 @@ async def build_report(request: ReportRequest) -> GeneratedReport:
         update_attempt(attempt_id, generated_sql=generated.get("sql"))
         _console_attempt_log(attempt_id, "generation", "SQL generated from template fallback")
         _console_attempt_detail(attempt_id, "generation", {"source": "template", "generated_sql": generated.get("sql")})
+    elif generated_source == "template":
+        logger.info("Using preferred built-in report template.")
+        _console_validation_log("preferred template output generated")
+        _console_validation_detail("preferred template output", generated)
+        update_attempt(attempt_id, generated_sql=generated.get("sql"))
     elif generated_source == "cache":
         logger.info("Using cached SQL generation output.")
         _console_validation_log("cache output accepted")
@@ -454,10 +476,18 @@ async def build_report(request: ReportRequest) -> GeneratedReport:
         _console_attempt_log(attempt_id, "execution", "dry run skipped SQL execution")
 
     update_attempt(attempt_id, total_elapsed_ms=int((perf_counter() - request_started) * 1000))
+    presentation = build_report_presentation(
+        generated.get("title") or "SQL Report",
+        request.question,
+        columns,
+        rows,
+    )
     return GeneratedReport(
         attempt_id=attempt_id,
         generated_source=generated_source,
         report_category=category_id,
+        report_variant=presentation.get("variant"),
+        presentation=presentation,
         created_by_role=request.current_user_role,
         title=generated.get("title") or "SQL Report",
         question=request.question,

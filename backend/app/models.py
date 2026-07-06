@@ -80,6 +80,8 @@ class GeneratedReport(BaseModel):
     saved_report_id: str | None = None
     generated_source: str | None = None
     report_category: str | None = None
+    report_variant: str | None = None
+    presentation: dict[str, Any] = Field(default_factory=dict)
     created_by_role: str | None = None
     created_by_user_id: str | None = None
     title: str

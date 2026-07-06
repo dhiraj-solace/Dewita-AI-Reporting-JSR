@@ -18,6 +18,8 @@ SAVED_REPORT_FIELDS = (
     "id",
     "attempt_id",
     "report_category",
+    "report_variant",
+    "presentation_json",
     "created_by_role",
     "created_by_user_id",
     "title",
@@ -43,6 +45,8 @@ def ensure_saved_reports_table() -> None:
         id VARCHAR(36) PRIMARY KEY,
         attempt_id VARCHAR(36) NULL,
         report_category VARCHAR(100) NULL,
+        report_variant VARCHAR(100) NULL,
+        presentation_json LONGTEXT NULL,
         created_by_role VARCHAR(100) NULL,
         created_by_user_id VARCHAR(36) NULL,
         title TEXT NOT NULL,
@@ -70,7 +74,9 @@ def ensure_saved_reports_table() -> None:
 def _ensure_saved_report_columns(conn: Any) -> None:
     columns = {
         "report_category": "VARCHAR(100) NULL AFTER attempt_id",
-        "created_by_role": "VARCHAR(100) NULL AFTER report_category",
+        "report_variant": "VARCHAR(100) NULL AFTER report_category",
+        "presentation_json": "LONGTEXT NULL AFTER report_variant",
+        "created_by_role": "VARCHAR(100) NULL AFTER presentation_json",
         "created_by_user_id": "VARCHAR(36) NULL AFTER created_by_role",
     }
     for name, definition in columns.items():
@@ -102,6 +108,8 @@ def save_generated_report(report: GeneratedReport) -> str:
                     """
                     UPDATE saved_reports
                     SET report_category = COALESCE(report_category, :report_category),
+                        report_variant = :report_variant,
+                        presentation_json = :presentation_json,
                         created_by_role = COALESCE(created_by_role, :created_by_role),
                         created_by_user_id = COALESCE(created_by_user_id, :created_by_user_id),
                         updated_at = :updated_at
@@ -111,6 +119,8 @@ def save_generated_report(report: GeneratedReport) -> str:
                 {
                     "id": existing_id,
                     "report_category": report_category,
+                    "report_variant": report.report_variant,
+                    "presentation_json": _json(report.presentation),
                     "created_by_role": created_by_role,
                     "created_by_user_id": created_by_user_id,
                     "updated_at": _now(),
@@ -131,6 +141,8 @@ def save_generated_report(report: GeneratedReport) -> str:
         "id": report_id,
         "attempt_id": report.attempt_id,
         "report_category": report_category,
+        "report_variant": report.report_variant,
+        "presentation_json": _json(report.presentation),
         "created_by_role": created_by_role,
         "created_by_user_id": created_by_user_id,
         "title": report.title,
@@ -152,11 +164,13 @@ def save_generated_report(report: GeneratedReport) -> str:
             text(
                 """
                 INSERT INTO saved_reports (
-                    id, attempt_id, report_category, created_by_role, created_by_user_id, title, question, sql_text, explanation, assumptions,
+                    id, attempt_id, report_category, report_variant, presentation_json,
+                    created_by_role, created_by_user_id, title, question, sql_text, explanation, assumptions,
                     columns_json, rows_json, row_count, dry_run, warnings, retry_attempts,
                     created_at, updated_at
                 ) VALUES (
-                    :id, :attempt_id, :report_category, :created_by_role, :created_by_user_id, :title, :question, :sql_text, :explanation, :assumptions,
+                    :id, :attempt_id, :report_category, :report_variant, :presentation_json,
+                    :created_by_role, :created_by_user_id, :title, :question, :sql_text, :explanation, :assumptions,
                     :columns_json, :rows_json, :row_count, :dry_run, :warnings, :retry_attempts,
                     :created_at, :updated_at
                 )
@@ -262,6 +276,8 @@ def _row_to_report(row: dict[str, Any]) -> GeneratedReport:
         saved_report_id=row["id"],
         attempt_id=row.get("attempt_id"),
         report_category=row.get("report_category") or "custom",
+        report_variant=row.get("report_variant"),
+        presentation=_loads(row.get("presentation_json"), {}),
         created_by_role=row.get("created_by_role"),
         created_by_user_id=row.get("created_by_user_id"),
         title=row["title"],

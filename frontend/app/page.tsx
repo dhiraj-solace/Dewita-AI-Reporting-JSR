@@ -1,6 +1,6 @@
 "use client";
 
-import {FormEvent, useEffect, useMemo, useState} from "react";
+import {CSSProperties, FormEvent, useEffect, useMemo, useState} from "react";
 import Link from "next/link";
 import {
   BarChart3,
@@ -173,6 +173,15 @@ function cellClassName(column: string, value: unknown) {
   if (isNumericValue(value)) classes.push("numeric-cell");
   if (/status|state/.test(column.toLowerCase())) classes.push("status-cell");
   return classes.join(" ");
+}
+
+function reportStyle(style?: {background?: string; foreground?: string}): CSSProperties | undefined {
+  if (!style?.background && !style?.foreground) return undefined;
+  return {
+    backgroundColor: style.background,
+    color: style.foreground,
+    fontWeight: style?.background ? 700 : undefined
+  };
 }
 
 function reportStatusLabel(report: GeneratedReport) {
@@ -749,17 +758,37 @@ export default function Home() {
                   </div>
                 )}
 
+                {report.presentation?.legend && report.presentation.legend.length > 0 && (
+                  <div className="report-color-legend" aria-label="Report color legend">
+                    {report.presentation.legend.map((item) => (
+                      <span key={item.key || item.label}>
+                        <i style={{backgroundColor: item.background}} />
+                        {item.label}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
                 {visibleRows.length > 0 && (
                   <div className="table-wrap">
                     <table>
                       <thead>
-                        <tr>{report.columns.map((column) => <th key={column}>{humanizeColumn(column)}</th>)}</tr>
+                        <tr>{report.columns.map((column) => (
+                          <th key={column} style={reportStyle(report.presentation?.header_style)}>
+                            {humanizeColumn(column)}
+                          </th>
+                        ))}</tr>
                       </thead>
                       <tbody>
                         {visibleRows.map((row, rowIndex) => (
-                          <tr key={rowIndex}>
+                          <tr key={rowIndex} style={reportStyle(report.presentation?.row_styles?.[String(rowIndex)])}>
                             {report.columns.map((column) => (
-                              <td className={cellClassName(column, row[column])} key={column}>
+                              <td
+                                className={cellClassName(column, row[column])}
+                                key={column}
+                                style={reportStyle(report.presentation?.cell_styles?.[String(rowIndex)]?.[column])}
+                                title={report.presentation?.cell_styles?.[String(rowIndex)]?.[column]?.label}
+                              >
                                 {formatCell(column, row[column])}
                               </td>
                             ))}

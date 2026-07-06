@@ -640,6 +640,30 @@ p {
   border-radius: 6px;
 }
 
+.report-color-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  align-items: center;
+  padding: 10px 0;
+  color: #344054;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.report-color-legend span {
+  display: inline-flex;
+  gap: 7px;
+  align-items: center;
+}
+
+.report-color-legend i {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 14px;
+  border: 1px solid #98a2b3;
+}
+
 table {
   width: 100%;
   border-collapse: collapse;
