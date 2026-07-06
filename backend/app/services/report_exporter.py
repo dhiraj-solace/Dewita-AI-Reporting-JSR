@@ -8,6 +8,23 @@ from typing import Any
 from app.models import GeneratedReport
 
 
+_XLSX_STYLE_COLORS = [
+    ("#00CED1", "#111827"),
+    ("#00FFFF", "#111827"),
+    ("#008000", "#FFFFFF"),
+    ("#FFFF00", "#111827"),
+    ("#FF00FF", "#111827"),
+    ("#CED4DA", "#111827"),
+    ("#B5B576", "#111827"),
+    ("#B2C8ED", "#111827"),
+    ("#28A745", "#FFFFFF"),
+    ("#F5F5DC", "#111827"),
+    ("#DC3545", "#FFFFFF"),
+    ("#FD7E14", "#111827"),
+    ("#FFFFFF", "#111827"),
+]
+
+
 def export_report_xlsx(report: GeneratedReport) -> bytes:
     shared_strings: list[str] = []
     shared_index: dict[str, int] = {}
@@ -19,17 +36,42 @@ def export_report_xlsx(report: GeneratedReport) -> bytes:
             shared_strings.append(text)
         return shared_index[text]
 
-    rows = [report.columns] + [[row.get(column, "") for column in report.columns] for row in report.rows]
-    sheet_rows = []
-    for row_number, row in enumerate(rows, start=1):
+    sheet_rows: list[str] = []
+
+    def add_row(row_number: int, values: list[Any], styles: list[dict[str, Any] | None]) -> None:
         cells = []
-        for column_index, value in enumerate(row, start=1):
+        for column_index, value in enumerate(values, start=1):
             ref = f"{_excel_column(column_index)}{row_number}"
+            style_id = _xlsx_style_id(styles[column_index - 1])
+            style_attribute = f' s="{style_id}"' if style_id else ""
             if isinstance(value, (int, float)) and not isinstance(value, bool):
-                cells.append(f'<c r="{ref}"><v>{value}</v></c>')
+                cells.append(f'<c r="{ref}"{style_attribute}><v>{value}</v></c>')
             else:
-                cells.append(f'<c r="{ref}" t="s"><v>{shared(value)}</v></c>')
+                cells.append(f'<c r="{ref}"{style_attribute} t="s"><v>{shared(value)}</v></c>')
         sheet_rows.append(f'<row r="{row_number}">{"".join(cells)}</row>')
+
+    row_number = 1
+    legend = (report.presentation or {}).get("legend") or []
+    if legend:
+        add_row(row_number, [item.get("label", "") for item in legend], list(legend))
+        row_number += 1
+        sheet_rows.append(f'<row r="{row_number}"/>')
+        row_number += 1
+
+    header_style = (report.presentation or {}).get("header_style")
+    add_row(row_number, list(report.columns), [header_style] * len(report.columns))
+    row_number += 1
+    row_styles = (report.presentation or {}).get("row_styles") or {}
+    cell_styles = (report.presentation or {}).get("cell_styles") or {}
+    for data_index, row in enumerate(report.rows):
+        row_style = row_styles.get(str(data_index))
+        data_cell_styles = cell_styles.get(str(data_index)) or {}
+        add_row(
+            row_number,
+            [row.get(column, "") for column in report.columns],
+            [data_cell_styles.get(column) or row_style for column in report.columns],
+        )
+        row_number += 1
 
     shared_xml = "".join(
         f"<si><t>{html.escape(value)}</t></si>"
@@ -127,12 +169,17 @@ def _pdf_report_page_stream(
         _summary_box(canvas, margin + 194, box_y, 178, "Columns", str(len(report.columns)))
         _summary_box(canvas, margin + 388, box_y, 178, "Generated", datetime.now().strftime("%d %b %Y"))
         _summary_box(canvas, margin + 582, box_y, 188, "Status", "Saved Report")
-        table_top = 338
+        if (report.presentation or {}).get("legend"):
+            _draw_report_legend(canvas, report, margin, 360, table_width)
+            table_top = 323
+        else:
+            table_top = 338
     else:
         table_top = 492
 
     canvas.text(margin, table_top + 17, "Report Data", size=12, bold=True, color=(0.08, 0.13, 0.22))
-    _draw_report_table(canvas, report, rows, margin, table_top, table_width)
+    row_offset = 0 if page_number == 1 else 12 + ((page_number - 2) * 17)
+    _draw_report_table(canvas, report, rows, margin, table_top, table_width, row_offset)
 
     return canvas.render()
 
@@ -143,6 +190,22 @@ def _summary_box(canvas: "_PdfCanvas", x: float, y: float, width: float, label: 
     canvas.text(x + 10, y + 9, _fit_text(value, 24), size=11, bold=True, color=(0.08, 0.13, 0.22))
 
 
+def _draw_report_legend(
+    canvas: "_PdfCanvas",
+    report: GeneratedReport,
+    x: float,
+    y: float,
+    width: float,
+) -> None:
+    legend = (report.presentation or {}).get("legend") or []
+    item_width = width / max(len(legend), 1)
+    for index, item in enumerate(legend):
+        item_x = x + (index * item_width)
+        fill = _hex_rgb(item.get("background"), (1, 1, 1))
+        canvas.rect(item_x, y - 6, 10, 10, fill=fill, stroke=(0.55, 0.59, 0.65))
+        canvas.text(item_x + 15, y - 3, _fit_text(item.get("label", ""), 26), size=7, bold=True, color=(0.2, 0.25, 0.32))
+
+
 def _draw_report_table(
     canvas: "_PdfCanvas",
     report: GeneratedReport,
@@ -150,6 +213,7 @@ def _draw_report_table(
     x: float,
     y: float,
     width: float,
+    row_offset: int = 0,
 ) -> None:
     if not report.columns:
         canvas.rect(x, y - 34, width, 34, fill=(1, 1, 1), stroke=(0.78, 0.84, 0.92))
@@ -162,24 +226,53 @@ def _draw_report_table(
     row_height = 24
     bottom = y - header_height - (len(rows) * row_height)
 
+    presentation = report.presentation or {}
+    header_style = presentation.get("header_style") or {}
+    header_fill = _hex_rgb(header_style.get("background"), (0.9, 0.94, 1))
+    header_text = _hex_rgb(header_style.get("foreground"), (0.12, 0.22, 0.38))
+    row_styles = presentation.get("row_styles") or {}
+    cell_styles = presentation.get("cell_styles") or {}
+
     canvas.rect(x, bottom, width, header_height + (len(rows) * row_height), fill=(1, 1, 1), stroke=(0.78, 0.84, 0.92))
-    canvas.rect(x, y - header_height, width, header_height, fill=(0.9, 0.94, 1), stroke=(0.78, 0.84, 0.92))
+    canvas.rect(x, y - header_height, width, header_height, fill=header_fill, stroke=(0.78, 0.84, 0.92))
     for index, column in enumerate(columns):
         cell_x = x + (index * column_width)
         if index:
             canvas.line(cell_x, bottom, cell_x, y, color=(0.78, 0.84, 0.92))
-        canvas.text(cell_x + 7, y - 16, _fit_text(_humanize_column(column), int(column_width / 5.2)), size=8, bold=True, color=(0.12, 0.22, 0.38))
+        canvas.text(cell_x + 7, y - 16, _fit_text(_humanize_column(column), int(column_width / 5.2)), size=8, bold=True, color=header_text)
 
     for row_index, row in enumerate(rows):
+        report_row_index = row_offset + row_index
         row_top = y - header_height - (row_index * row_height)
         row_bottom = row_top - row_height
-        if row_index % 2 == 1:
+        row_style = row_styles.get(str(report_row_index)) or {}
+        if row_style.get("background"):
+            canvas.rect(x, row_bottom, width, row_height, fill=_hex_rgb(row_style.get("background")), stroke=None)
+        elif row_index % 2 == 1:
             canvas.rect(x, row_bottom, width, row_height, fill=(0.98, 0.99, 1), stroke=None)
-        canvas.line(x, row_bottom, x + width, row_bottom, color=(0.86, 0.9, 0.96))
         for column_index, column in enumerate(columns):
             cell_x = x + (column_index * column_width)
+            cell_style = (cell_styles.get(str(report_row_index)) or {}).get(column) or row_style
+            if cell_style.get("background"):
+                canvas.rect(
+                    cell_x,
+                    row_bottom,
+                    column_width,
+                    row_height,
+                    fill=_hex_rgb(cell_style.get("background")),
+                    stroke=None,
+                )
             value = _cell_text(row.get(column, ""))
-            canvas.text(cell_x + 7, row_bottom + 8, _fit_text(value, int(column_width / 4.8)), size=8, color=(0.12, 0.16, 0.24))
+            text_color = _hex_rgb(cell_style.get("foreground"), (0.12, 0.16, 0.24))
+            canvas.text(
+                cell_x + 7,
+                row_bottom + 8,
+                _fit_text(value, int(column_width / 4.8)),
+                size=8,
+                bold=bool(cell_style.get("background")),
+                color=text_color,
+            )
+        canvas.line(x, row_bottom, x + width, row_bottom, color=(0.86, 0.9, 0.96))
 
     if len(report.columns) > len(columns):
         canvas.text(x, bottom - 14, f"{len(report.columns) - len(columns)} additional columns are available in the Excel export.", size=8, color=(0.34, 0.41, 0.52))
@@ -189,6 +282,16 @@ def _cell_text(value: Any) -> str:
     if value is None:
         return ""
     return str(value)
+
+
+def _hex_rgb(value: Any, fallback: tuple[float, float, float] = (1, 1, 1)) -> tuple[float, float, float]:
+    color = str(value or "").strip().lstrip("#")
+    if len(color) != 6:
+        return fallback
+    try:
+        return tuple(int(color[index:index + 2], 16) / 255 for index in (0, 2, 4))  # type: ignore[return-value]
+    except ValueError:
+        return fallback
 
 
 def _humanize_column(column: str) -> str:
@@ -348,11 +451,41 @@ def _workbook_rels_xml() -> str:
 
 
 def _styles_xml() -> str:
-    return """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+    fills = [
+        '<fill><patternFill patternType="none"/></fill>',
+        '<fill><patternFill patternType="gray125"/></fill>',
+    ]
+    cell_xfs = ['<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>']
+    for fill_index, (background, foreground) in enumerate(_XLSX_STYLE_COLORS, start=2):
+        fills.append(
+            f'<fill><patternFill patternType="solid"><fgColor rgb="FF{background[1:]}"/>'
+            '<bgColor indexed="64"/></patternFill></fill>'
+        )
+        font_id = 2 if foreground == "#FFFFFF" else 1
+        cell_xfs.append(
+            f'<xf numFmtId="0" fontId="{font_id}" fillId="{fill_index}" borderId="1" xfId="0" '
+            'applyFill="1" applyFont="1" applyBorder="1"><alignment vertical="center" wrapText="1"/></xf>'
+        )
+    return f"""<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
-<fonts count="1"><font><sz val="11"/><name val="Calibri"/></font></fonts>
-<fills count="1"><fill><patternFill patternType="none"/></fill></fills>
-<borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders>
+<fonts count="3">
+<font><sz val="11"/><name val="Calibri"/></font>
+<font><b/><sz val="11"/><color rgb="FF111827"/><name val="Calibri"/></font>
+<font><b/><sz val="11"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font>
+</fonts>
+<fills count="{len(fills)}">{''.join(fills)}</fills>
+<borders count="2">
+<border><left/><right/><top/><bottom/><diagonal/></border>
+<border><left style="thin"><color rgb="FFD0D5DD"/></left><right style="thin"><color rgb="FFD0D5DD"/></right><top style="thin"><color rgb="FFD0D5DD"/></top><bottom style="thin"><color rgb="FFD0D5DD"/></bottom><diagonal/></border>
+</borders>
 <cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>
-<cellXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/></cellXfs>
+<cellXfs count="{len(cell_xfs)}">{''.join(cell_xfs)}</cellXfs>
 </styleSheet>"""
+
+
+def _xlsx_style_id(style: dict[str, Any] | None) -> int:
+    background = str((style or {}).get("background") or "").upper()
+    for index, (candidate, _) in enumerate(_XLSX_STYLE_COLORS, start=1):
+        if background == candidate:
+            return index
+    return 0

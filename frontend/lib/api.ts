@@ -40,11 +40,28 @@ export type ReportCategory = {
   enabled?: boolean;
 };
 
+export type ReportPresentationStyle = {
+  key?: string;
+  background?: string;
+  foreground?: string;
+  label?: string;
+};
+
+export type ReportPresentation = {
+  variant?: string;
+  legend?: Array<ReportPresentationStyle & {label: string}>;
+  header_style?: ReportPresentationStyle;
+  row_styles?: Record<string, ReportPresentationStyle>;
+  cell_styles?: Record<string, Record<string, ReportPresentationStyle>>;
+};
+
 export type GeneratedReport = {
   attempt_id?: string | null;
   saved_report_id?: string | null;
   generated_source?: string | null;
   report_category?: string | null;
+  report_variant?: string | null;
+  presentation?: ReportPresentation | null;
   created_by_role?: string | null;
   created_by_user_id?: string | null;
   title: string;

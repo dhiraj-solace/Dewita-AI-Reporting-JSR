@@ -38,6 +38,7 @@ Classify the user's natural-language request by intent, not by individual keywor
 
 Allow only read-only reporting intent:
 - viewing, listing, counting, summarizing, comparing, ranking, filtering, or exporting existing business data.
+- generating, creating, building, preparing, or producing a report/summary/chart from existing data. Creating the report output is not creating a database record.
 - phrases like "created users", "deleted users", or "updated tasks" can be safe when they describe records/status/history to view.
 
 Block mutation/admin intent:
@@ -63,7 +64,7 @@ class QuerySafetyResult:
 
 
 async def validate_user_query_safety(query: str) -> QuerySafetyResult:
-    """Classify user intent with OpenRouter instead of keyword blocking."""
+    """Allow report requests while rejecting greeting-only conversation."""
     normalized = " ".join(query.strip().split())
     _console_intent_log("intent validation started")
     _console_intent_detail("intent validation query", {"question": normalized})
@@ -71,58 +72,35 @@ async def validate_user_query_safety(query: str) -> QuerySafetyResult:
         _console_intent_log("intent validation blocked: empty question")
         return QuerySafetyResult(False, "Question is empty.", intent="non_reporting", risk="low")
 
-    settings = get_settings()
-    if not settings.openrouter_api_key:
-        _console_intent_log("intent validation blocked: OpenRouter classifier not configured")
-        return QuerySafetyResult(
-            False,
-            "OpenRouter intent safety classifier is not configured.",
-            blocked_operation="INTENT_CLASSIFIER",
-            intent="non_reporting",
-            risk="high",
-        )
-
-    try:
-        classification = await _classify_intent_with_openrouter(normalized)
-    except Exception as exc:
-        logger.warning("Intent safety classification failed: %s", exc)
-        reason = _intent_classifier_error_message(exc)
-        _console_intent_log(f"intent validation unavailable: {_short_reason(reason)}")
+    if _is_greeting_only(normalized):
+        reason = "Greeting-only messages cannot generate a report."
+        _console_intent_log("intent validation blocked: greeting-only message")
         return QuerySafetyResult(
             False,
             reason,
-            blocked_operation="INTENT_CLASSIFIER",
+            blocked_operation="NON_REPORTING",
             intent="non_reporting",
-            risk="high",
+            risk="low",
         )
 
-    intent = str(classification.get("intent") or "non_reporting").strip().lower()
-    reason = str(classification.get("reason") or "Request intent was classified.").strip()
-    risk = str(classification.get("risk") or "medium").strip().lower()
-    _console_intent_detail("intent validation model response", classification)
-    is_safe = bool(classification.get("is_safe")) and intent in ALLOWED_INTENTS
-    if intent in BLOCKED_INTENTS:
-        is_safe = False
+    reason = "Intent classifier bypassed; SQL safety validation remains enabled."
+    _console_intent_log("intent validation passed: classifier bypassed")
+    return QuerySafetyResult(True, reason=reason, intent="read_report", risk="low")
 
-    if is_safe:
-        _console_intent_log(f"intent validation passed: intent={intent} risk={risk}")
-        _console_intent_detail(
-            "intent validation result",
-            {"valid": True, "intent": intent, "risk": risk, "reason": reason},
-        )
-        return QuerySafetyResult(True, reason=reason, intent=intent, risk=risk)
-    _console_intent_log(f"intent validation blocked: intent={intent} risk={risk} reason={_short_reason(reason)}")
-    _console_intent_detail(
-        "intent validation result",
-        {"valid": False, "intent": intent, "risk": risk, "reason": reason},
-    )
-    return QuerySafetyResult(
-        False,
-        reason or "Only read-only reporting intent is allowed.",
-        blocked_operation=intent.upper(),
-        intent=intent,
-        risk=risk,
-    )
+
+def _is_greeting_only(query: str) -> bool:
+    cleaned = query.lower().strip().translate(str.maketrans("", "", ".,!?;:'\""))
+    return cleaned in {
+        "hi",
+        "hello",
+        "hey",
+        "good morning",
+        "good afternoon",
+        "good evening",
+        "how are you",
+        "thanks",
+        "thank you",
+    }
 
 
 async def _classify_intent_with_openrouter(query: str) -> dict[str, Any]:

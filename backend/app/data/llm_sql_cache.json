@@ -1490,6 +1490,65 @@
         "token:worked"
       ]
     },
+    "b3811b887c90baaf48fb18327cabf3de4aa6c9bbf753c84423c38c270a07b3ef": {
+      "cache_policy": {
+        "created_at": "2026-07-06T13:05:30.062576+00:00",
+        "expires_at": "2026-07-08T13:05:30.062576+00:00",
+        "ttl_days": 2
+      },
+      "intent": {
+        "canonical_tokens": [
+          "5",
+          "count",
+          "group",
+          "manufacturing",
+          "project",
+          "type",
+          "week"
+        ],
+        "date_tokens": [
+          "5",
+          "week"
+        ],
+        "end_date": null,
+        "limit": 500,
+        "report_category": "product",
+        "start_date": null
+      },
+      "key": "b3811b887c90baaf48fb18327cabf3de4aa6c9bbf753c84423c38c270a07b3ef",
+      "query": {
+        "normalized": "i want week 5 report with totals grouped by project type and manufacturing type",
+        "original": " I want Week 5 report with totals grouped by project type and manufacturing type."
+      },
+      "response": {
+        "explanation": "",
+        "sql": "SELECT \n    pt.name AS project_type_name,\n    COUNT(ptd.id) AS ticket_count\nFROM \n    project_type pt\nLEFT JOIN \n    projects p ON pt.id = p.project_type_id\nLEFT JOIN \n    product_task ptd ON p.id = ptd.project_id AND ptd.is_deleted = 0\nGROUP BY \n    pt.id, pt.name\nORDER BY \n    ticket_count DESC\nLIMIT 100",
+        "title": "SQL Report"
+      },
+      "sources": {
+        "schema_version": "bf2e33e9cf4c72d5"
+      },
+      "stats": {
+        "hit_count": 0,
+        "invalidated_reason": null,
+        "last_hit_at": null,
+        "last_invalidated_at": null
+      },
+      "tags": [
+        "cache_key:b3811b887c90baaf48fb18327cabf3de4aa6c9bbf753c84423c38c270a07b3ef",
+        "llm_sql",
+        "table:product_task",
+        "table:project_type",
+        "table:projects",
+        "token:5",
+        "token:count",
+        "token:group",
+        "token:manufacturing",
+        "token:project",
+        "token:type",
+        "token:week"
+      ]
+    },
     "b505ddb004273ef0b1ce38b2f805efc711bf9ca9ea5233a1a7f254214c22fba9": {
       "cache_policy": {
         "created_at": "2026-05-07T12:31:33.234665+00:00",
@@ -2205,6 +2264,7 @@
     "5a1788979781d8b373b3bb6ca2c00a1dda7ac87a071298ed9f3ee2ddcc30b291": "003436a35b721542f87d280b69a395b0c883b05fb6a5bcd8921eaed3d6dee1ea",
     "5fc709709067967ae578fb8dfa1ef87b99b1539c08c58806aed4f04d42e4fdc1": "cb768a01b7f0ef060b43a95b8510863796f4d0dc8c49dbfde13eedd06388a863",
     "6150050b69982b2cb3896461bbd52d7e92c4061e2a6eb13155eb4f6ab87d11dc": "6cc6d8c4cb6b94acba3154f1287e83d099cbdff8b978bc8a1b99b359919f676c",
+    "6f3106c8cf69c43f5c0bf1d5ee004af36e19f7b1966e95f518d5436d105d0f22": "b3811b887c90baaf48fb18327cabf3de4aa6c9bbf753c84423c38c270a07b3ef",
     "7904fea47bd099b90fe2b85a805c14b699b36661825e0c9164eb3e604d59beb1": "5353cdf537199d7a65f5d17de325d828315b428e922c906c3bb4545ce95326c5",
     "7e53935072512a0b4aa40e6df6209ca4cb2db57c473d5f0f02ef9a295f332a4a": "fad9a713fb5b1fe17529dadcb503abef3650bd3632bd3a147510a1350b979a1c",
     "81faec0803dcb17d125c52388163f951ca2dbc359603baff654d4700ca968487": "f24e015e0003cc866749623ef76012317febbd9518eb5ff1a9032515702c0031",
@@ -2252,6 +2312,7 @@
     "a7aaf4e0def2b5e99b0b977af193aa795cd883333d0aecf0a196b9e640d3aeeb": "a7aaf4e0def2b5e99b0b977af193aa795cd883333d0aecf0a196b9e640d3aeeb",
     "a845eb9aa91870ef0130f7b771029548770eb441299b7d34b873a733c2b0a6dd": "a845eb9aa91870ef0130f7b771029548770eb441299b7d34b873a733c2b0a6dd",
     "ae4e06274d7d337b000de4a02bbdfc95f727686b62ea83f36484bc3a2a5b835c": "ae4e06274d7d337b000de4a02bbdfc95f727686b62ea83f36484bc3a2a5b835c",
+    "b3811b887c90baaf48fb18327cabf3de4aa6c9bbf753c84423c38c270a07b3ef": "b3811b887c90baaf48fb18327cabf3de4aa6c9bbf753c84423c38c270a07b3ef",
     "b505ddb004273ef0b1ce38b2f805efc711bf9ca9ea5233a1a7f254214c22fba9": "b505ddb004273ef0b1ce38b2f805efc711bf9ca9ea5233a1a7f254214c22fba9",
     "c31a76c1fb466e34a3202d4327b683b27caacecfdc80c450de3230d07ea8b452": "c31a76c1fb466e34a3202d4327b683b27caacecfdc80c450de3230d07ea8b452",
     "cb768a01b7f0ef060b43a95b8510863796f4d0dc8c49dbfde13eedd06388a863": "cb768a01b7f0ef060b43a95b8510863796f4d0dc8c49dbfde13eedd06388a863",
