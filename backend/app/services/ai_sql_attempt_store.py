@@ -1,6 +1,7 @@
 import json
 import re
 import sys
+from threading import Lock
 from time import perf_counter
 from datetime import UTC, datetime
 from typing import Any
@@ -50,10 +51,23 @@ ATTEMPT_EVENT_FIELDS = (
 )
 
 _VECTOR_SYNCED_ONCE = False
+_ATTEMPT_SCHEMA_READY = False
+_ATTEMPT_SCHEMA_LOCK = Lock()
 MIN_EXAMPLE_SIMILARITY = 0.18
 
 
 def ensure_ai_sql_attempts_table() -> None:
+    global _ATTEMPT_SCHEMA_READY
+    if _ATTEMPT_SCHEMA_READY:
+        return
+    with _ATTEMPT_SCHEMA_LOCK:
+        if _ATTEMPT_SCHEMA_READY:
+            return
+        _initialize_ai_sql_attempts_schema()
+        _ATTEMPT_SCHEMA_READY = True
+
+
+def _initialize_ai_sql_attempts_schema() -> None:
     ddl = """
     CREATE TABLE IF NOT EXISTS ai_sql_attempts (
         id VARCHAR(36) PRIMARY KEY,

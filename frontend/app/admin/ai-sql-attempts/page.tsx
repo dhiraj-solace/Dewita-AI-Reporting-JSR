@@ -53,6 +53,17 @@ function formatCapturedMs(value?: number | null) {
   return formatMs(value);
 }
 
+function pipelineOverheadMs(attempt: AiSqlAttempt) {
+  if (attempt.total_elapsed_ms === null || attempt.total_elapsed_ms === undefined) return null;
+  const captured = [
+    attempt.intent_validation_elapsed_ms,
+    attempt.generation_elapsed_ms,
+    attempt.validator_elapsed_ms,
+    attempt.execution_elapsed_ms
+  ].reduce((sum: number, value) => sum + (value ?? 0), 0);
+  return Math.max(0, attempt.total_elapsed_ms - captured);
+}
+
 function countByStatus(attempts: AiSqlAttempt[], status: string) {
   return attempts.filter((attempt) => (attempt.execution_status || "pending").toLowerCase() === status).length;
 }
@@ -291,6 +302,7 @@ export default function AiSqlAttemptsAdminPage() {
                 <span>Generation: {formatMs(selected.generation_elapsed_ms)}</span>
                 <span>Query validation: {formatMs(selected.validator_elapsed_ms)}</span>
                 <span>SQL: {formatMs(selected.execution_elapsed_ms)}</span>
+                <span>Other pipeline: {formatMs(pipelineOverheadMs(selected))}</span>
                 <span>Total: {formatMs(selected.total_elapsed_ms)}</span>
                 <span>Feedback: {selected.user_feedback_status || "pending"}</span>
                 <span>{selected.admin_approved ? "Admin approved" : "Not approved"}</span>

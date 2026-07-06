@@ -69,6 +69,7 @@ class ReportBuildError(Exception):
 
 
 async def build_report(request: ReportRequest) -> GeneratedReport:
+    request_started = perf_counter()
     attempt_id = create_attempt(
         request.question,
         {
@@ -160,7 +161,6 @@ async def build_report(request: ReportRequest) -> GeneratedReport:
 
     warnings: list[str] = []
     retry_attempts: list[RetryAttempt] = []
-    request_started = perf_counter()
     report_category = await resolve_report_category_with_ai(request.report_category, request.question)
     category_id = str(report_category.get("id") or "custom") if report_category else "custom"
     category_label = str(report_category.get("label") or "Custom Report") if report_category else "Custom Report"
