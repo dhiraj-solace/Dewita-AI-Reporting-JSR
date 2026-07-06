@@ -9,7 +9,6 @@ load_dotenv()
 
 ROOT_ENV = Path(__file__).resolve().parents[3] / ".env"
 
-
 class Settings(BaseSettings):
     app_name: str = "Devita AI Reporting"
     environment: str = "local"
