@@ -60,6 +60,53 @@
         "token:team"
       ]
     },
+    "01db824d4f523451e46534053daf537c44f1d5c5516b68596eb189227c104fc8": {
+      "cache_policy": {
+        "created_at": "2026-07-07T12:22:17.485078+00:00",
+        "expires_at": "2026-07-09T12:22:17.485078+00:00",
+        "ttl_days": 2
+      },
+      "intent": {
+        "canonical_tokens": [
+          "capacity",
+          "employee"
+        ],
+        "date_tokens": [],
+        "end_date": null,
+        "limit": 500,
+        "report_category": "team_employee",
+        "start_date": null
+      },
+      "key": "01db824d4f523451e46534053daf537c44f1d5c5516b68596eb189227c104fc8",
+      "query": {
+        "normalized": "employee capacity report",
+        "original": "Employee capacity report"
+      },
+      "response": {
+        "explanation": "",
+        "sql": "SELECT \n    COUNT(u.id) AS employee_count,\n    COUNT(DISTINCT CASE WHEN p.primary_team_leader = u.id THEN u.id END) AS team_leader_count,\n    COUNT(DISTINCT CASE WHEN p.team_leader = u.id THEN u.id END) AS team_member_count,\n    SUM(tr.hours + tr.minutes / 60) AS total_hours,\n    COUNT(DISTINCT a.id) AS attendance_count\nFROM \n    users u\nLEFT JOIN \n    projects p ON u.id = p.primary_team_leader OR u.id = p.team_leader\nLEFT JOIN \n    attendances a ON u.id = a.employee_id\nLEFT JOIN \n    timelog_records tr ON u.id = tr.user_id\nWHERE \n    a.date BETWEEN IFNULL(NULL, '1970-01-01') AND IFNULL(NULL, '2999-12-31')\nLIMIT 100",
+        "title": "SQL Report"
+      },
+      "sources": {
+        "schema_version": "e10406dc1d72ee57"
+      },
+      "stats": {
+        "hit_count": 0,
+        "invalidated_reason": null,
+        "last_hit_at": null,
+        "last_invalidated_at": null
+      },
+      "tags": [
+        "cache_key:01db824d4f523451e46534053daf537c44f1d5c5516b68596eb189227c104fc8",
+        "llm_sql",
+        "table:attendances",
+        "table:projects",
+        "table:timelog_records",
+        "table:users",
+        "token:capacity",
+        "token:employee"
+      ]
+    },
     "0d87a2c11a381ebb3915d5a2250c5787541d8137918ba1a16b75db8bc2e1a61f": {
       "cache_policy": {
         "created_at": "2026-06-01T09:53:59.010305+00:00",
@@ -294,6 +341,54 @@
         "token:team",
         "token:top",
         "token:who"
+      ]
+    },
+    "213882a30cf17b4c8f5b22756af9177cbd8cef8c9f8d6aeebaf37534e8e9f58f": {
+      "cache_policy": {
+        "created_at": "2026-07-07T12:26:14.695267+00:00",
+        "expires_at": "2026-07-09T12:26:14.695267+00:00",
+        "ttl_days": 2
+      },
+      "intent": {
+        "canonical_tokens": [
+          "all",
+          "efficiency",
+          "teams"
+        ],
+        "date_tokens": [],
+        "end_date": null,
+        "limit": 500,
+        "report_category": "project",
+        "start_date": null
+      },
+      "key": "213882a30cf17b4c8f5b22756af9177cbd8cef8c9f8d6aeebaf37534e8e9f58f",
+      "query": {
+        "normalized": "all teams efficiency report",
+        "original": "all Teams Efficiency Report "
+      },
+      "response": {
+        "explanation": "",
+        "sql": "SELECT\n  u.name AS employee_name,\n  u.employee_id,\n  COUNT(DISTINCT pt.id) AS total_tasks,\n  SUM(CASE WHEN pt.task_status = 'Completed' THEN 1 ELSE 0 END) AS completed_tasks,\n  ROUND(\n    (SUM(CASE WHEN pt.task_status = 'Completed' THEN 1 ELSE 0 END) / NULLIF(COUNT(DISTINCT pt.id), 0)) * 100,\n    2\n  ) AS efficiency_percentage,\n  SUM(tlr.hours + tlr.minutes / 60) AS total_hours\nFROM users u\nLEFT JOIN product_task pt ON pt.assign_member = u.id AND COALESCE(pt.is_deleted, 0) = 0\nLEFT JOIN tl_timelog_records tlr ON tlr.task_id = pt.id AND tlr.user_id = u.id\nWHERE u.is_deleted = 0\n  AND (NULL IS NULL OR DATE(pt.created_at) >= NULL)\n  AND (NULL IS NULL OR DATE(pt.created_at) <= NULL)\nGROUP BY u.name, u.employee_id\nORDER BY efficiency_percentage DESC\nLIMIT 10",
+        "title": "SQL Report"
+      },
+      "sources": {
+        "schema_version": "fab914095d7dca1b"
+      },
+      "stats": {
+        "hit_count": 0,
+        "invalidated_reason": null,
+        "last_hit_at": null,
+        "last_invalidated_at": null
+      },
+      "tags": [
+        "cache_key:213882a30cf17b4c8f5b22756af9177cbd8cef8c9f8d6aeebaf37534e8e9f58f",
+        "llm_sql",
+        "table:product_task",
+        "table:tl_timelog_records",
+        "table:users",
+        "token:all",
+        "token:efficiency",
+        "token:teams"
       ]
     },
     "265ef3a6f3b60948829c8485ac1b747165d2a81c22be35d507f1bd7a20d5726b": {
@@ -1791,6 +1886,54 @@
         "token:top"
       ]
     },
+    "c0e70f7bd57477e33d3a029175a2a6aad09c6a5b9deb85abdd99914de13ac2ff": {
+      "cache_policy": {
+        "created_at": "2026-07-07T12:28:40.368937+00:00",
+        "expires_at": "2026-07-09T12:28:40.368937+00:00",
+        "ttl_days": 2
+      },
+      "intent": {
+        "canonical_tokens": [
+          "leads",
+          "team",
+          "timesheet"
+        ],
+        "date_tokens": [],
+        "end_date": null,
+        "limit": 500,
+        "report_category": "timesheet",
+        "start_date": null
+      },
+      "key": "c0e70f7bd57477e33d3a029175a2a6aad09c6a5b9deb85abdd99914de13ac2ff",
+      "query": {
+        "normalized": "team leads timesheet report",
+        "original": "Team Leads Timesheet Report "
+      },
+      "response": {
+        "explanation": "",
+        "sql": "SELECT\n  u.id AS user_id,\n  u.name AS employee_name,\n  p.project_name,\n  tr.date,\n  tr.work_type,\n  (COALESCE(tr.hours, 0) + (COALESCE(tr.minutes, 0) / 60)) AS total_hours,\n  SUM(CASE WHEN tr.approve_status = 'approved' THEN (COALESCE(tr.hours, 0) + (COALESCE(tr.minutes, 0) / 60)) ELSE 0 END) AS billable_hours,\n  SUM(CASE WHEN tr.non_billable_reason IS NOT NULL THEN (COALESCE(tr.hours, 0) + (COALESCE(tr.minutes, 0) / 60)) ELSE 0 END) AS non_billable_hours,\n  1 AS entry_count\nFROM timelog_records tr\nLEFT JOIN users u ON u.id = tr.user_id\nLEFT JOIN projects p ON p.id = tr.project_id\nWHERE (NULL IS NULL OR tr.date >= NULL)\n  AND (NULL IS NULL OR tr.date <= NULL)\nGROUP BY u.id, u.name, p.project_name, tr.date, tr.work_type, (COALESCE(tr.hours, 0) + (COALESCE(tr.minutes, 0) / 60))\nORDER BY tr.date DESC, employee_name, p.project_name\nLIMIT 100",
+        "title": "SQL Report"
+      },
+      "sources": {
+        "schema_version": "4cc2ac9e4f4a07eb"
+      },
+      "stats": {
+        "hit_count": 0,
+        "invalidated_reason": null,
+        "last_hit_at": null,
+        "last_invalidated_at": null
+      },
+      "tags": [
+        "cache_key:c0e70f7bd57477e33d3a029175a2a6aad09c6a5b9deb85abdd99914de13ac2ff",
+        "llm_sql",
+        "table:projects",
+        "table:timelog_records",
+        "table:users",
+        "token:leads",
+        "token:team",
+        "token:timesheet"
+      ]
+    },
     "c31a76c1fb466e34a3202d4327b683b27caacecfdc80c450de3230d07ea8b452": {
       "cache_policy": {
         "created_at": "2026-05-25T12:39:31.681209+00:00",
@@ -1894,6 +2037,52 @@
         "token:five",
         "token:full",
         "token:week"
+      ]
+    },
+    "c68cbec7c9a0507c388eb4362298d4791948815d45481084780a3fe5750f1cb8": {
+      "cache_policy": {
+        "created_at": "2026-07-07T12:23:54.941721+00:00",
+        "expires_at": "2026-07-09T12:23:54.941721+00:00",
+        "ttl_days": 2
+      },
+      "intent": {
+        "canonical_tokens": [
+          "efficiency",
+          "team"
+        ],
+        "date_tokens": [],
+        "end_date": null,
+        "limit": 500,
+        "report_category": "team_employee",
+        "start_date": null
+      },
+      "key": "c68cbec7c9a0507c388eb4362298d4791948815d45481084780a3fe5750f1cb8",
+      "query": {
+        "normalized": "team efficiency report",
+        "original": "Team Efficiency Report "
+      },
+      "response": {
+        "explanation": "",
+        "sql": "SELECT\n    u.id AS user_id,\n    u.name AS employee_name,\n    p.project_name,\n    SUM(COALESCE(tr.hours, 0) + COALESCE(tr.minutes, 0) / 60) AS total_hours,\n    COUNT(DISTINCT tr.date) AS work_days\nFROM\n    users u\nLEFT JOIN\n    projects p ON p.primary_team_leader = u.id\nLEFT JOIN\n    timelog_records tr ON tr.user_id = u.id AND tr.project_id = p.id\nWHERE\n    (p.start_date IS NULL OR p.start_date <= '2026-04-01')\n    AND (p.actual_end_date IS NULL OR p.actual_end_date >= '2026-04-30')\n    AND (tr.date >= '2026-04-01')\n    AND (tr.date <= '2026-04-30')\nGROUP BY\n    u.id, u.name, p.project_name\nORDER BY\n    total_hours DESC, u.name, p.project_name\nLIMIT 100",
+        "title": "SQL Report"
+      },
+      "sources": {
+        "schema_version": "e10406dc1d72ee57"
+      },
+      "stats": {
+        "hit_count": 0,
+        "invalidated_reason": null,
+        "last_hit_at": null,
+        "last_invalidated_at": null
+      },
+      "tags": [
+        "cache_key:c68cbec7c9a0507c388eb4362298d4791948815d45481084780a3fe5750f1cb8",
+        "llm_sql",
+        "table:projects",
+        "table:timelog_records",
+        "table:users",
+        "token:efficiency",
+        "token:team"
       ]
     },
     "cb768a01b7f0ef060b43a95b8510863796f4d0dc8c49dbfde13eedd06388a863": {
@@ -2221,6 +2410,51 @@
         "token:revision",
         "token:summary",
         "token:team"
+      ]
+    },
+    "de6a36b9035cbf4206b6493b448d6260db6e27a5bb914092043360d1d6eaba34": {
+      "cache_policy": {
+        "created_at": "2026-07-07T12:21:34.566860+00:00",
+        "expires_at": "2026-07-09T12:21:34.566860+00:00",
+        "ttl_days": 2
+      },
+      "intent": {
+        "canonical_tokens": [
+          "project",
+          "summary"
+        ],
+        "date_tokens": [],
+        "end_date": null,
+        "limit": 500,
+        "report_category": "project",
+        "start_date": null
+      },
+      "key": "de6a36b9035cbf4206b6493b448d6260db6e27a5bb914092043360d1d6eaba34",
+      "query": {
+        "normalized": "project summary report",
+        "original": "Project summary report"
+      },
+      "response": {
+        "explanation": "",
+        "sql": "SELECT\n  p.id,\n  p.project_no,\n  p.client,\n  p.project_name,\n  p.project_status,\n  p.start_date,\n  p.actual_end_date,\n  p.total_budgeted_man_hrs,\n  p.actual_man_hrs_utilized,\n  (p.actual_man_hrs_utilized - p.total_budgeted_man_hrs) AS hour_variance,\n  COUNT(pt.id) AS total_tasks,\n  SUM(CASE WHEN pt.task_status = 'Completed' THEN 1 ELSE 0 END) AS completed_tasks,\n  ROUND(\n    (SUM(CASE WHEN pt.task_status = 'Completed' THEN 1 ELSE 0 END) / NULLIF(COUNT(pt.id), 0)) * 100,\n    2\n  ) AS progress_percentage\nFROM projects p\nLEFT JOIN product_task pt ON pt.project_id = p.id AND COALESCE(pt.is_deleted, 0) = 0\nWHERE (NULL IS NULL OR p.start_date >= NULL)\n  AND (NULL IS NULL OR p.start_date <= NULL)\nGROUP BY p.id\nORDER BY p.start_date DESC, p.project_name\nLIMIT 100",
+        "title": "SQL Report"
+      },
+      "sources": {
+        "schema_version": "e10406dc1d72ee57"
+      },
+      "stats": {
+        "hit_count": 0,
+        "invalidated_reason": null,
+        "last_hit_at": null,
+        "last_invalidated_at": null
+      },
+      "tags": [
+        "cache_key:de6a36b9035cbf4206b6493b448d6260db6e27a5bb914092043360d1d6eaba34",
+        "llm_sql",
+        "table:product_task",
+        "table:projects",
+        "token:project",
+        "token:summary"
       ]
     },
     "f24e015e0003cc866749623ef76012317febbd9518eb5ff1a9032515702c0031": {
@@ -2598,7 +2832,9 @@
     "5fc709709067967ae578fb8dfa1ef87b99b1539c08c58806aed4f04d42e4fdc1": "cb768a01b7f0ef060b43a95b8510863796f4d0dc8c49dbfde13eedd06388a863",
     "6150050b69982b2cb3896461bbd52d7e92c4061e2a6eb13155eb4f6ab87d11dc": "6cc6d8c4cb6b94acba3154f1287e83d099cbdff8b978bc8a1b99b359919f676c",
     "65afff69726ed292ebe453685050b3910b05af4a022de5644fef808b17db436b": "624069abbdbe50c4b2d6d4f981f5750a017c13bc8df3bc9d55a498ed22a438bd",
+    "68c66fc28634a75dfd13f78239f49417cdc16237f31d2e1feba579cd3d8e5af4": "de6a36b9035cbf4206b6493b448d6260db6e27a5bb914092043360d1d6eaba34",
     "6f3106c8cf69c43f5c0bf1d5ee004af36e19f7b1966e95f518d5436d105d0f22": "b3811b887c90baaf48fb18327cabf3de4aa6c9bbf753c84423c38c270a07b3ef",
+    "78a52f066769c25f7bd87bfea4ea6051c060ddbb10524ff637e095de452fbffb": "c68cbec7c9a0507c388eb4362298d4791948815d45481084780a3fe5750f1cb8",
     "7904fea47bd099b90fe2b85a805c14b699b36661825e0c9164eb3e604d59beb1": "5353cdf537199d7a65f5d17de325d828315b428e922c906c3bb4545ce95326c5",
     "7e53935072512a0b4aa40e6df6209ca4cb2db57c473d5f0f02ef9a295f332a4a": "fad9a713fb5b1fe17529dadcb503abef3650bd3632bd3a147510a1350b979a1c",
     "81faec0803dcb17d125c52388163f951ca2dbc359603baff654d4700ca968487": "f24e015e0003cc866749623ef76012317febbd9518eb5ff1a9032515702c0031",
@@ -2606,11 +2842,13 @@
     "8af8e2fe4de5def3473f82e865bc9cffe1b3a486020fd2d31a293ed105c3b9b7": "d62c7459ffee2c64159f5b1f5d00532d3df102e1cf72a23e6d583e94b889cadd",
     "8e02e176eff62d8f8f6ba2203c427a460af0d39533a084b24288b1d0e0bec10e": "19d1726bbd094f0c7ad6a9daeb61731946c7542eea12197f579a06a76c7c57fd",
     "91d8384b80b972531acbe700e6b33e3fa32a84bf15ec40028e50e95a9bc0fabf": "c4e7024ffa4ed5a89741a2b7625e29985a6c7704024124cc793c83955d64782d",
+    "93c79e69a3c1f08b8fbf862bdb8ff8bb63264acfa04cb165cac253869ad29c52": "01db824d4f523451e46534053daf537c44f1d5c5516b68596eb189227c104fc8",
     "9577eeec2bd2c7d3ebde901f8a5fc374cb70dc7928a600877014e21163ef29a2": "0d87a2c11a381ebb3915d5a2250c5787541d8137918ba1a16b75db8bc2e1a61f",
     "9b17e820a66d0739206ecffb0431a5acb988ce74d7b7f65625388704cfe80354": "79bf415072b12d78f0cf062d3ad5f4b816af65b8890118d5469a0d13cd66b51a",
     "a3255bf744bc1f3a0218298ae95b12a1d49a7acd836a5dbbe95940cead275563": "7f9b2d198d577071c5587cf9807f1a813be92675349a534ea21d33d7a3d658ed",
     "a38f95c0e39422422d6be204a4252b39a45400648e27a83bf5b3474c0946e484": "9be00873507a1c945adadf8cf9746a787a2ba656f14d2e7313bb71c5e4271c4c",
     "a4933ae46f794e949e6fd7d1b5a5f4416e8dbf6552483e76885775ec92152856": "52822310166876f5317e5ad1ea1808561c8efbd1a7a5fed55d7ef7471dbfc47f",
+    "a68b72e260565c91ef958d65f6ed70b411812a224b183b5e06e946e28b2913da": "213882a30cf17b4c8f5b22756af9177cbd8cef8c9f8d6aeebaf37534e8e9f58f",
     "a9941f4fa3b44e6ab75004c71f22b1acd646d7655538a15001f9e9e822b14441": "345a89fdb6a0dd5756d050324480299860d2e21ab7e50da64d2833084e2c5ba6",
     "b0128704f2b6814adfd01b1d64b231cacf37236ec1919a4e1915555254db3fdd": "d99c434dabeb40afb92b82052ae4c26f1b2d37e806446d9b66d5b19da2862532",
     "bbd4d172304b152d96037eeb31447fce8403900c227abd09be50a3d8e0a52276": "7e465d59dcf4970f0f4660729af677bb1685ce6e098423884cb5e4b593c58865",
@@ -2618,6 +2856,7 @@
     "c52e12c3491595be949cec45c3c21ceb4c50e01dcf09663b29bb124789b0ac13": "4cb796a95ad6102e12fa4f2ba382644c7d161b01a57109fe5380c8d08051ce69",
     "caf047279c27078abefee4e8aa2f29b745cee73855f96035c1d082eb05f354f0": "6c45f95092382368182644f367b0f23b71d9edc18fad52e9d8f2f60f6db5976d",
     "d418e1f26305d579d9491ffc2bd4e383b59e83d9cba9251027a16819db0321fc": "8ddb990f8fd3e11896c98f7073c7d344230b17140693770bf826f744c9d06bec",
+    "d52b65d141810d0edde7b0e5c38099ac80c7955dc962a67f6ecb4831de0ea8aa": "c0e70f7bd57477e33d3a029175a2a6aad09c6a5b9deb85abdd99914de13ac2ff",
     "d6bbf84249162606a1cac8deda08502b96198585d4dc57c3e04c6034b9d2abad": "ae4e06274d7d337b000de4a02bbdfc95f727686b62ea83f36484bc3a2a5b835c",
     "d8c35df3f0cd9cb52140eb700ed761c317f59b387a4b299b0b83c7363e8515d8": "d84c46ad295b92c42e9b874c1e6761f273c1dfd573598f95d7787227665b6fb2",
     "e04d2161661eec73279d0d395974a5f5cf93f60d4c46ccd7ef4ac8be868c7af9": "da85a99415bd39b61dfc85a6ea1cb956a96667bd23a9b163d9144e881a49e162",
@@ -2628,10 +2867,12 @@
   },
   "intent_index": {
     "003436a35b721542f87d280b69a395b0c883b05fb6a5bcd8921eaed3d6dee1ea": "003436a35b721542f87d280b69a395b0c883b05fb6a5bcd8921eaed3d6dee1ea",
+    "01db824d4f523451e46534053daf537c44f1d5c5516b68596eb189227c104fc8": "01db824d4f523451e46534053daf537c44f1d5c5516b68596eb189227c104fc8",
     "0d87a2c11a381ebb3915d5a2250c5787541d8137918ba1a16b75db8bc2e1a61f": "0d87a2c11a381ebb3915d5a2250c5787541d8137918ba1a16b75db8bc2e1a61f",
     "0fa8f8739615ca94ad8f86bba3d408478050b8c31e4b27fb7986f63ad7bffedc": "0fa8f8739615ca94ad8f86bba3d408478050b8c31e4b27fb7986f63ad7bffedc",
     "19d1726bbd094f0c7ad6a9daeb61731946c7542eea12197f579a06a76c7c57fd": "19d1726bbd094f0c7ad6a9daeb61731946c7542eea12197f579a06a76c7c57fd",
     "1c0da1ecebacd36e82f3a755a6e524c6320296ec4a0140ff13cd7e5954b1503e": "1c0da1ecebacd36e82f3a755a6e524c6320296ec4a0140ff13cd7e5954b1503e",
+    "213882a30cf17b4c8f5b22756af9177cbd8cef8c9f8d6aeebaf37534e8e9f58f": "213882a30cf17b4c8f5b22756af9177cbd8cef8c9f8d6aeebaf37534e8e9f58f",
     "265ef3a6f3b60948829c8485ac1b747165d2a81c22be35d507f1bd7a20d5726b": "265ef3a6f3b60948829c8485ac1b747165d2a81c22be35d507f1bd7a20d5726b",
     "2c20f9dda846e1583372be8ced50ae618b9391a1ba040fbdfcdaa2e3f06131e3": "2c20f9dda846e1583372be8ced50ae618b9391a1ba040fbdfcdaa2e3f06131e3",
     "345a89fdb6a0dd5756d050324480299860d2e21ab7e50da64d2833084e2c5ba6": "345a89fdb6a0dd5756d050324480299860d2e21ab7e50da64d2833084e2c5ba6",
@@ -2657,13 +2898,16 @@
     "ae4e06274d7d337b000de4a02bbdfc95f727686b62ea83f36484bc3a2a5b835c": "ae4e06274d7d337b000de4a02bbdfc95f727686b62ea83f36484bc3a2a5b835c",
     "b3811b887c90baaf48fb18327cabf3de4aa6c9bbf753c84423c38c270a07b3ef": "b3811b887c90baaf48fb18327cabf3de4aa6c9bbf753c84423c38c270a07b3ef",
     "b505ddb004273ef0b1ce38b2f805efc711bf9ca9ea5233a1a7f254214c22fba9": "b505ddb004273ef0b1ce38b2f805efc711bf9ca9ea5233a1a7f254214c22fba9",
+    "c0e70f7bd57477e33d3a029175a2a6aad09c6a5b9deb85abdd99914de13ac2ff": "c0e70f7bd57477e33d3a029175a2a6aad09c6a5b9deb85abdd99914de13ac2ff",
     "c31a76c1fb466e34a3202d4327b683b27caacecfdc80c450de3230d07ea8b452": "c31a76c1fb466e34a3202d4327b683b27caacecfdc80c450de3230d07ea8b452",
     "c4e7024ffa4ed5a89741a2b7625e29985a6c7704024124cc793c83955d64782d": "c4e7024ffa4ed5a89741a2b7625e29985a6c7704024124cc793c83955d64782d",
+    "c68cbec7c9a0507c388eb4362298d4791948815d45481084780a3fe5750f1cb8": "c68cbec7c9a0507c388eb4362298d4791948815d45481084780a3fe5750f1cb8",
     "cb768a01b7f0ef060b43a95b8510863796f4d0dc8c49dbfde13eedd06388a863": "cb768a01b7f0ef060b43a95b8510863796f4d0dc8c49dbfde13eedd06388a863",
     "d62c7459ffee2c64159f5b1f5d00532d3df102e1cf72a23e6d583e94b889cadd": "d62c7459ffee2c64159f5b1f5d00532d3df102e1cf72a23e6d583e94b889cadd",
     "d84c46ad295b92c42e9b874c1e6761f273c1dfd573598f95d7787227665b6fb2": "d84c46ad295b92c42e9b874c1e6761f273c1dfd573598f95d7787227665b6fb2",
     "d99c434dabeb40afb92b82052ae4c26f1b2d37e806446d9b66d5b19da2862532": "d99c434dabeb40afb92b82052ae4c26f1b2d37e806446d9b66d5b19da2862532",
     "da85a99415bd39b61dfc85a6ea1cb956a96667bd23a9b163d9144e881a49e162": "da85a99415bd39b61dfc85a6ea1cb956a96667bd23a9b163d9144e881a49e162",
+    "de6a36b9035cbf4206b6493b448d6260db6e27a5bb914092043360d1d6eaba34": "de6a36b9035cbf4206b6493b448d6260db6e27a5bb914092043360d1d6eaba34",
     "f24e015e0003cc866749623ef76012317febbd9518eb5ff1a9032515702c0031": "f24e015e0003cc866749623ef76012317febbd9518eb5ff1a9032515702c0031",
     "f37bddf3e86dd0fd8b9d023cd0f71ef38f84e8e6ee9ae2a4e19c89295b57b2c0": "f37bddf3e86dd0fd8b9d023cd0f71ef38f84e8e6ee9ae2a4e19c89295b57b2c0",
     "f74ae52948d87a59d9a34111b7a9a305d377e16b0ae3c289db2f5a81adc29e70": "f74ae52948d87a59d9a34111b7a9a305d377e16b0ae3c289db2f5a81adc29e70",
