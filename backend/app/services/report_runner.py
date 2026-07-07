@@ -41,6 +41,7 @@ from app.services.sql_safety_validator import SafetyValidationResult, validate_s
 from app.services.query_safety import validate_user_query_safety
 from app.services.report_permissions import ReportPermissionError, assert_report_permission
 from app.services.templates import find_template
+from app.services.week_five_report_builder import build_week_five_generated_payload
 from app.services.week_five_presentation import build_report_presentation
 
 logger = logging.getLogger(__name__)
@@ -193,20 +194,25 @@ async def build_report(request: ReportRequest) -> GeneratedReport:
     cache_entry: dict[str, Any] | None = None
     generated_source: str | None = None
     generation_elapsed_ms = 0
-    preferred_template = find_template(request.question, category_id)
-    if preferred_template and preferred_template.title == "Week Five Report":
-        generated = {
-            "title": preferred_template.title,
-            "sql": preferred_template.sql,
-            "explanation": preferred_template.explanation,
-        }
-        generated_source = "template"
-        warnings.append("Used the built-in Week Five report definition for consistent columns and color coding.")
-        _console_attempt_log(attempt_id, "generation", "using built-in Week Five report definition")
+    reference_template = find_template(request.question, category_id)
+    reference_report = _template_reference(reference_template)
+    if reference_template:
+        _console_attempt_log(attempt_id, "generation", f"using {reference_template.title} as AI reference")
         _console_attempt_detail(
             attempt_id,
             "generation",
-            {"source": "template", "generated_sql": preferred_template.sql},
+            {"source": "reference_template", "reference_report": reference_report},
+        )
+    deterministic_week_five = build_week_five_generated_payload(request.question)
+    if deterministic_week_five:
+        generated = deterministic_week_five
+        generated_source = "deterministic"
+        warnings.append("Used the deterministic Week 5 report builder for the approved report contract.")
+        _console_attempt_log(attempt_id, "generation", "using deterministic Week 5 report builder")
+        _console_attempt_detail(
+            attempt_id,
+            "generation",
+            {"source": "deterministic_week_five", "generated_sql": deterministic_week_five.get("sql")},
         )
     _console_attempt_log(attempt_id, "request", f"received user question: {_short_reason(request.question)}")
     _console_attempt_log(attempt_id, "category", f"using report category: {category_label} ({category_id})")
@@ -293,6 +299,7 @@ async def build_report(request: ReportRequest) -> GeneratedReport:
                     examples,
                     mistake_examples,
                     report_category,
+                    reference_report,
                 ),
             )
             _console_attempt_log(attempt_id, "generation", "calling first AI model")
@@ -305,27 +312,46 @@ async def build_report(request: ReportRequest) -> GeneratedReport:
                 mistake_examples,
                 request.sql_generation_provider,
                 report_category,
+                reference_report,
             )
             generation_elapsed_ms = int((perf_counter() - generation_started) * 1000)
             update_attempt(attempt_id, generation_elapsed_ms=generation_elapsed_ms)
             generated_source = "ai" if generated is not None else None
     except AiSqlGenerationError as exc:
-        update_attempt(
-            attempt_id,
-            execution_status="failed",
-            execution_error=str(exc),
-            total_elapsed_ms=int((perf_counter() - request_started) * 1000),
-        )
-        _console_attempt_log(attempt_id, "generation", f"failed: {_short_reason(str(exc))}")
-        error = _ai_report_error(exc, [])
-        error.attempt_id = attempt_id
-        raise error from exc
+        fallback_template = reference_template
+        if fallback_template is not None:
+            generated = {
+                "title": fallback_template.title,
+                "sql": fallback_template.sql,
+                "explanation": fallback_template.explanation,
+            }
+            generated_source = "template"
+            warnings.append(
+                "AI SQL generation was unavailable, so a matched built-in template was used as a fallback."
+            )
+            _console_attempt_log(attempt_id, "generation", f"AI unavailable; fallback template used: {fallback_template.title}")
+            _console_attempt_detail(
+                attempt_id,
+                "generation",
+                {"source": "template_fallback", "generated_sql": fallback_template.sql, "error": str(exc)},
+            )
+        else:
+            update_attempt(
+                attempt_id,
+                execution_status="failed",
+                execution_error=str(exc),
+                total_elapsed_ms=int((perf_counter() - request_started) * 1000),
+            )
+            _console_attempt_log(attempt_id, "generation", f"failed: {_short_reason(str(exc))}")
+            error = _ai_report_error(exc, [])
+            error.attempt_id = attempt_id
+            raise error from exc
 
     if generated is None:
         logger.warning("AI SQL generation failed.")
         logger.info("Falling back to template-based report generation")
         
-        template = find_template(request.question, category_id)
+        template = reference_template or find_template(request.question, category_id)
         if template is None:
             logger.warning("No exact template match found, using Project Summary as default")
             template = find_template("project summary")
@@ -356,6 +382,11 @@ async def build_report(request: ReportRequest) -> GeneratedReport:
         logger.info("Using cached SQL generation output.")
         _console_validation_log("cache output accepted")
         _console_validation_detail("cache output", generated)
+    elif generated_source == "deterministic":
+        logger.info("Using deterministic Week 5 report SQL.")
+        _console_validation_log("deterministic Week 5 output generated")
+        _console_validation_detail("deterministic Week 5 output", generated)
+        update_attempt(attempt_id, generated_sql=generated.get("sql"))
     else:
         logger.info("AI SQL generation successful.")
         _console_validation_log("llm1 output 1 generated")
@@ -381,6 +412,7 @@ async def build_report(request: ReportRequest) -> GeneratedReport:
                 retry_attempts,
                 attempt_id,
                 generation_elapsed_ms,
+                reference_report,
             )
         except ReportBuildError as exc:
             update_attempt(
@@ -512,6 +544,7 @@ async def _validate_generated_output_with_retries(
     retry_attempts: list[RetryAttempt],
     attempt_id: str,
     generation_elapsed_ms: int = 0,
+    reference_report: dict[str, Any] | None = None,
 ) -> tuple[dict, str]:
     settings = get_settings()
     max_retries = min(MAX_VALIDATOR_RETRIES, max(1, settings.llm_validator_max_retries))
@@ -943,6 +976,7 @@ async def _validate_generated_output_with_retries(
                 llm1_retry_payload["validation_reason_from_llm2"],
                 request.sql_generation_provider,
                 report_category,
+                reference_report,
             )
             generation_elapsed_ms += int((perf_counter() - retry_generation_started) * 1000)
             update_attempt(attempt_id, generation_elapsed_ms=generation_elapsed_ms)
@@ -1138,6 +1172,19 @@ def _short_reason(reason: str, max_length: int = 140) -> str:
     if len(normalized) <= max_length:
         return normalized
     return normalized[: max_length - 1].rstrip() + "."
+
+
+def _template_reference(template: Any | None) -> dict[str, Any] | None:
+    if template is None:
+        return None
+    reference = {
+        "title": str(template.title),
+        "sql": str(template.sql),
+        "explanation": str(template.explanation),
+    }
+    if getattr(template, "blueprint", None):
+        reference["blueprint"] = template.blueprint
+    return reference
 
 
 def _console_validation_log(message: str) -> None:
@@ -1392,6 +1439,7 @@ async def _repair_generated_sql(
     error_message: str,
     max_rows: int,
     warnings: list[str],
+    reference_report: dict[str, Any] | None = None,
 ) -> str | None:
     resolved_dates = resolve_date_range(request.question, request.start_date, request.end_date)
     report_category = resolve_report_category(request.report_category, request.question)
@@ -1403,6 +1451,7 @@ async def _repair_generated_sql(
         error_message,
         request.sql_generation_provider,
         report_category,
+        reference_report,
     )
     if repaired is None:
         return None

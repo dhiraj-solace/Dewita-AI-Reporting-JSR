@@ -31,16 +31,20 @@ async def generate_sql_with_ai(
     mistake_examples: list[dict[str, str]] | None = None,
     provider: str | None = None,
     report_category: dict[str, Any] | None = None,
+    reference_report: dict[str, Any] | None = None,
 ) -> dict[str, Any] | None:
-    extra = None
+    extra = _merge_reference_report(None, reference_report)
     if similar_examples or mistake_examples:
-        extra = {
-            "requirements": [
+        extra = dict(extra or {})
+        requirements = list(extra.get("requirements") or [])
+        requirements.extend(
+            [
                 "Use correct_approved_examples only as reference patterns.",
                 "Do not copy an example SQL blindly; the current question, schema catalog, and safety rules are authoritative.",
                 "Do not repeat mistakes shown in past_mistakes_to_avoid. Use them only as warnings.",
-            ],
-        }
+            ]
+        )
+        extra["requirements"] = requirements
         if similar_examples:
             extra["correct_approved_examples"] = _format_correct_examples(similar_examples)
         if mistake_examples:
@@ -57,16 +61,20 @@ def build_sql_generation_payload_preview(
     similar_examples: list[dict[str, str]] | None = None,
     mistake_examples: list[dict[str, str]] | None = None,
     report_category: dict[str, Any] | None = None,
+    reference_report: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    extra = None
+    extra = _merge_reference_report(None, reference_report)
     if similar_examples or mistake_examples:
-        extra = {
-            "requirements": [
+        extra = dict(extra or {})
+        requirements = list(extra.get("requirements") or [])
+        requirements.extend(
+            [
                 "Use correct_approved_examples only as reference patterns.",
                 "Do not copy an example SQL blindly; the current question, schema catalog, and safety rules are authoritative.",
                 "Do not repeat mistakes shown in past_mistakes_to_avoid. Use them only as warnings.",
-            ],
-        }
+            ]
+        )
+        extra["requirements"] = requirements
         if similar_examples:
             extra["correct_approved_examples"] = _format_correct_examples(similar_examples)
         if mistake_examples:
@@ -83,6 +91,7 @@ def build_sql_generation_payload_preview(
         "similar_examples_count": len(examples),
         "mistake_examples_count": len(mistakes),
         "report_category": payload.get("report_category"),
+        "reference_report": payload.get("reference_report"),
         "similar_examples_preview": [
             {
                 "user_question": _short_text(str(example.get("user_question") or ""), 120),
@@ -110,12 +119,13 @@ async def generate_sql_repair_with_ai(
     error_message: str,
     provider: str | None = None,
     report_category: dict[str, Any] | None = None,
+    reference_report: dict[str, Any] | None = None,
 ) -> dict[str, Any] | None:
     payload = _build_sql_payload(
         question,
         start_date,
         end_date,
-        _merge_category_extra({
+        _merge_category_extra(_merge_reference_report({
             "repair_mode": True,
             "failed_sql": failed_sql,
             "error_message": error_message,
@@ -125,7 +135,7 @@ async def generate_sql_repair_with_ai(
                 "Use the supplied schema catalog and error_message to choose valid tables, columns, aliases, and joins.",
                 "If error_message names a missing column, find the correct column/table in the schema catalog before rewriting.",
             ],
-        }, report_category),
+        }, reference_report), report_category),
     )
     return await _generate_sql_payload(payload, question=question, provider=provider, report_category=report_category)
 
@@ -154,6 +164,30 @@ def _format_mistake_examples(examples: list[dict[str, str]]) -> list[dict[str, s
         for example in examples[:3]
         if example.get("reason") or example.get("correct_sql")
     ]
+
+
+def _merge_reference_report(extra: dict[str, Any] | None, reference_report: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not reference_report:
+        return extra
+    merged = dict(extra or {})
+    requirements = list(merged.get("requirements") or [])
+    requirements.extend(
+        [
+            "Use reference_report as an approved business-logic blueprint, not as final SQL.",
+            "When reference_report.blueprint is present, preserve its layout contract, sections, required columns, totals, and color semantics.",
+            "Customize the SQL to the current question, filters, category, dates, and schema catalog.",
+            "Do not copy reference_report.sql blindly unless it fully satisfies the current question.",
+        ]
+    )
+    merged["requirements"] = requirements
+    merged["reference_report"] = {
+        "title": reference_report.get("title", ""),
+        "explanation": reference_report.get("explanation", ""),
+        "sql": reference_report.get("sql", ""),
+    }
+    if reference_report.get("blueprint"):
+        merged["reference_report"]["blueprint"] = reference_report["blueprint"]
+    return merged
 
 
 def _merge_category_extra(extra: dict[str, Any] | None, report_category: dict[str, Any] | None) -> dict[str, Any] | None:
@@ -193,12 +227,13 @@ async def generate_sql_validation_retry_with_ai(
     retry_prompt: str,
     provider: str | None = None,
     report_category: dict[str, Any] | None = None,
+    reference_report: dict[str, Any] | None = None,
 ) -> dict[str, Any] | None:
     payload = _build_sql_payload(
         question,
         start_date,
         end_date,
-        _merge_category_extra({
+        _merge_category_extra(_merge_reference_report({
             "validation_retry_mode": True,
             "failed_sql": failed_output.get("sql") if isinstance(failed_output, dict) else failed_output,
             "validation_errors": validation_errors,
@@ -209,7 +244,7 @@ async def generate_sql_validation_retry_with_ai(
                 "Do not repeat unsafe SQL or invalid schema references.",
                 "Do not return clarification_needed when the issue is only a missing top/limit count; use the safe app LIMIT instead.",
             ],
-        }, report_category),
+        }, reference_report), report_category),
     )
     return await _generate_sql_payload(payload, question=question, provider=provider, report_category=report_category)
 
@@ -232,6 +267,8 @@ def _build_sql_payload(
             "If the question says top, highest, best, most, or leading without a number, rank the results and use the safe app LIMIT.",
             "If no count is requested, include a safe LIMIT based on the app request limit.",
             "Prefer documented tables and columns.",
+            "Do not invent soft-delete columns. Add is_deleted filters only on tables where the schema explicitly lists is_deleted.",
+            "timelog_records does not have is_deleted; never use timelog_records.is_deleted or an alias.is_deleted filter for that table.",
             "Only SELECT or WITH queries are allowed.",
             "Never generate INSERT, UPDATE, DELETE, DROP, ALTER, TRUNCATE, CREATE, GRANT, EXEC, CALL, or multiple statements.",
             "If the question is unclear, return clarification_needed instead of SQL.",

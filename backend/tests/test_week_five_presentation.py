@@ -3,13 +3,14 @@ import unittest
 import zipfile
 
 from app.models import GeneratedReport
+from app.services.llm import build_sql_generation_payload_preview
 from app.services.report_exporter import export_report_pdf, export_report_xlsx
 from app.services.templates import find_template
 from app.services.week_five_presentation import build_report_presentation
 
 
 class WeekFivePresentationTests(unittest.TestCase):
-    def test_week_five_request_matches_stable_template(self) -> None:
+    def test_week_five_request_matches_reference_blueprint(self) -> None:
         template = find_template(
             "Generate the Week 5 report with totals grouped by project type and manufacturing type.",
             "project",
@@ -18,6 +19,34 @@ class WeekFivePresentationTests(unittest.TestCase):
         self.assertIsNotNone(template)
         self.assertEqual(template.title, "Week Five Report")
         self.assertIn("p.project_mfg_type", template.sql)
+        self.assertEqual(template.blueprint["layout"], "week_matrix")
+        self.assertIn("CAD Projects", template.blueprint["sections"])
+        self.assertIn("Project Task Comments", [section["name"] for section in template.blueprint["related_detail_sections"]])
+        self.assertIn("no is_deleted column", template.blueprint["schema_hints"]["time_log_source"])
+
+    def test_week_five_reference_is_added_to_generation_payload(self) -> None:
+        template = find_template("Show week 5 report", "project")
+        self.assertIsNotNone(template)
+
+        payload = build_sql_generation_payload_preview(
+            "Show week 5 report for BIM projects by team leader",
+            None,
+            None,
+            report_category={"id": "project", "label": "Project", "strict_mode": False},
+            reference_report={
+                "title": template.title,
+                "sql": template.sql,
+                "explanation": template.explanation,
+                "blueprint": template.blueprint,
+            },
+        )
+
+        self.assertEqual(payload["reference_report"]["title"], "Week Five Report")
+        self.assertEqual(payload["question"], "Show week 5 report for BIM projects by team leader")
+        self.assertIn("p.project_mfg_type", payload["reference_report"]["sql"])
+        self.assertEqual(payload["reference_report"]["blueprint"]["layout"], "week_matrix")
+        self.assertIn("Grand Total", payload["reference_report"]["blueprint"]["summary_rows"])
+        self.assertIn("no is_deleted column", payload["reference_report"]["blueprint"]["schema_hints"]["time_log_source"])
 
     def test_non_week_five_report_has_no_presentation(self) -> None:
         presentation = build_report_presentation(

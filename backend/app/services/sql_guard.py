@@ -41,6 +41,24 @@ def normalize_live_schema_sql(sql: str) -> tuple[str, list[str]]:
                 "Rewrote timelog_records.time_spent to the live hours/minutes duration expression."
             )
 
+        before_deleted_filter = normalized
+        normalized = re.sub(
+            rf"\bCOALESCE\s*\(\s*`?{re.escape(alias)}`?\.is_deleted\s*,\s*0\s*\)\s*=\s*0\b",
+            "1=1",
+            normalized,
+            flags=re.IGNORECASE,
+        )
+        normalized = re.sub(
+            rf"\b`?{re.escape(alias)}`?\.is_deleted\s*(?:=|<>|!=)\s*[01]\b",
+            "1=1",
+            normalized,
+            flags=re.IGNORECASE,
+        )
+        if normalized != before_deleted_filter:
+            warnings.append(
+                "Removed invalid timelog_records.is_deleted filter because the live table has no is_deleted column."
+            )
+
     before_team_leader_json = normalized
     normalized = re.sub(
         r"JSON_CONTAINS\s*\(\s*"

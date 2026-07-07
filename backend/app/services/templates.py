@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Any
 
 
 @dataclass(frozen=True)
@@ -8,6 +9,97 @@ class QueryTemplate:
     sql: str
     explanation: str
     categories: tuple[str, ...] = ()
+    blueprint: dict[str, Any] | None = None
+
+
+WEEK_FIVE_BLUEPRINT: dict[str, Any] = {
+    "layout": "week_matrix",
+    "purpose": "Operational Week 5 project planning report matching the legacy Devita DAI Week Five report layout.",
+    "contract": [
+        "Preserve project-level detail rows grouped into business sections.",
+        "Include section subtotal rows and one grand total row.",
+        "Include dynamic week buckets for the selected year/week window.",
+        "Include project task comments and revision project task comments when requested or available.",
+        "User filters may narrow rows, but must not flatten the report into only aggregate totals unless explicitly asked.",
+        "Do not use timelog_records.is_deleted; that column is not present in the live schema.",
+    ],
+    "schema_hints": {
+        "task_source": "Use product_task for task rows and product_task.is_deleted for task soft-delete filtering.",
+        "time_log_source": "timelog_records has hours, minutes, task_id, project_id, user_id, and date, but no is_deleted column.",
+        "project_comments_source": "Use daily_project_comments or weekly_task_comments for project task comments when those tables are in schema.",
+        "revision_comments_source": "Use revision_task_comments for revision comment detail rows.",
+        "team_leader_source": "Use projects.primary_team_leader and projects.team_leader with users for team leader names.",
+    },
+    "sections": [
+        "CAD Projects",
+        "BIM Projects",
+        "E-Dwg Review",
+        "REVISION",
+        "Steel Cards",
+    ],
+    "base_columns": [
+        "dei_coord",
+        "dai_coord",
+        "priority",
+        "project_no",
+        "project_name",
+        "project_type",
+        "client",
+        "mnfg",
+        "kickoff_date",
+        "kickoff_done",
+        "dei_scope",
+        "till_date",
+        "till_last_weekend",
+        "current_week_progress",
+        "goal",
+        "open",
+    ],
+    "week_bucket": {
+        "column_pattern": "week_{number}",
+        "label_pattern": "Week {number} ({start_date} - {end_date})",
+        "default_window": "selected week and visible future weeks from the legacy report",
+        "value": "task quantity or revision quantity planned/completed in that week",
+    },
+    "summary_rows": [
+        "CAD + BIM Projects Total",
+        "Total (CAD)",
+        "Total (BIM)",
+        "Total E-Dwg Review",
+        "Total (REVISION)",
+        "Total (Steel Cards)",
+        "Grand Total",
+    ],
+    "color_rules": {
+        "project_in_process": "Project name cell is green for in-process projects.",
+        "project_not_started": "Project name cell is yellow for not-started/planned projects.",
+        "out_for_approval": "Week cell is gray when the out-for-approval date falls in that week.",
+        "production_date": "Week cell is magenta when project production date falls in that week.",
+        "active_week_quantity": "Week cells with active/current work quantities are highlighted orange.",
+        "section_total": "Section subtotal rows are blue.",
+        "grand_total": "Grand total row is green.",
+    },
+    "filters": [
+        "year",
+        "week",
+        "project",
+        "team_leader",
+        "dei_coord",
+        "dai_coord",
+        "show_completed",
+        "previous_week",
+    ],
+    "related_detail_sections": [
+        {
+            "name": "Project Task Comments",
+            "columns": ["id", "project_name", "user_name", "comment", "week_id", "created_at"],
+        },
+        {
+            "name": "Revision Project Task Comments",
+            "columns": ["id", "project_name", "changerequest_id", "user_name", "comment", "effective_percentage", "created_at"],
+        },
+    ],
+}
 
 
 TEMPLATES: tuple[QueryTemplate, ...] = (
@@ -83,6 +175,7 @@ ORDER BY total_projects DESC, project_type
         """.strip(),
         explanation="Five-week planning summary grouped by project type and manufacturing type for active non-DAI CAD/BIM projects.",
         categories=("project",),
+        blueprint=WEEK_FIVE_BLUEPRINT,
     ),
     QueryTemplate(
         title="Project Summary Report",
