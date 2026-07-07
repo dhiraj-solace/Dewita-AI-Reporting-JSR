@@ -551,6 +551,50 @@
         "token:zero"
       ]
     },
+    "4545b7cc15e13e25666bd3cd2892963fc214f46c0c7b1fd391212ac4877f4991": {
+      "cache_policy": {
+        "created_at": "2026-07-07T12:17:12.201221+00:00",
+        "expires_at": "2026-07-09T12:17:12.201221+00:00",
+        "ttl_days": 2
+      },
+      "intent": {
+        "canonical_tokens": [
+          "revision"
+        ],
+        "date_tokens": [],
+        "end_date": null,
+        "limit": 500,
+        "report_category": "revision",
+        "start_date": null
+      },
+      "key": "4545b7cc15e13e25666bd3cd2892963fc214f46c0c7b1fd391212ac4877f4991",
+      "query": {
+        "normalized": "revision report",
+        "original": "Revision report"
+      },
+      "response": {
+        "explanation": "",
+        "sql": "SELECT\n  p.project_name AS project,\n  COALESCE(\n    NULLIF(GROUP_CONCAT(DISTINCT tl.name ORDER BY tl.name SEPARATOR ', '), ''), \n    primary_tl.name, \n    'Unassigned'\n  ) AS team_leader,\n  COUNT(DISTINCT cr.id) AS total_revisions,\n  SUM(CASE WHEN cr.changerequest_status = 'Approved' THEN 1 ELSE 0 END) AS approved_revisions,\n  SUM(CASE WHEN cr.changerequest_status = 'Pending' THEN 1 ELSE 0 END) AS pending_revisions,\n  SUM(CASE WHEN cr.changerequest_status = 'Rejected' THEN 1 ELSE 0 END) AS rejected_revisions\nFROM changerequest_management cr\nLEFT JOIN projects p ON p.id = cr.project_id\nLEFT JOIN users primary_tl ON primary_tl.id = p.primary_team_leader\nLEFT JOIN users tl\n  ON FIND_IN_SET(\n    CAST(tl.id AS CHAR), \n    REPLACE(REPLACE(REPLACE(COALESCE(p.team_leader, ''), '[', ''), ']', ''), '\\\"', '')\n  ) > 0\nWHERE (NULL IS NULL OR cr.date >= NULL)\n  AND (NULL IS NULL OR cr.date <= NULL)\nGROUP BY p.id, p.project_name, primary_tl.name\nORDER BY total_revisions DESC, p.project_name\nLIMIT 10",
+        "title": "SQL Report"
+      },
+      "sources": {
+        "schema_version": "308a95f96bb4ca22"
+      },
+      "stats": {
+        "hit_count": 0,
+        "invalidated_reason": null,
+        "last_hit_at": null,
+        "last_invalidated_at": null
+      },
+      "tags": [
+        "cache_key:4545b7cc15e13e25666bd3cd2892963fc214f46c0c7b1fd391212ac4877f4991",
+        "llm_sql",
+        "table:changerequest_management",
+        "table:projects",
+        "table:users",
+        "token:revision"
+      ]
+    },
     "4cb796a95ad6102e12fa4f2ba382644c7d161b01a57109fe5380c8d08051ce69": {
       "cache_policy": {
         "created_at": "2026-07-07T10:04:05.248675+00:00",
@@ -1205,6 +1249,49 @@
         "token:revision",
         "token:summary",
         "token:team"
+      ]
+    },
+    "7f9b2d198d577071c5587cf9807f1a813be92675349a534ea21d33d7a3d658ed": {
+      "cache_policy": {
+        "created_at": "2026-07-07T12:15:59.079056+00:00",
+        "expires_at": "2026-07-09T12:15:59.079056+00:00",
+        "ttl_days": 2
+      },
+      "intent": {
+        "canonical_tokens": [
+          "daily"
+        ],
+        "date_tokens": [],
+        "end_date": null,
+        "limit": 500,
+        "report_category": "custom",
+        "start_date": null
+      },
+      "key": "7f9b2d198d577071c5587cf9807f1a813be92675349a534ea21d33d7a3d658ed",
+      "query": {
+        "normalized": "daily report",
+        "original": "Daily report"
+      },
+      "response": {
+        "explanation": "",
+        "sql": "SELECT \n    p.project_name,\n    COUNT(pt.id) AS task_count\nFROM \n    projects p\nJOIN \n    product_task pt ON p.id = pt.project_id\nWHERE \n    p.is_deleted = 0\n    AND pt.is_deleted = 0\nGROUP BY \n    p.project_name\nORDER BY \n    task_count DESC\nLIMIT 10",
+        "title": "SQL Report"
+      },
+      "sources": {
+        "schema_version": "308a95f96bb4ca22"
+      },
+      "stats": {
+        "hit_count": 0,
+        "invalidated_reason": null,
+        "last_hit_at": null,
+        "last_invalidated_at": null
+      },
+      "tags": [
+        "cache_key:7f9b2d198d577071c5587cf9807f1a813be92675349a534ea21d33d7a3d658ed",
+        "llm_sql",
+        "table:product_task",
+        "table:projects",
+        "token:daily"
       ]
     },
     "8ddb990f8fd3e11896c98f7073c7d344230b17140693770bf826f744c9d06bec": {
@@ -2257,6 +2344,56 @@
         "token:team"
       ]
     },
+    "f74ae52948d87a59d9a34111b7a9a305d377e16b0ae3c289db2f5a81adc29e70": {
+      "cache_policy": {
+        "created_at": "2026-07-07T12:14:13.610116+00:00",
+        "expires_at": "2026-07-09T12:14:13.610116+00:00",
+        "ttl_days": 2
+      },
+      "intent": {
+        "canonical_tokens": [
+          "18",
+          "week"
+        ],
+        "date_tokens": [
+          "18",
+          "week"
+        ],
+        "end_date": null,
+        "limit": 500,
+        "report_category": "project",
+        "start_date": null
+      },
+      "key": "f74ae52948d87a59d9a34111b7a9a305d377e16b0ae3c289db2f5a81adc29e70",
+      "query": {
+        "normalized": "week 18 report",
+        "original": "week 18 report"
+      },
+      "response": {
+        "explanation": "",
+        "sql": "SELECT \n    p.project_name,\n    COUNT(pt.id) AS total_tasks,\n    COUNT(CASE WHEN pt.task_status = 'Completed' THEN 1 END) AS completed_tasks,\n    SUM(ptd.estimated_man_hr) AS budgeted_hours,\n    SUM(tlr.hours) AS actual_hours,\n    SUM(ptd.estimated_man_hr - tlr.hours) AS hour_variance\nFROM \n    projects p\nLEFT JOIN \n    product_task pt ON p.id = pt.project_id AND COALESCE(pt.is_deleted, 0) = 0\nLEFT JOIN \n    product_task_details ptd ON pt.id = ptd.task_id\nLEFT JOIN \n    timelog_records tlr ON ptd.task_id = tlr.task_id AND 1=1\nWHERE \n    p.project_status != 'Completed'\n    AND p.project_mfg_type IN ('CAD_CAM', 'BIM')\n    AND (p.created_at BETWEEN '2023-04-17' AND '2023-04-23')\nGROUP BY \n    p.project_name\nORDER BY \n    completed_tasks DESC\nLIMIT 100",
+        "title": "SQL Report"
+      },
+      "sources": {
+        "schema_version": "308a95f96bb4ca22"
+      },
+      "stats": {
+        "hit_count": 0,
+        "invalidated_reason": null,
+        "last_hit_at": null,
+        "last_invalidated_at": null
+      },
+      "tags": [
+        "cache_key:f74ae52948d87a59d9a34111b7a9a305d377e16b0ae3c289db2f5a81adc29e70",
+        "llm_sql",
+        "table:product_task",
+        "table:product_task_details",
+        "table:projects",
+        "table:timelog_records",
+        "token:18",
+        "token:week"
+      ]
+    },
     "fad1b8128b52878ef646052cbe5cb080089c58435cde22a8beb494b2e6bd485c": {
       "cache_policy": {
         "created_at": "2026-07-07T09:54:58.585729+00:00",
@@ -2454,6 +2591,7 @@
     "27ff334fbffd9829dcba7a70fde25981f3822e53e7a817c77b5287f66e16e883": "5da7c4011ebe1f9416a000b6efa72666319bdeeea1520ca7c459300d67eccfdb",
     "2e884a9e48c61d686b116b5f57953dcf673d2a6de08c753c8603271d58111886": "b505ddb004273ef0b1ce38b2f805efc711bf9ca9ea5233a1a7f254214c22fba9",
     "38e555cff309eacf2cd0e06610434eae46f0a4fc0445039947e86e2292f9d074": "265ef3a6f3b60948829c8485ac1b747165d2a81c22be35d507f1bd7a20d5726b",
+    "3a3f837a8d5f0650378faf4c38392b6e1aa3c3a37bf9d53c219366916e34e180": "4545b7cc15e13e25666bd3cd2892963fc214f46c0c7b1fd391212ac4877f4991",
     "56217e85ec4ced843d21187d8cd5ee6f2f49e4e6c1f715806c35d12b9e7ec680": "0fa8f8739615ca94ad8f86bba3d408478050b8c31e4b27fb7986f63ad7bffedc",
     "5785961f9c71ab45ecf368c0f9ffd0041da4d7d0a34394cede62e4e95fb7ebc8": "fd27606e7fedfde8383e260ba8701717f677376a8c311e11f2232f0efe8bea2b",
     "5a1788979781d8b373b3bb6ca2c00a1dda7ac87a071298ed9f3ee2ddcc30b291": "003436a35b721542f87d280b69a395b0c883b05fb6a5bcd8921eaed3d6dee1ea",
@@ -2470,6 +2608,7 @@
     "91d8384b80b972531acbe700e6b33e3fa32a84bf15ec40028e50e95a9bc0fabf": "c4e7024ffa4ed5a89741a2b7625e29985a6c7704024124cc793c83955d64782d",
     "9577eeec2bd2c7d3ebde901f8a5fc374cb70dc7928a600877014e21163ef29a2": "0d87a2c11a381ebb3915d5a2250c5787541d8137918ba1a16b75db8bc2e1a61f",
     "9b17e820a66d0739206ecffb0431a5acb988ce74d7b7f65625388704cfe80354": "79bf415072b12d78f0cf062d3ad5f4b816af65b8890118d5469a0d13cd66b51a",
+    "a3255bf744bc1f3a0218298ae95b12a1d49a7acd836a5dbbe95940cead275563": "7f9b2d198d577071c5587cf9807f1a813be92675349a534ea21d33d7a3d658ed",
     "a38f95c0e39422422d6be204a4252b39a45400648e27a83bf5b3474c0946e484": "9be00873507a1c945adadf8cf9746a787a2ba656f14d2e7313bb71c5e4271c4c",
     "a4933ae46f794e949e6fd7d1b5a5f4416e8dbf6552483e76885775ec92152856": "52822310166876f5317e5ad1ea1808561c8efbd1a7a5fed55d7ef7471dbfc47f",
     "a9941f4fa3b44e6ab75004c71f22b1acd646d7655538a15001f9e9e822b14441": "345a89fdb6a0dd5756d050324480299860d2e21ab7e50da64d2833084e2c5ba6",
@@ -2484,6 +2623,7 @@
     "e04d2161661eec73279d0d395974a5f5cf93f60d4c46ccd7ef4ac8be868c7af9": "da85a99415bd39b61dfc85a6ea1cb956a96667bd23a9b163d9144e881a49e162",
     "ee80d2c7796a4085d39fed8c16a526d72ddb1aa2fd7dfd600990dfdf838a9901": "fad1b8128b52878ef646052cbe5cb080089c58435cde22a8beb494b2e6bd485c",
     "f0649ab0d8fe785ad2c687ce020e284fd631bf5a149e177bdec973184a3f1350": "2c20f9dda846e1583372be8ced50ae618b9391a1ba040fbdfcdaa2e3f06131e3",
+    "ff1d24b51b93c435ab0357ddda342a73338438b029a460e8e570135b96ea2088": "f74ae52948d87a59d9a34111b7a9a305d377e16b0ae3c289db2f5a81adc29e70",
     "ff7b72f7ccdebd428fea7701187b5a9f6725519264e4fb2d2ad963b773518e26": "c31a76c1fb466e34a3202d4327b683b27caacecfdc80c450de3230d07ea8b452"
   },
   "intent_index": {
@@ -2496,6 +2636,7 @@
     "2c20f9dda846e1583372be8ced50ae618b9391a1ba040fbdfcdaa2e3f06131e3": "2c20f9dda846e1583372be8ced50ae618b9391a1ba040fbdfcdaa2e3f06131e3",
     "345a89fdb6a0dd5756d050324480299860d2e21ab7e50da64d2833084e2c5ba6": "345a89fdb6a0dd5756d050324480299860d2e21ab7e50da64d2833084e2c5ba6",
     "3cfc9080f9a12fc77359aa25dd4a42f422a93bb2000467c7ee6a9f57d3fa8c5d": "3cfc9080f9a12fc77359aa25dd4a42f422a93bb2000467c7ee6a9f57d3fa8c5d",
+    "4545b7cc15e13e25666bd3cd2892963fc214f46c0c7b1fd391212ac4877f4991": "4545b7cc15e13e25666bd3cd2892963fc214f46c0c7b1fd391212ac4877f4991",
     "4cb796a95ad6102e12fa4f2ba382644c7d161b01a57109fe5380c8d08051ce69": "4cb796a95ad6102e12fa4f2ba382644c7d161b01a57109fe5380c8d08051ce69",
     "52822310166876f5317e5ad1ea1808561c8efbd1a7a5fed55d7ef7471dbfc47f": "52822310166876f5317e5ad1ea1808561c8efbd1a7a5fed55d7ef7471dbfc47f",
     "5353cdf537199d7a65f5d17de325d828315b428e922c906c3bb4545ce95326c5": "5353cdf537199d7a65f5d17de325d828315b428e922c906c3bb4545ce95326c5",
@@ -2507,6 +2648,7 @@
     "6cc6d8c4cb6b94acba3154f1287e83d099cbdff8b978bc8a1b99b359919f676c": "6cc6d8c4cb6b94acba3154f1287e83d099cbdff8b978bc8a1b99b359919f676c",
     "79bf415072b12d78f0cf062d3ad5f4b816af65b8890118d5469a0d13cd66b51a": "79bf415072b12d78f0cf062d3ad5f4b816af65b8890118d5469a0d13cd66b51a",
     "7e465d59dcf4970f0f4660729af677bb1685ce6e098423884cb5e4b593c58865": "7e465d59dcf4970f0f4660729af677bb1685ce6e098423884cb5e4b593c58865",
+    "7f9b2d198d577071c5587cf9807f1a813be92675349a534ea21d33d7a3d658ed": "7f9b2d198d577071c5587cf9807f1a813be92675349a534ea21d33d7a3d658ed",
     "8ddb990f8fd3e11896c98f7073c7d344230b17140693770bf826f744c9d06bec": "8ddb990f8fd3e11896c98f7073c7d344230b17140693770bf826f744c9d06bec",
     "98ef54ecb4ce633e9210e60f17f002dc6960b9ad00b6bfabca440b8cdcf3926e": "98ef54ecb4ce633e9210e60f17f002dc6960b9ad00b6bfabca440b8cdcf3926e",
     "9be00873507a1c945adadf8cf9746a787a2ba656f14d2e7313bb71c5e4271c4c": "9be00873507a1c945adadf8cf9746a787a2ba656f14d2e7313bb71c5e4271c4c",
@@ -2524,6 +2666,7 @@
     "da85a99415bd39b61dfc85a6ea1cb956a96667bd23a9b163d9144e881a49e162": "da85a99415bd39b61dfc85a6ea1cb956a96667bd23a9b163d9144e881a49e162",
     "f24e015e0003cc866749623ef76012317febbd9518eb5ff1a9032515702c0031": "f24e015e0003cc866749623ef76012317febbd9518eb5ff1a9032515702c0031",
     "f37bddf3e86dd0fd8b9d023cd0f71ef38f84e8e6ee9ae2a4e19c89295b57b2c0": "f37bddf3e86dd0fd8b9d023cd0f71ef38f84e8e6ee9ae2a4e19c89295b57b2c0",
+    "f74ae52948d87a59d9a34111b7a9a305d377e16b0ae3c289db2f5a81adc29e70": "f74ae52948d87a59d9a34111b7a9a305d377e16b0ae3c289db2f5a81adc29e70",
     "fad1b8128b52878ef646052cbe5cb080089c58435cde22a8beb494b2e6bd485c": "fad1b8128b52878ef646052cbe5cb080089c58435cde22a8beb494b2e6bd485c",
     "fad9a713fb5b1fe17529dadcb503abef3650bd3632bd3a147510a1350b979a1c": "fad9a713fb5b1fe17529dadcb503abef3650bd3632bd3a147510a1350b979a1c",
     "fd27606e7fedfde8383e260ba8701717f677376a8c311e11f2232f0efe8bea2b": "fd27606e7fedfde8383e260ba8701717f677376a8c311e11f2232f0efe8bea2b"
