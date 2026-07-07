@@ -2,10 +2,10 @@
   "source_files": [
     "live_database"
   ],
-  "fetched_at": "2026-07-06T16:19:56.880804",
+  "fetched_at": "2026-07-07T17:59:46.467899",
   "notes": [
     "Schema fetched from live database",
-    "Last updated: 2026-07-06T16:19:56.880804",
+    "Last updated: 2026-07-07T17:59:46.467899",
     "Static schema metadata preserved where available"
   ],
   "relationships": [
@@ -3525,6 +3525,16 @@
         {
           "name": "report_category",
           "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "report_variant",
+          "type": "varchar",
+          "description": ""
+        },
+        {
+          "name": "presentation_json",
+          "type": "longtext",
           "description": ""
         },
         {
