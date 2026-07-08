@@ -5,15 +5,15 @@
       "name": "Attendance Report",
       "type": "Attendance / HR",
       "tables": ["attendances", "users"],
-      "required_columns": ["attendances.user_id", "attendances.date", "attendances.check_in", "attendances.check_out", "attendances.status", "attendances.created_at"],
-      "metrics": ["work_hours = check_out - check_in", "status = determineAttendanceStatus(check_in, check_out)"]
+      "required_columns": ["attendances.employee_id", "attendances.name", "attendances.date", "attendances.day", "attendances.status", "attendances.total_hours", "attendances.department", "attendances.designation", "attendances.for_month", "attendances.created_at"],
+      "metrics": ["work_hours = attendances.total_hours", "status = attendances.status"]
     },
     {
       "name": "Team Timesheet Report",
       "type": "Time Tracking",
       "tables": ["timelog_records", "users", "projects", "products", "product_task"],
-      "required_columns": ["timelog_records.user_id", "timelog_records.project_id", "timelog_records.product_id", "timelog_records.task_id", "timelog_records.date", "timelog_records.time_spent", "timelog_records.work_type", "timelog_records.role_type"],
-      "metrics": ["weekly_time = SUM(time_spent WHERE date BETWEEN weekStart AND weekEnd)", "worked_hours = diff(check_in, check_out)"]
+      "required_columns": ["timelog_records.user_id", "timelog_records.project_id", "timelog_records.product_id", "timelog_records.task_id", "timelog_records.date", "timelog_records.hours", "timelog_records.minutes", "timelog_records.work_type", "timelog_records.user_type", "timelog_records.non_billable_reason"],
+      "metrics": ["weekly_time = SUM(hours + minutes / 60 WHERE date BETWEEN weekStart AND weekEnd)", "worked_hours = timelog_records.hours + timelog_records.minutes / 60"]
     },
     {
       "name": "Team Lead Timesheet",
@@ -26,15 +26,15 @@
       "name": "HR Timesheet Report",
       "type": "HR Analytics",
       "tables": ["attendances", "timelog_records", "task_hours"],
-      "required_columns": ["attendances.user_id", "attendances.date", "attendances.status", "timelog_records.user_id", "timelog_records.time_spent", "timelog_records.date", "task_hours.user_id", "task_hours.hours"],
+      "required_columns": ["attendances.employee_id", "attendances.date", "attendances.status", "attendances.total_hours", "timelog_records.user_id", "timelog_records.hours", "timelog_records.minutes", "timelog_records.date", "timelog_records.user_type", "task_hours.user_id", "task_hours.hours"],
       "metrics": ["attendance_rate = (presentDays / totalDays) * 100", "productivity = tasksCompleted / hoursWorked"]
     },
     {
       "name": "Daily Report",
       "type": "Progress Tracking",
       "tables": ["projects", "product_task", "product_task_details"],
-      "required_columns": ["projects.id", "projects.project_status", "projects.project_mfg_type", "projects.start_date", "product_task.project_id", "product_task.assign_member", "product_task.is_deleted", "product_task_details.task_id", "product_task_details.actual_hr"],
-      "metrics": ["task_count = COUNT(product_task WHERE is_deleted=0)", "active_projects = WHERE project_status != Completed"]
+      "required_columns": ["projects.id", "projects.project_status", "projects.project_type_id", "projects.project_mfg_type", "projects.is_edrawing_applicable", "projects.primary_team_leader", "projects.priority", "projects.project_no", "projects.project_name", "product_task.project_id", "product_task.assign_team_leader", "product_task.assign_member", "product_task.task_status", "product_task.is_deleted", "product_task.created_at", "product_task.updated_at", "product_task_details.task_id", "product_task_details.actual_hr", "product_task_details.uploaded_date", "product_task_details.is_deleted"],
+      "metrics": ["task_count = COUNT(product_task WHERE is_deleted=0)", "active_projects = WHERE project_status != Completed AND project_type_id IS NOT NULL", "daily_created_tasks = COUNT(product_task WHERE DATE(created_at) is in report date)", "daily_completed_tasks = COUNT(product_task WHERE task_status = Completed AND DATE(updated_at) is in report date)", "weekly_created_tasks = COUNT(product_task WHERE created_at is in selected week)"]
     },
     {
       "name": "Week Five Report",
@@ -61,7 +61,7 @@
       "name": "Employee Capacity Report",
       "type": "Resource Planning",
       "tables": ["users", "timelog_records"],
-      "required_columns": ["users.id", "timelog_records.user_id", "timelog_records.time_spent", "timelog_records.date"],
+      "required_columns": ["users.id", "timelog_records.user_id", "timelog_records.hours", "timelog_records.minutes", "timelog_records.date"],
       "metrics": ["total_capacity = workingDays * dailyHours", "utilization = allocatedHours / totalCapacity"]
     },
     {

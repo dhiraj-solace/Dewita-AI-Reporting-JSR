@@ -223,6 +223,58 @@
         "token:summary"
       ]
     },
+    "177501a5074ceb624159a3e8e99763e0472920e48a0ec26c943d83063a1c163f": {
+      "cache_policy": {
+        "created_at": "2026-07-08T13:03:52.944644+00:00",
+        "expires_at": "2026-07-10T13:03:52.944644+00:00",
+        "ttl_days": 2
+      },
+      "intent": {
+        "canonical_tokens": [
+          "daily",
+          "last",
+          "month"
+        ],
+        "date_tokens": [
+          "last",
+          "month"
+        ],
+        "end_date": "2026-06-30",
+        "limit": 500,
+        "report_category": "custom",
+        "start_date": "2026-06-01"
+      },
+      "key": "177501a5074ceb624159a3e8e99763e0472920e48a0ec26c943d83063a1c163f",
+      "query": {
+        "normalized": "daily report for last month",
+        "original": "Daily Report for last month"
+      },
+      "response": {
+        "explanation": "",
+        "sql": "SELECT \n    p.project_name,\n    COUNT(pt.id) AS task_count,\n    COUNT(CASE WHEN pt.is_deleted = 0 THEN 1 END) AS active_tasks\nFROM \n    projects p\nJOIN \n    product_task pt ON p.id = pt.project_id\nWHERE \n    p.project_status != 'Completed' \n    AND pt.is_deleted = 0\n    AND p.start_date <= '2026-06-30'\n    AND (pt.created_at <= '2026-06-30' OR pt.created_at IS NULL)\nGROUP BY \n    p.project_name\nORDER BY \n    task_count DESC\nLIMIT 10",
+        "title": "SQL Report"
+      },
+      "sources": {
+        "schema_version": "689f3076eddc03cf"
+      },
+      "stats": {
+        "hit_count": 0,
+        "invalidated_reason": null,
+        "last_hit_at": null,
+        "last_invalidated_at": null
+      },
+      "tags": [
+        "cache_key:177501a5074ceb624159a3e8e99763e0472920e48a0ec26c943d83063a1c163f",
+        "end:2026-06-30",
+        "llm_sql",
+        "start:2026-06-01",
+        "table:product_task",
+        "table:projects",
+        "token:daily",
+        "token:last",
+        "token:month"
+      ]
+    },
     "19d1726bbd094f0c7ad6a9daeb61731946c7542eea12197f579a06a76c7c57fd": {
       "cache_policy": {
         "created_at": "2026-05-29T12:48:47.864155+00:00",
@@ -391,6 +443,52 @@
         "token:teams"
       ]
     },
+    "227a9bd31b07f00bd2fdbc70ca6c1820dd45b3daa01a654320d29ebdaa3b82bd": {
+      "cache_policy": {
+        "created_at": "2026-07-08T12:15:36.621501+00:00",
+        "expires_at": "2026-07-10T12:15:36.621501+00:00",
+        "ttl_days": 2
+      },
+      "intent": {
+        "canonical_tokens": [
+          "timesheet"
+        ],
+        "date_tokens": [],
+        "end_date": "2026-07-08",
+        "limit": 500,
+        "report_category": "timesheet",
+        "start_date": "2026-06-09"
+      },
+      "key": "227a9bd31b07f00bd2fdbc70ca6c1820dd45b3daa01a654320d29ebdaa3b82bd",
+      "query": {
+        "normalized": "timesheet report",
+        "original": " timesheet report"
+      },
+      "response": {
+        "explanation": "",
+        "sql": "SELECT\n  u.id AS user_id,\n  u.name AS employee_name,\n  u.employee_id,\n  YEARWEEK(tr.date, 1) AS week_key,\n  p.project_name,\n  tr.work_type,\n  tr.user_type,\n  SUM(COALESCE(tr.hours, 0) + (COALESCE(tr.minutes, 0) / 60)) AS total_hours,\n  SUM(\n    CASE\n      WHEN tr.non_billable_reason IS NOT NULL\n      THEN COALESCE(tr.hours, 0) + (COALESCE(tr.minutes, 0) / 60)\n      ELSE 0\n    END\n  ) AS non_billable_hours,\n  COUNT(*) AS entry_count\nFROM timelog_records tr\nLEFT JOIN users u ON u.id = tr.user_id\nLEFT JOIN projects p ON p.id = tr.project_id\nWHERE tr.date >= '2026-06-09' AND tr.date <= '2026-07-08'\nGROUP BY\n  u.id,\n  u.name,\n  u.employee_id,\n  YEARWEEK(tr.date, 1),\n  p.project_name,\n  tr.work_type,\n  tr.user_type\nORDER BY week_key DESC, employee_name, p.project_name\nLIMIT 100",
+        "title": "SQL Report"
+      },
+      "sources": {
+        "schema_version": "4229db42fbfdcb42"
+      },
+      "stats": {
+        "hit_count": 0,
+        "invalidated_reason": null,
+        "last_hit_at": null,
+        "last_invalidated_at": null
+      },
+      "tags": [
+        "cache_key:227a9bd31b07f00bd2fdbc70ca6c1820dd45b3daa01a654320d29ebdaa3b82bd",
+        "end:2026-07-08",
+        "llm_sql",
+        "start:2026-06-09",
+        "table:projects",
+        "table:timelog_records",
+        "table:users",
+        "token:timesheet"
+      ]
+    },
     "265ef3a6f3b60948829c8485ac1b747165d2a81c22be35d507f1bd7a20d5726b": {
       "cache_policy": {
         "created_at": "2026-05-29T09:43:24.210247+00:00",
@@ -445,6 +543,148 @@
         "token:attendece",
         "token:corresponding",
         "token:project"
+      ]
+    },
+    "26703197cd4617298721a1d1883de43e1c7ab7aabfcc80e6de8c6da8a36dc17b": {
+      "cache_policy": {
+        "created_at": "2026-07-08T12:11:37.455222+00:00",
+        "expires_at": "2026-07-10T12:11:37.455222+00:00",
+        "ttl_days": 2
+      },
+      "intent": {
+        "canonical_tokens": [
+          "20",
+          "all",
+          "employees",
+          "g",
+          "hours",
+          "more",
+          "name",
+          "start",
+          "than",
+          "timesheet",
+          "total",
+          "whose"
+        ],
+        "date_tokens": [
+          "20"
+        ],
+        "end_date": "2026-07-08",
+        "limit": 500,
+        "report_category": "timesheet",
+        "start_date": "2026-06-09"
+      },
+      "key": "26703197cd4617298721a1d1883de43e1c7ab7aabfcc80e6de8c6da8a36dc17b",
+      "query": {
+        "normalized": "all employees whose name start with g and a timesheet report and total hours more than 20",
+        "original": "All employees whose name start with G and A  timesheet report and total hours more than 20"
+      },
+      "response": {
+        "explanation": "",
+        "sql": "SELECT\n  u.id AS user_id,\n  u.name AS employee_name,\n  SUM(COALESCE(tr.hours, 0) + (COALESCE(tr.minutes, 0) / 60)) AS total_hours\nFROM timelog_records tr\nJOIN users u ON u.id = tr.user_id\nWHERE u.name LIKE 'G%' OR u.name LIKE 'A%'\n  AND tr.date BETWEEN '2026-06-09' AND '2026-07-08'\nGROUP BY u.id, u.name\nHAVING total_hours > 20\nLIMIT 100",
+        "title": "SQL Report"
+      },
+      "sources": {
+        "schema_version": "4229db42fbfdcb42"
+      },
+      "stats": {
+        "hit_count": 1,
+        "invalidated_reason": null,
+        "last_hit_at": "2026-07-08T12:12:17.214787+00:00",
+        "last_invalidated_at": null
+      },
+      "tags": [
+        "cache_key:26703197cd4617298721a1d1883de43e1c7ab7aabfcc80e6de8c6da8a36dc17b",
+        "end:2026-07-08",
+        "llm_sql",
+        "start:2026-06-09",
+        "table:timelog_records",
+        "table:users",
+        "token:20",
+        "token:all",
+        "token:employees",
+        "token:g",
+        "token:hours",
+        "token:more",
+        "token:name",
+        "token:start",
+        "token:than",
+        "token:timesheet",
+        "token:total",
+        "token:whose"
+      ]
+    },
+    "2a93fc5b8dc6a67ba30d51bf83c81600bcb5078545b022b4a77556faee731d63": {
+      "cache_policy": {
+        "created_at": "2026-07-08T12:13:38.273084+00:00",
+        "expires_at": "2026-07-10T12:13:38.273084+00:00",
+        "ttl_days": 2
+      },
+      "intent": {
+        "canonical_tokens": [
+          "20",
+          "all",
+          "but",
+          "employees",
+          "g",
+          "hours",
+          "more",
+          "name",
+          "proper",
+          "start",
+          "than",
+          "timesheet",
+          "total",
+          "whose"
+        ],
+        "date_tokens": [
+          "20"
+        ],
+        "end_date": "2026-07-08",
+        "limit": 500,
+        "report_category": "timesheet",
+        "start_date": "2026-06-09"
+      },
+      "key": "2a93fc5b8dc6a67ba30d51bf83c81600bcb5078545b022b4a77556faee731d63",
+      "query": {
+        "normalized": "all employees whose name start with g and a total hours more than 20 but proper timesheet report",
+        "original": "All employees whose name start with G and A , total hours more than 20  but proper timesheet report"
+      },
+      "response": {
+        "explanation": "",
+        "sql": "SELECT\n  u.id AS user_id,\n  u.name AS employee_name,\n  u.employee_id,\n  SUM(COALESCE(tr.hours, 0) + (COALESCE(tr.minutes, 0) / 60)) AS total_hours\nFROM timelog_records tr\nLEFT JOIN users u ON u.id = tr.user_id\nWHERE u.name LIKE 'G%' OR u.name LIKE 'A%'\n  AND tr.date BETWEEN '2026-06-09' AND '2026-07-08'\nGROUP BY u.id, u.name, u.employee_id\nHAVING total_hours > 20\nLIMIT 100",
+        "title": "SQL Report"
+      },
+      "sources": {
+        "schema_version": "4229db42fbfdcb42"
+      },
+      "stats": {
+        "hit_count": 0,
+        "invalidated_reason": null,
+        "last_hit_at": null,
+        "last_invalidated_at": null
+      },
+      "tags": [
+        "cache_key:2a93fc5b8dc6a67ba30d51bf83c81600bcb5078545b022b4a77556faee731d63",
+        "end:2026-07-08",
+        "llm_sql",
+        "start:2026-06-09",
+        "table:timelog_records",
+        "table:users",
+        "token:20",
+        "token:all",
+        "token:but",
+        "token:employees",
+        "token:g",
+        "token:hours",
+        "token:more",
+        "token:name",
+        "token:proper",
+        "token:start",
+        "token:than",
+        "token:timesheet",
+        "token:total",
+        "token:whose"
       ]
     },
     "2c20f9dda846e1583372be8ced50ae618b9391a1ba040fbdfcdaa2e3f06131e3": {
@@ -1059,6 +1299,54 @@
         "token:week"
       ]
     },
+    "68a782dbc81d4b555d91158cde79e655fa2e72c437bb1344d07eda2d9363513f": {
+      "cache_policy": {
+        "created_at": "2026-07-08T09:50:35.816441+00:00",
+        "expires_at": "2026-07-10T09:50:35.816441+00:00",
+        "ttl_days": 2
+      },
+      "intent": {
+        "canonical_tokens": [
+          "thakare",
+          "timesheet",
+          "vinit"
+        ],
+        "date_tokens": [],
+        "end_date": null,
+        "limit": 500,
+        "report_category": "timesheet",
+        "start_date": null
+      },
+      "key": "68a782dbc81d4b555d91158cde79e655fa2e72c437bb1344d07eda2d9363513f",
+      "query": {
+        "normalized": "vinit thakare timesheet report",
+        "original": "Vinit Thakare timesheet report "
+      },
+      "response": {
+        "explanation": "",
+        "sql": "SELECT\n  u.id AS user_id,\n  u.name AS employee_name,\n  u.employee_id,\n  YEARWEEK(tr.date, 1) AS week_key,\n  p.project_name,\n  tr.work_type,\n  tr.user_type,\n  SUM(COALESCE(tr.hours, 0) + (COALESCE(tr.minutes, 0) / 60)) AS total_hours,\n  SUM(\n    CASE\n      WHEN tr.non_billable_reason IS NOT NULL\n      THEN COALESCE(tr.hours, 0) + (COALESCE(tr.minutes, 0) / 60)\n      ELSE 0\n    END\n  ) AS non_billable_hours,\n  COUNT(*) AS entry_count\nFROM timelog_records tr\nLEFT JOIN users u ON u.id = tr.user_id\nLEFT JOIN projects p ON p.id = tr.project_id\nWHERE u.name = 'Vinit Thakare'\nGROUP BY\n  u.id,\n  u.name,\n  u.employee_id,\n  YEARWEEK(tr.date, 1),\n  p.project_name,\n  tr.work_type,\n  tr.user_type\nORDER BY week_key DESC, employee_name, p.project_name\nLIMIT 100",
+        "title": "SQL Report"
+      },
+      "sources": {
+        "schema_version": "4229db42fbfdcb42"
+      },
+      "stats": {
+        "hit_count": 0,
+        "invalidated_reason": null,
+        "last_hit_at": null,
+        "last_invalidated_at": null
+      },
+      "tags": [
+        "cache_key:68a782dbc81d4b555d91158cde79e655fa2e72c437bb1344d07eda2d9363513f",
+        "llm_sql",
+        "table:projects",
+        "table:timelog_records",
+        "table:users",
+        "token:thakare",
+        "token:timesheet",
+        "token:vinit"
+      ]
+    },
     "6bfa98d911a52c1e99514aea56676863e16f8886c35d734ffafad0acb5c122ff": {
       "cache_policy": {
         "created_at": "2026-05-25T08:03:42.733369+00:00",
@@ -1509,6 +1797,101 @@
         "token:where"
       ]
     },
+    "99a492319f5867ef231917cf221a4a1f1451856c82ba84c5cd5da43f3cc642ea": {
+      "cache_policy": {
+        "created_at": "2026-07-08T09:31:59.196815+00:00",
+        "expires_at": "2026-07-10T09:31:59.196815+00:00",
+        "ttl_days": 2
+      },
+      "intent": {
+        "canonical_tokens": [
+          "team",
+          "timesheet"
+        ],
+        "date_tokens": [],
+        "end_date": null,
+        "limit": 500,
+        "report_category": "timesheet",
+        "start_date": null
+      },
+      "key": "99a492319f5867ef231917cf221a4a1f1451856c82ba84c5cd5da43f3cc642ea",
+      "query": {
+        "normalized": "team timesheet report",
+        "original": "Team timesheet report"
+      },
+      "response": {
+        "explanation": "",
+        "sql": "SELECT\n  u.id AS user_id,\n  u.name AS employee_name,\n  u.employee_id,\n  YEARWEEK(tr.date, 1) AS week_key,\n  p.project_name,\n  tr.work_type,\n  tr.user_type,\n  SUM(COALESCE(tr.hours, 0) + (COALESCE(tr.minutes, 0) / 60)) AS total_hours,\n  SUM(\n    CASE\n      WHEN tr.non_billable_reason IS NOT NULL\n      THEN COALESCE(tr.hours, 0) + (COALESCE(tr.minutes, 0) / 60)\n      ELSE 0\n    END\n  ) AS non_billable_hours,\n  COUNT(*) AS entry_count\nFROM timelog_records tr\nLEFT JOIN users u ON u.id = tr.user_id\nLEFT JOIN projects p ON p.id = tr.project_id\nWHERE (start_date IS NULL OR tr.date >= start_date)\n  AND (end_date IS NULL OR tr.date <= end_date)\nGROUP BY\n  u.id,\n  u.name,\n  u.employee_id,\n  YEARWEEK(tr.date, 1),\n  p.project_name,\n  tr.work_type,\n  tr.user_type\nORDER BY week_key DESC, employee_name, p.project_name\nLIMIT 100",
+        "title": "SQL Report"
+      },
+      "sources": {
+        "schema_version": "4229db42fbfdcb42"
+      },
+      "stats": {
+        "hit_count": 1,
+        "invalidated_reason": null,
+        "last_hit_at": "2026-07-08T09:40:25.125429+00:00",
+        "last_invalidated_at": null
+      },
+      "tags": [
+        "cache_key:99a492319f5867ef231917cf221a4a1f1451856c82ba84c5cd5da43f3cc642ea",
+        "llm_sql",
+        "table:projects",
+        "table:timelog_records",
+        "table:users",
+        "token:team",
+        "token:timesheet"
+      ]
+    },
+    "9a29ec417a0d94b0b66001f65e13864266e80f56e27005aeec9b407e7009d6a1": {
+      "cache_policy": {
+        "created_at": "2026-07-08T07:43:48.123061+00:00",
+        "expires_at": "2026-07-10T07:43:48.123061+00:00",
+        "ttl_days": 2
+      },
+      "intent": {
+        "canonical_tokens": [
+          "attendance",
+          "last",
+          "monht"
+        ],
+        "date_tokens": [
+          "last"
+        ],
+        "end_date": null,
+        "limit": 500,
+        "report_category": "attendance",
+        "start_date": null
+      },
+      "key": "9a29ec417a0d94b0b66001f65e13864266e80f56e27005aeec9b407e7009d6a1",
+      "query": {
+        "normalized": "attendance report for last monht",
+        "original": "Attendance report for last monht"
+      },
+      "response": {
+        "explanation": "",
+        "sql": "SELECT\n  a.employee_id,\n  COALESCE(u.name, a.name) AS employee_name,\n  a.department,\n  a.designation,\n  a.date,\n  a.day,\n  a.status,\n  a.total_hours AS work_hours,\n  a.for_month\nFROM attendances a\nLEFT JOIN users u ON u.employee_id = a.employee_id\nWHERE a.date >= '2023-03-01' AND a.date <= '2023-03-31'\nORDER BY a.date DESC, employee_name\nLIMIT 100",
+        "title": "SQL Report"
+      },
+      "sources": {
+        "schema_version": "4229db42fbfdcb42"
+      },
+      "stats": {
+        "hit_count": 0,
+        "invalidated_reason": null,
+        "last_hit_at": null,
+        "last_invalidated_at": null
+      },
+      "tags": [
+        "cache_key:9a29ec417a0d94b0b66001f65e13864266e80f56e27005aeec9b407e7009d6a1",
+        "llm_sql",
+        "table:attendances",
+        "table:users",
+        "token:attendance",
+        "token:last",
+        "token:monht"
+      ]
+    },
     "9be00873507a1c945adadf8cf9746a787a2ba656f14d2e7313bb71c5e4271c4c": {
       "cache_policy": {
         "created_at": "2026-05-25T13:28:41.103029+00:00",
@@ -1627,6 +2010,64 @@
         "token:revision",
         "token:summary",
         "token:team"
+      ]
+    },
+    "a7dd7b5e6db347d71ae844f96ee3d85e3deb4ea76c1221c332608c43888f246a": {
+      "cache_policy": {
+        "created_at": "2026-07-08T12:11:05.928667+00:00",
+        "expires_at": "2026-07-10T12:11:05.928667+00:00",
+        "ttl_days": 2
+      },
+      "intent": {
+        "canonical_tokens": [
+          "all",
+          "employees",
+          "g",
+          "name",
+          "start",
+          "timesheet",
+          "whose"
+        ],
+        "date_tokens": [],
+        "end_date": "2026-07-08",
+        "limit": 500,
+        "report_category": "timesheet",
+        "start_date": "2026-06-09"
+      },
+      "key": "a7dd7b5e6db347d71ae844f96ee3d85e3deb4ea76c1221c332608c43888f246a",
+      "query": {
+        "normalized": "all employees whose name start with g and a timesheet report",
+        "original": "All employees whose name start with G and A  timesheet report"
+      },
+      "response": {
+        "explanation": "",
+        "sql": "SELECT\n  u.id AS user_id,\n  u.name AS employee_name,\n  u.employee_id,\n  YEARWEEK(tr.date, 1) AS week_key,\n  p.project_name,\n  tr.work_type,\n  tr.user_type,\n  SUM(COALESCE(tr.hours, 0) + (COALESCE(tr.minutes, 0) / 60)) AS total_hours,\n  SUM(\n    CASE\n      WHEN tr.non_billable_reason IS NOT NULL\n      THEN COALESCE(tr.hours, 0) + (COALESCE(tr.minutes, 0) / 60)\n      ELSE 0\n    END\n  ) AS non_billable_hours,\n  COUNT(*) AS entry_count\nFROM timelog_records tr\nLEFT JOIN users u ON u.id = tr.user_id\nLEFT JOIN projects p ON p.id = tr.project_id\nWHERE u.name LIKE 'G%' OR u.name LIKE 'A%'\n  AND tr.date >= '2026-06-09'\n  AND tr.date <= '2026-07-08'\nGROUP BY\n  u.id,\n  u.name,\n  u.employee_id,\n  YEARWEEK(tr.date, 1),\n  p.project_name,\n  tr.work_type,\n  tr.user_type\nORDER BY week_key DESC, employee_name, p.project_name\nLIMIT 100",
+        "title": "SQL Report"
+      },
+      "sources": {
+        "schema_version": "4229db42fbfdcb42"
+      },
+      "stats": {
+        "hit_count": 0,
+        "invalidated_reason": null,
+        "last_hit_at": null,
+        "last_invalidated_at": null
+      },
+      "tags": [
+        "cache_key:a7dd7b5e6db347d71ae844f96ee3d85e3deb4ea76c1221c332608c43888f246a",
+        "end:2026-07-08",
+        "llm_sql",
+        "start:2026-06-09",
+        "table:projects",
+        "table:timelog_records",
+        "table:users",
+        "token:all",
+        "token:employees",
+        "token:g",
+        "token:name",
+        "token:start",
+        "token:timesheet",
+        "token:whose"
       ]
     },
     "a845eb9aa91870ef0130f7b771029548770eb441299b7d34b873a733c2b0a6dd": {
@@ -1884,6 +2325,122 @@
         "token:team",
         "token:tickets",
         "token:top"
+      ]
+    },
+    "bace7cd3b6a6fe6f3d59938762a4c2a0afcf1c9d3abbdacb6677f8fe2be53110": {
+      "cache_policy": {
+        "created_at": "2026-07-08T12:04:24.425227+00:00",
+        "expires_at": "2026-07-10T12:04:24.425227+00:00",
+        "ttl_days": 2
+      },
+      "intent": {
+        "canonical_tokens": [
+          "all",
+          "employees",
+          "g",
+          "m",
+          "name",
+          "start",
+          "timesheet",
+          "whose"
+        ],
+        "date_tokens": [],
+        "end_date": "2026-07-08",
+        "limit": 500,
+        "report_category": "timesheet",
+        "start_date": "2026-06-09"
+      },
+      "key": "bace7cd3b6a6fe6f3d59938762a4c2a0afcf1c9d3abbdacb6677f8fe2be53110",
+      "query": {
+        "normalized": "all employees whose name start with g and m timesheet report",
+        "original": "All employees whose name start with G and m timesheet report"
+      },
+      "response": {
+        "explanation": "",
+        "sql": "SELECT\n  u.id AS user_id,\n  u.name AS employee_name,\n  u.employee_id,\n  YEARWEEK(tr.date, 1) AS week_key,\n  p.project_name,\n  tr.work_type,\n  tr.user_type,\n  SUM(COALESCE(tr.hours, 0) + (COALESCE(tr.minutes, 0) / 60)) AS total_hours,\n  SUM(\n    CASE\n      WHEN tr.non_billable_reason IS NOT NULL\n      THEN COALESCE(tr.hours, 0) + (COALESCE(tr.minutes, 0) / 60)\n      ELSE 0\n    END\n  ) AS non_billable_hours,\n  COUNT(*) AS entry_count\nFROM timelog_records tr\nLEFT JOIN users u ON u.id = tr.user_id\nLEFT JOIN projects p ON p.id = tr.project_id\nWHERE u.name LIKE 'G%'\n  AND tr.date >= '2026-06-09'\n  AND tr.date <= '2026-07-08'\nGROUP BY\n  u.id,\n  u.name,\n  u.employee_id,\n  YEARWEEK(tr.date, 1),\n  p.project_name,\n  tr.work_type,\n  tr.user_type\nORDER BY week_key DESC, employee_name, p.project_name\nLIMIT 100",
+        "title": "SQL Report"
+      },
+      "sources": {
+        "schema_version": "4229db42fbfdcb42"
+      },
+      "stats": {
+        "hit_count": 0,
+        "invalidated_reason": null,
+        "last_hit_at": null,
+        "last_invalidated_at": null
+      },
+      "tags": [
+        "cache_key:bace7cd3b6a6fe6f3d59938762a4c2a0afcf1c9d3abbdacb6677f8fe2be53110",
+        "end:2026-07-08",
+        "llm_sql",
+        "start:2026-06-09",
+        "table:projects",
+        "table:timelog_records",
+        "table:users",
+        "token:all",
+        "token:employees",
+        "token:g",
+        "token:m",
+        "token:name",
+        "token:start",
+        "token:timesheet",
+        "token:whose"
+      ]
+    },
+    "c0820996fa64be12b883444f05850fd8e697c9a03b30c8b810c0917f8043948e": {
+      "cache_policy": {
+        "created_at": "2026-07-08T10:31:13.530043+00:00",
+        "expires_at": "2026-07-10T10:31:13.530043+00:00",
+        "ttl_days": 2
+      },
+      "intent": {
+        "canonical_tokens": [
+          "all",
+          "employees",
+          "g",
+          "name",
+          "start",
+          "timesheet",
+          "whose"
+        ],
+        "date_tokens": [],
+        "end_date": null,
+        "limit": 500,
+        "report_category": "timesheet",
+        "start_date": null
+      },
+      "key": "c0820996fa64be12b883444f05850fd8e697c9a03b30c8b810c0917f8043948e",
+      "query": {
+        "normalized": "all employees whose name start with g timesheet report",
+        "original": "All employees whose name start with G timesheet report"
+      },
+      "response": {
+        "explanation": "",
+        "sql": "SELECT\n  u.id AS user_id,\n  u.name AS employee_name,\n  u.employee_id,\n  YEARWEEK(tr.date, 1) AS week_key,\n  p.project_name,\n  tr.work_type,\n  tr.user_type,\n  SUM(COALESCE(tr.hours, 0) + (COALESCE(tr.minutes, 0) / 60)) AS total_hours,\n  SUM(\n    CASE\n      WHEN tr.non_billable_reason IS NOT NULL\n      THEN COALESCE(tr.hours, 0) + (COALESCE(tr.minutes, 0) / 60)\n      ELSE 0\n    END\n  ) AS non_billable_hours,\n  COUNT(*) AS entry_count\nFROM timelog_records tr\nLEFT JOIN users u ON u.id = tr.user_id\nLEFT JOIN projects p ON p.id = tr.project_id\nWHERE u.name LIKE 'G%'\nGROUP BY\n  u.id,\n  u.name,\n  u.employee_id,\n  YEARWEEK(tr.date, 1),\n  p.project_name,\n  tr.work_type,\n  tr.user_type\nORDER BY week_key DESC, employee_name, p.project_name\nLIMIT 100",
+        "title": "SQL Report"
+      },
+      "sources": {
+        "schema_version": "4229db42fbfdcb42"
+      },
+      "stats": {
+        "hit_count": 0,
+        "invalidated_reason": null,
+        "last_hit_at": null,
+        "last_invalidated_at": null
+      },
+      "tags": [
+        "cache_key:c0820996fa64be12b883444f05850fd8e697c9a03b30c8b810c0917f8043948e",
+        "llm_sql",
+        "table:projects",
+        "table:timelog_records",
+        "table:users",
+        "token:all",
+        "token:employees",
+        "token:g",
+        "token:name",
+        "token:start",
+        "token:timesheet",
+        "token:whose"
       ]
     },
     "c0e70f7bd57477e33d3a029175a2a6aad09c6a5b9deb85abdd99914de13ac2ff": {
@@ -2195,6 +2752,49 @@
         "token:productivity",
         "token:top",
         "token:who"
+      ]
+    },
+    "d7cabb8a481febc2882ab57ca0059d36241aebf73bd1a4cbdf97ec8eb93279d0": {
+      "cache_policy": {
+        "created_at": "2026-07-08T12:16:17.892728+00:00",
+        "expires_at": "2026-07-10T12:16:17.892728+00:00",
+        "ttl_days": 2
+      },
+      "intent": {
+        "canonical_tokens": [
+          "daily"
+        ],
+        "date_tokens": [],
+        "end_date": null,
+        "limit": 500,
+        "report_category": "custom",
+        "start_date": null
+      },
+      "key": "d7cabb8a481febc2882ab57ca0059d36241aebf73bd1a4cbdf97ec8eb93279d0",
+      "query": {
+        "normalized": "daily report",
+        "original": "Daily Report"
+      },
+      "response": {
+        "explanation": "",
+        "sql": "SELECT \n    p.project_name,\n    COUNT(pt.id) AS task_count\nFROM \n    projects p\nJOIN \n    product_task pt ON p.id = pt.project_id\nWHERE \n    pt.is_deleted = 0\n    AND p.project_status != 'Completed'\nGROUP BY \n    p.project_name\nORDER BY \n    task_count DESC\nLIMIT 10",
+        "title": "SQL Report"
+      },
+      "sources": {
+        "schema_version": "4229db42fbfdcb42"
+      },
+      "stats": {
+        "hit_count": 0,
+        "invalidated_reason": null,
+        "last_hit_at": null,
+        "last_invalidated_at": null
+      },
+      "tags": [
+        "cache_key:d7cabb8a481febc2882ab57ca0059d36241aebf73bd1a4cbdf97ec8eb93279d0",
+        "llm_sql",
+        "table:product_task",
+        "table:projects",
+        "token:daily"
       ]
     },
     "d84c46ad295b92c42e9b874c1e6761f273c1dfd573598f95d7787227665b6fb2": {
@@ -2578,6 +3178,54 @@
         "token:team"
       ]
     },
+    "f3aa13a195eb1e26928fc27df3a8e1d99117bf03f2869e51163c7867ed0121d0": {
+      "cache_policy": {
+        "created_at": "2026-07-08T13:36:48.445705+00:00",
+        "expires_at": "2026-07-10T13:36:48.445705+00:00",
+        "ttl_days": 2
+      },
+      "intent": {
+        "canonical_tokens": [
+          "daily"
+        ],
+        "date_tokens": [],
+        "end_date": "2026-07-08",
+        "limit": 500,
+        "report_category": "task",
+        "start_date": "2026-07-08"
+      },
+      "key": "f3aa13a195eb1e26928fc27df3a8e1d99117bf03f2869e51163c7867ed0121d0",
+      "query": {
+        "normalized": "daily report",
+        "original": "Daily Report"
+      },
+      "response": {
+        "explanation": "",
+        "sql": "SELECT\n  CASE\n    WHEN p.project_mfg_type = 'CAD_CAM' THEN 'CAD_CAM Projects'\n    WHEN p.project_mfg_type = 'BIM' THEN 'BIM Projects'\n    WHEN COALESCE(p.is_edrawing_applicable, 0) = 1 THEN 'E-Drawing Projects'\n    ELSE COALESCE(p.project_mfg_type, 'Unassigned')\n  END AS section,\n  CASE\n    WHEN assigned_tl.id IS NULL THEN 'Unassigned'\n    WHEN CAST(assigned_tl.id AS CHAR) = CAST(p.primary_team_leader AS CHAR) THEN 'Primary Team Leader'\n    ELSE 'Secondary Team Leader'\n  END AS leader_type,\n  COALESCE(assigned_tl.name, primary_tl.name, 'Unassigned') AS team_leader,\n  COALESCE(ptype.name, 'Unassigned') AS project_type,\n  p.project_no,\n  p.project_name,\n  p.project_mfg_type,\n  p.priority,\n  p.project_status,\n  COUNT(DISTINCT pt.id) AS total_tasks,\n  COUNT(DISTINCT CASE WHEN pt.task_status = 'Completed' THEN pt.id END) AS completed_tasks,\n  COUNT(DISTINCT CASE WHEN pt.id IS NOT NULL AND COALESCE(pt.task_status, '') != 'Completed' THEN pt.id END) AS pending_tasks,\n  COUNT(DISTINCT CASE WHEN DATE(pt.created_at) BETWEEN '2026-07-08' AND '2026-07-08' THEN pt.id END) AS daily_created_tasks,\n  COUNT(DISTINCT CASE WHEN pt.task_status = 'Completed' AND DATE(pt.updated_at) BETWEEN '2026-07-08' AND '2026-07-08' THEN pt.id END) AS daily_completed_tasks,\n  COUNT(DISTINCT CASE WHEN DATE(ptd.uploaded_date) BETWEEN '2026-07-08' AND '2026-07-08' THEN ptd.id END) AS daily_uploaded_task_details,\n  COUNT(DISTINCT\n    CASE\n      WHEN DATE(pt.created_at) BETWEEN DATE_SUB('2026-07-08', INTERVAL WEEKDAY('2026-07-08') DAY) AND DATE_ADD(DATE_SUB('2026-07-08', INTERVAL WEEKDAY('2026-07-08') DAY), INTERVAL 6 DAY)\n      THEN pt.id\n    END\n  ) AS weekly_created_tasks\nFROM projects p\nLEFT JOIN project_type ptype ON ptype.id = p.project_type_id\nLEFT JOIN users primary_tl ON CAST(primary_tl.id AS CHAR) = CAST(p.primary_team_leader AS CHAR)\nLEFT JOIN product_task pt ON pt.project_id = p.id AND COALESCE(pt.is_deleted, 0) = 0\nLEFT JOIN users assigned_tl ON assigned_tl.id = pt.assign_team_leader\nLEFT JOIN product_task_details ptd ON ptd.task_id = pt.id AND COALESCE(ptd.is_deleted, 0) = 0\nWHERE p.project_status != 'Completed'\n  AND p.project_type_id IS NOT NULL\n  AND (\n    p.project_mfg_type IN ('CAD_CAM', 'BIM')\n    OR COALESCE(p.is_edrawing_applicable, 0) = 1\n  )\nGROUP BY\n  section,\n  leader_type,\n  team_leader,\n  ptype.name,\n  p.project_no,\n  p.project_name,\n  p.project_mfg_type,\n  p.priority,\n  p.project_status\nORDER BY section, team_leader, p.project_name\nLIMIT 100",
+        "title": "SQL Report"
+      },
+      "sources": {
+        "schema_version": "5f867db0c63f0152"
+      },
+      "stats": {
+        "hit_count": 0,
+        "invalidated_reason": null,
+        "last_hit_at": null,
+        "last_invalidated_at": null
+      },
+      "tags": [
+        "cache_key:f3aa13a195eb1e26928fc27df3a8e1d99117bf03f2869e51163c7867ed0121d0",
+        "end:2026-07-08",
+        "llm_sql",
+        "start:2026-07-08",
+        "table:product_task",
+        "table:product_task_details",
+        "table:project_type",
+        "table:projects",
+        "table:users",
+        "token:daily"
+      ]
+    },
     "f74ae52948d87a59d9a34111b7a9a305d377e16b0ae3c289db2f5a81adc29e70": {
       "cache_policy": {
         "created_at": "2026-07-07T12:14:13.610116+00:00",
@@ -2626,6 +3274,49 @@
         "table:timelog_records",
         "token:18",
         "token:week"
+      ]
+    },
+    "f8f546a1321e169fc9f3f609df2ab3a902932b29f2e1711d8849e247a7429a69": {
+      "cache_policy": {
+        "created_at": "2026-07-08T07:42:37.440647+00:00",
+        "expires_at": "2026-07-10T07:42:37.440647+00:00",
+        "ttl_days": 2
+      },
+      "intent": {
+        "canonical_tokens": [
+          "attendance"
+        ],
+        "date_tokens": [],
+        "end_date": null,
+        "limit": 500,
+        "report_category": "attendance",
+        "start_date": null
+      },
+      "key": "f8f546a1321e169fc9f3f609df2ab3a902932b29f2e1711d8849e247a7429a69",
+      "query": {
+        "normalized": "attendance report",
+        "original": "Attendance report"
+      },
+      "response": {
+        "explanation": "",
+        "sql": "SELECT\n  a.employee_id,\n  COALESCE(u.name, a.name) AS employee_name,\n  a.department,\n  a.designation,\n  a.date,\n  a.day,\n  a.status,\n  a.total_hours AS work_hours,\n  a.for_month\nFROM attendances a\nLEFT JOIN users u ON u.employee_id = a.employee_id\nWHERE (NULL IS NULL OR a.date >= NULL)\n  AND (NULL IS NULL OR a.date <= NULL)\nORDER BY a.date DESC, employee_name\nLIMIT 100",
+        "title": "SQL Report"
+      },
+      "sources": {
+        "schema_version": "4229db42fbfdcb42"
+      },
+      "stats": {
+        "hit_count": 0,
+        "invalidated_reason": null,
+        "last_hit_at": null,
+        "last_invalidated_at": null
+      },
+      "tags": [
+        "cache_key:f8f546a1321e169fc9f3f609df2ab3a902932b29f2e1711d8849e247a7429a69",
+        "llm_sql",
+        "table:attendances",
+        "table:users",
+        "token:attendance"
       ]
     },
     "fad1b8128b52878ef646052cbe5cb080089c58435cde22a8beb494b2e6bd485c": {
@@ -2819,13 +3510,18 @@
     "00c2a87d111ea63e72c7f951bbd002920614b5d1fdce206b7bb787ea55dec348": "98ef54ecb4ce633e9210e60f17f002dc6960b9ad00b6bfabca440b8cdcf3926e",
     "09ccd58bd69688dd342ca7710eb65d7ac1ad94edfcafec457e491426f0635e5e": "6bfa98d911a52c1e99514aea56676863e16f8886c35d734ffafad0acb5c122ff",
     "1267a1b718909949a9e2e5b9c0946f765ea2beedcead874266f12b25f148268a": "1c0da1ecebacd36e82f3a755a6e524c6320296ec4a0140ff13cd7e5954b1503e",
+    "149bdb642b5a993b808f86cb4445a385047e20520a40348003bd717e529d8d05": "2a93fc5b8dc6a67ba30d51bf83c81600bcb5078545b022b4a77556faee731d63",
+    "19f0aee9704edbcadeda3c24ba4480da2bb471c42768be3b4ae7172d1a1d4a37": "f8f546a1321e169fc9f3f609df2ab3a902932b29f2e1711d8849e247a7429a69",
     "1f5a88c1491e0d0349ca03c673dbc7457b1892b409f0f4c9a5fb87f06387e9db": "f37bddf3e86dd0fd8b9d023cd0f71ef38f84e8e6ee9ae2a4e19c89295b57b2c0",
+    "1fb5685c810134dfde352c6390083f25c596f6190a24bc5afb375f184d80f782": "9a29ec417a0d94b0b66001f65e13864266e80f56e27005aeec9b407e7009d6a1",
     "222711ab6d6633d1de5a14b4585de3ef2ba11f150d6e7c63e24642cbd5dcdd70": "a7aaf4e0def2b5e99b0b977af193aa795cd883333d0aecf0a196b9e640d3aeeb",
     "23e3f5945382b91d86625232301493a71f22765c842bce6e50450c3b7597a87f": "6034c448384a20e7f1d3b5b8e48ff3485b8a53c1e1323a5bf96a8e7617c67b98",
     "27ff334fbffd9829dcba7a70fde25981f3822e53e7a817c77b5287f66e16e883": "5da7c4011ebe1f9416a000b6efa72666319bdeeea1520ca7c459300d67eccfdb",
     "2e884a9e48c61d686b116b5f57953dcf673d2a6de08c753c8603271d58111886": "b505ddb004273ef0b1ce38b2f805efc711bf9ca9ea5233a1a7f254214c22fba9",
     "38e555cff309eacf2cd0e06610434eae46f0a4fc0445039947e86e2292f9d074": "265ef3a6f3b60948829c8485ac1b747165d2a81c22be35d507f1bd7a20d5726b",
     "3a3f837a8d5f0650378faf4c38392b6e1aa3c3a37bf9d53c219366916e34e180": "4545b7cc15e13e25666bd3cd2892963fc214f46c0c7b1fd391212ac4877f4991",
+    "401e0ff485bb27f9fc0beea3217437d44adebfa571cc2d518f0c3a086990efca": "227a9bd31b07f00bd2fdbc70ca6c1820dd45b3daa01a654320d29ebdaa3b82bd",
+    "43f8215901e9935d9cee660d69523f1948330d5d9a7fa9849fc70c1bdbf30934": "68a782dbc81d4b555d91158cde79e655fa2e72c437bb1344d07eda2d9363513f",
     "56217e85ec4ced843d21187d8cd5ee6f2f49e4e6c1f715806c35d12b9e7ec680": "0fa8f8739615ca94ad8f86bba3d408478050b8c31e4b27fb7986f63ad7bffedc",
     "5785961f9c71ab45ecf368c0f9ffd0041da4d7d0a34394cede62e4e95fb7ebc8": "fd27606e7fedfde8383e260ba8701717f677376a8c311e11f2232f0efe8bea2b",
     "5a1788979781d8b373b3bb6ca2c00a1dda7ac87a071298ed9f3ee2ddcc30b291": "003436a35b721542f87d280b69a395b0c883b05fb6a5bcd8921eaed3d6dee1ea",
@@ -2834,6 +3530,7 @@
     "65afff69726ed292ebe453685050b3910b05af4a022de5644fef808b17db436b": "624069abbdbe50c4b2d6d4f981f5750a017c13bc8df3bc9d55a498ed22a438bd",
     "68c66fc28634a75dfd13f78239f49417cdc16237f31d2e1feba579cd3d8e5af4": "de6a36b9035cbf4206b6493b448d6260db6e27a5bb914092043360d1d6eaba34",
     "6f3106c8cf69c43f5c0bf1d5ee004af36e19f7b1966e95f518d5436d105d0f22": "b3811b887c90baaf48fb18327cabf3de4aa6c9bbf753c84423c38c270a07b3ef",
+    "7262b6fad40df06cfdf1dad126983af46c332a5c5380bb49cdd704cfa9f014b0": "f3aa13a195eb1e26928fc27df3a8e1d99117bf03f2869e51163c7867ed0121d0",
     "78a52f066769c25f7bd87bfea4ea6051c060ddbb10524ff637e095de452fbffb": "c68cbec7c9a0507c388eb4362298d4791948815d45481084780a3fe5750f1cb8",
     "7904fea47bd099b90fe2b85a805c14b699b36661825e0c9164eb3e604d59beb1": "5353cdf537199d7a65f5d17de325d828315b428e922c906c3bb4545ce95326c5",
     "7e53935072512a0b4aa40e6df6209ca4cb2db57c473d5f0f02ef9a295f332a4a": "fad9a713fb5b1fe17529dadcb503abef3650bd3632bd3a147510a1350b979a1c",
@@ -2850,7 +3547,11 @@
     "a4933ae46f794e949e6fd7d1b5a5f4416e8dbf6552483e76885775ec92152856": "52822310166876f5317e5ad1ea1808561c8efbd1a7a5fed55d7ef7471dbfc47f",
     "a68b72e260565c91ef958d65f6ed70b411812a224b183b5e06e946e28b2913da": "213882a30cf17b4c8f5b22756af9177cbd8cef8c9f8d6aeebaf37534e8e9f58f",
     "a9941f4fa3b44e6ab75004c71f22b1acd646d7655538a15001f9e9e822b14441": "345a89fdb6a0dd5756d050324480299860d2e21ab7e50da64d2833084e2c5ba6",
+    "aa60f503c9f29edf214a29d038a9f158535e42b29edc9b4ead95fa9a5925e1dc": "c0820996fa64be12b883444f05850fd8e697c9a03b30c8b810c0917f8043948e",
+    "aeefee9d7510aba060652333d7b55fa7e2de7feb455bfb457d99cd2985cf036b": "99a492319f5867ef231917cf221a4a1f1451856c82ba84c5cd5da43f3cc642ea",
+    "afabad3f6a249c4dabc6f02fe802f5afcab85b5632676c6015c0d7d38533c2a4": "a7dd7b5e6db347d71ae844f96ee3d85e3deb4ea76c1221c332608c43888f246a",
     "b0128704f2b6814adfd01b1d64b231cacf37236ec1919a4e1915555254db3fdd": "d99c434dabeb40afb92b82052ae4c26f1b2d37e806446d9b66d5b19da2862532",
+    "b698a23750a39252e235b8cbbd09296110ed4a29d66a14a297a6e983bd3cdbca": "d7cabb8a481febc2882ab57ca0059d36241aebf73bd1a4cbdf97ec8eb93279d0",
     "bbd4d172304b152d96037eeb31447fce8403900c227abd09be50a3d8e0a52276": "7e465d59dcf4970f0f4660729af677bb1685ce6e098423884cb5e4b593c58865",
     "c26ff0c91a066c6472651eabcb7fb977fd7a05ff47e6b62d029544e2dbd39db8": "3cfc9080f9a12fc77359aa25dd4a42f422a93bb2000467c7ee6a9f57d3fa8c5d",
     "c52e12c3491595be949cec45c3c21ceb4c50e01dcf09663b29bb124789b0ac13": "4cb796a95ad6102e12fa4f2ba382644c7d161b01a57109fe5380c8d08051ce69",
@@ -2859,9 +3560,12 @@
     "d52b65d141810d0edde7b0e5c38099ac80c7955dc962a67f6ecb4831de0ea8aa": "c0e70f7bd57477e33d3a029175a2a6aad09c6a5b9deb85abdd99914de13ac2ff",
     "d6bbf84249162606a1cac8deda08502b96198585d4dc57c3e04c6034b9d2abad": "ae4e06274d7d337b000de4a02bbdfc95f727686b62ea83f36484bc3a2a5b835c",
     "d8c35df3f0cd9cb52140eb700ed761c317f59b387a4b299b0b83c7363e8515d8": "d84c46ad295b92c42e9b874c1e6761f273c1dfd573598f95d7787227665b6fb2",
+    "dfd0bf5c06a1897144afd3762944de0a08550fefed6d04716661c87978d33683": "26703197cd4617298721a1d1883de43e1c7ab7aabfcc80e6de8c6da8a36dc17b",
     "e04d2161661eec73279d0d395974a5f5cf93f60d4c46ccd7ef4ac8be868c7af9": "da85a99415bd39b61dfc85a6ea1cb956a96667bd23a9b163d9144e881a49e162",
+    "e2270fcd6e22920c852d1939ed9733ad879ef15cd04bf22e5c3cafcc4a2a3434": "177501a5074ceb624159a3e8e99763e0472920e48a0ec26c943d83063a1c163f",
     "ee80d2c7796a4085d39fed8c16a526d72ddb1aa2fd7dfd600990dfdf838a9901": "fad1b8128b52878ef646052cbe5cb080089c58435cde22a8beb494b2e6bd485c",
     "f0649ab0d8fe785ad2c687ce020e284fd631bf5a149e177bdec973184a3f1350": "2c20f9dda846e1583372be8ced50ae618b9391a1ba040fbdfcdaa2e3f06131e3",
+    "f95493a9729b27530098728e992c87885209983498e8a206c78de2f229ca97bf": "bace7cd3b6a6fe6f3d59938762a4c2a0afcf1c9d3abbdacb6677f8fe2be53110",
     "ff1d24b51b93c435ab0357ddda342a73338438b029a460e8e570135b96ea2088": "f74ae52948d87a59d9a34111b7a9a305d377e16b0ae3c289db2f5a81adc29e70",
     "ff7b72f7ccdebd428fea7701187b5a9f6725519264e4fb2d2ad963b773518e26": "c31a76c1fb466e34a3202d4327b683b27caacecfdc80c450de3230d07ea8b452"
   },
@@ -2870,10 +3574,14 @@
     "01db824d4f523451e46534053daf537c44f1d5c5516b68596eb189227c104fc8": "01db824d4f523451e46534053daf537c44f1d5c5516b68596eb189227c104fc8",
     "0d87a2c11a381ebb3915d5a2250c5787541d8137918ba1a16b75db8bc2e1a61f": "0d87a2c11a381ebb3915d5a2250c5787541d8137918ba1a16b75db8bc2e1a61f",
     "0fa8f8739615ca94ad8f86bba3d408478050b8c31e4b27fb7986f63ad7bffedc": "0fa8f8739615ca94ad8f86bba3d408478050b8c31e4b27fb7986f63ad7bffedc",
+    "177501a5074ceb624159a3e8e99763e0472920e48a0ec26c943d83063a1c163f": "177501a5074ceb624159a3e8e99763e0472920e48a0ec26c943d83063a1c163f",
     "19d1726bbd094f0c7ad6a9daeb61731946c7542eea12197f579a06a76c7c57fd": "19d1726bbd094f0c7ad6a9daeb61731946c7542eea12197f579a06a76c7c57fd",
     "1c0da1ecebacd36e82f3a755a6e524c6320296ec4a0140ff13cd7e5954b1503e": "1c0da1ecebacd36e82f3a755a6e524c6320296ec4a0140ff13cd7e5954b1503e",
     "213882a30cf17b4c8f5b22756af9177cbd8cef8c9f8d6aeebaf37534e8e9f58f": "213882a30cf17b4c8f5b22756af9177cbd8cef8c9f8d6aeebaf37534e8e9f58f",
+    "227a9bd31b07f00bd2fdbc70ca6c1820dd45b3daa01a654320d29ebdaa3b82bd": "227a9bd31b07f00bd2fdbc70ca6c1820dd45b3daa01a654320d29ebdaa3b82bd",
     "265ef3a6f3b60948829c8485ac1b747165d2a81c22be35d507f1bd7a20d5726b": "265ef3a6f3b60948829c8485ac1b747165d2a81c22be35d507f1bd7a20d5726b",
+    "26703197cd4617298721a1d1883de43e1c7ab7aabfcc80e6de8c6da8a36dc17b": "26703197cd4617298721a1d1883de43e1c7ab7aabfcc80e6de8c6da8a36dc17b",
+    "2a93fc5b8dc6a67ba30d51bf83c81600bcb5078545b022b4a77556faee731d63": "2a93fc5b8dc6a67ba30d51bf83c81600bcb5078545b022b4a77556faee731d63",
     "2c20f9dda846e1583372be8ced50ae618b9391a1ba040fbdfcdaa2e3f06131e3": "2c20f9dda846e1583372be8ced50ae618b9391a1ba040fbdfcdaa2e3f06131e3",
     "345a89fdb6a0dd5756d050324480299860d2e21ab7e50da64d2833084e2c5ba6": "345a89fdb6a0dd5756d050324480299860d2e21ab7e50da64d2833084e2c5ba6",
     "3cfc9080f9a12fc77359aa25dd4a42f422a93bb2000467c7ee6a9f57d3fa8c5d": "3cfc9080f9a12fc77359aa25dd4a42f422a93bb2000467c7ee6a9f57d3fa8c5d",
@@ -2884,6 +3592,7 @@
     "5da7c4011ebe1f9416a000b6efa72666319bdeeea1520ca7c459300d67eccfdb": "5da7c4011ebe1f9416a000b6efa72666319bdeeea1520ca7c459300d67eccfdb",
     "6034c448384a20e7f1d3b5b8e48ff3485b8a53c1e1323a5bf96a8e7617c67b98": "6034c448384a20e7f1d3b5b8e48ff3485b8a53c1e1323a5bf96a8e7617c67b98",
     "624069abbdbe50c4b2d6d4f981f5750a017c13bc8df3bc9d55a498ed22a438bd": "624069abbdbe50c4b2d6d4f981f5750a017c13bc8df3bc9d55a498ed22a438bd",
+    "68a782dbc81d4b555d91158cde79e655fa2e72c437bb1344d07eda2d9363513f": "68a782dbc81d4b555d91158cde79e655fa2e72c437bb1344d07eda2d9363513f",
     "6bfa98d911a52c1e99514aea56676863e16f8886c35d734ffafad0acb5c122ff": "6bfa98d911a52c1e99514aea56676863e16f8886c35d734ffafad0acb5c122ff",
     "6c45f95092382368182644f367b0f23b71d9edc18fad52e9d8f2f60f6db5976d": "6c45f95092382368182644f367b0f23b71d9edc18fad52e9d8f2f60f6db5976d",
     "6cc6d8c4cb6b94acba3154f1287e83d099cbdff8b978bc8a1b99b359919f676c": "6cc6d8c4cb6b94acba3154f1287e83d099cbdff8b978bc8a1b99b359919f676c",
@@ -2892,25 +3601,33 @@
     "7f9b2d198d577071c5587cf9807f1a813be92675349a534ea21d33d7a3d658ed": "7f9b2d198d577071c5587cf9807f1a813be92675349a534ea21d33d7a3d658ed",
     "8ddb990f8fd3e11896c98f7073c7d344230b17140693770bf826f744c9d06bec": "8ddb990f8fd3e11896c98f7073c7d344230b17140693770bf826f744c9d06bec",
     "98ef54ecb4ce633e9210e60f17f002dc6960b9ad00b6bfabca440b8cdcf3926e": "98ef54ecb4ce633e9210e60f17f002dc6960b9ad00b6bfabca440b8cdcf3926e",
+    "99a492319f5867ef231917cf221a4a1f1451856c82ba84c5cd5da43f3cc642ea": "99a492319f5867ef231917cf221a4a1f1451856c82ba84c5cd5da43f3cc642ea",
+    "9a29ec417a0d94b0b66001f65e13864266e80f56e27005aeec9b407e7009d6a1": "9a29ec417a0d94b0b66001f65e13864266e80f56e27005aeec9b407e7009d6a1",
     "9be00873507a1c945adadf8cf9746a787a2ba656f14d2e7313bb71c5e4271c4c": "9be00873507a1c945adadf8cf9746a787a2ba656f14d2e7313bb71c5e4271c4c",
     "a7aaf4e0def2b5e99b0b977af193aa795cd883333d0aecf0a196b9e640d3aeeb": "a7aaf4e0def2b5e99b0b977af193aa795cd883333d0aecf0a196b9e640d3aeeb",
+    "a7dd7b5e6db347d71ae844f96ee3d85e3deb4ea76c1221c332608c43888f246a": "a7dd7b5e6db347d71ae844f96ee3d85e3deb4ea76c1221c332608c43888f246a",
     "a845eb9aa91870ef0130f7b771029548770eb441299b7d34b873a733c2b0a6dd": "a845eb9aa91870ef0130f7b771029548770eb441299b7d34b873a733c2b0a6dd",
     "ae4e06274d7d337b000de4a02bbdfc95f727686b62ea83f36484bc3a2a5b835c": "ae4e06274d7d337b000de4a02bbdfc95f727686b62ea83f36484bc3a2a5b835c",
     "b3811b887c90baaf48fb18327cabf3de4aa6c9bbf753c84423c38c270a07b3ef": "b3811b887c90baaf48fb18327cabf3de4aa6c9bbf753c84423c38c270a07b3ef",
     "b505ddb004273ef0b1ce38b2f805efc711bf9ca9ea5233a1a7f254214c22fba9": "b505ddb004273ef0b1ce38b2f805efc711bf9ca9ea5233a1a7f254214c22fba9",
+    "bace7cd3b6a6fe6f3d59938762a4c2a0afcf1c9d3abbdacb6677f8fe2be53110": "bace7cd3b6a6fe6f3d59938762a4c2a0afcf1c9d3abbdacb6677f8fe2be53110",
+    "c0820996fa64be12b883444f05850fd8e697c9a03b30c8b810c0917f8043948e": "c0820996fa64be12b883444f05850fd8e697c9a03b30c8b810c0917f8043948e",
     "c0e70f7bd57477e33d3a029175a2a6aad09c6a5b9deb85abdd99914de13ac2ff": "c0e70f7bd57477e33d3a029175a2a6aad09c6a5b9deb85abdd99914de13ac2ff",
     "c31a76c1fb466e34a3202d4327b683b27caacecfdc80c450de3230d07ea8b452": "c31a76c1fb466e34a3202d4327b683b27caacecfdc80c450de3230d07ea8b452",
     "c4e7024ffa4ed5a89741a2b7625e29985a6c7704024124cc793c83955d64782d": "c4e7024ffa4ed5a89741a2b7625e29985a6c7704024124cc793c83955d64782d",
     "c68cbec7c9a0507c388eb4362298d4791948815d45481084780a3fe5750f1cb8": "c68cbec7c9a0507c388eb4362298d4791948815d45481084780a3fe5750f1cb8",
     "cb768a01b7f0ef060b43a95b8510863796f4d0dc8c49dbfde13eedd06388a863": "cb768a01b7f0ef060b43a95b8510863796f4d0dc8c49dbfde13eedd06388a863",
     "d62c7459ffee2c64159f5b1f5d00532d3df102e1cf72a23e6d583e94b889cadd": "d62c7459ffee2c64159f5b1f5d00532d3df102e1cf72a23e6d583e94b889cadd",
+    "d7cabb8a481febc2882ab57ca0059d36241aebf73bd1a4cbdf97ec8eb93279d0": "d7cabb8a481febc2882ab57ca0059d36241aebf73bd1a4cbdf97ec8eb93279d0",
     "d84c46ad295b92c42e9b874c1e6761f273c1dfd573598f95d7787227665b6fb2": "d84c46ad295b92c42e9b874c1e6761f273c1dfd573598f95d7787227665b6fb2",
     "d99c434dabeb40afb92b82052ae4c26f1b2d37e806446d9b66d5b19da2862532": "d99c434dabeb40afb92b82052ae4c26f1b2d37e806446d9b66d5b19da2862532",
     "da85a99415bd39b61dfc85a6ea1cb956a96667bd23a9b163d9144e881a49e162": "da85a99415bd39b61dfc85a6ea1cb956a96667bd23a9b163d9144e881a49e162",
     "de6a36b9035cbf4206b6493b448d6260db6e27a5bb914092043360d1d6eaba34": "de6a36b9035cbf4206b6493b448d6260db6e27a5bb914092043360d1d6eaba34",
     "f24e015e0003cc866749623ef76012317febbd9518eb5ff1a9032515702c0031": "f24e015e0003cc866749623ef76012317febbd9518eb5ff1a9032515702c0031",
     "f37bddf3e86dd0fd8b9d023cd0f71ef38f84e8e6ee9ae2a4e19c89295b57b2c0": "f37bddf3e86dd0fd8b9d023cd0f71ef38f84e8e6ee9ae2a4e19c89295b57b2c0",
+    "f3aa13a195eb1e26928fc27df3a8e1d99117bf03f2869e51163c7867ed0121d0": "f3aa13a195eb1e26928fc27df3a8e1d99117bf03f2869e51163c7867ed0121d0",
     "f74ae52948d87a59d9a34111b7a9a305d377e16b0ae3c289db2f5a81adc29e70": "f74ae52948d87a59d9a34111b7a9a305d377e16b0ae3c289db2f5a81adc29e70",
+    "f8f546a1321e169fc9f3f609df2ab3a902932b29f2e1711d8849e247a7429a69": "f8f546a1321e169fc9f3f609df2ab3a902932b29f2e1711d8849e247a7429a69",
     "fad1b8128b52878ef646052cbe5cb080089c58435cde22a8beb494b2e6bd485c": "fad1b8128b52878ef646052cbe5cb080089c58435cde22a8beb494b2e6bd485c",
     "fad9a713fb5b1fe17529dadcb503abef3650bd3632bd3a147510a1350b979a1c": "fad9a713fb5b1fe17529dadcb503abef3650bd3632bd3a147510a1350b979a1c",
     "fd27606e7fedfde8383e260ba8701717f677376a8c311e11f2232f0efe8bea2b": "fd27606e7fedfde8383e260ba8701717f677376a8c311e11f2232f0efe8bea2b"

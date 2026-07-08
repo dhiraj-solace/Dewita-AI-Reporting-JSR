@@ -16,24 +16,24 @@
       "id": "project",
       "label": "Project Report",
       "enabled": true,
-      "match_keywords": ["project", "projects", "project status", "budget", "progress", "week", "client"],
+      "match_keywords": ["project", "projects", "project status", "budget", "progress", "week", "client", "daily progress"],
       "allowed_tables": ["projects", "project_type", "project_assistances", "daily_project_comments", "kickoff_meeting_comments", "status_notes", "users", "clients"],
       "preferred_tables": ["projects", "project_type", "users", "clients"],
       "metrics": ["total_projects", "active_projects", "completed_projects", "budgeted_hours", "actual_hours", "hour_variance"],
       "filters": ["date_range", "project_status", "project_type", "client", "team_leader"],
-      "templates": ["Project Summary Report", "Week Five Report"],
+      "templates": ["Project Summary Report", "Week Five Report", "Daily Report"],
       "strict_mode": false
     },
     {
       "id": "task",
       "label": "Task Report",
       "enabled": true,
-      "match_keywords": ["task", "tasks", "task status", "completed task", "pending task", "reviewer", "detailer"],
+      "match_keywords": ["task", "tasks", "task status", "completed task", "pending task", "reviewer", "detailer", "daily report", "daily task", "daily progress"],
       "allowed_tables": ["product_task", "product_task_details", "product_task_reviewer_comments", "task_hours", "task_types", "tl_task", "tm_task", "bsl_task", "projects", "users"],
       "preferred_tables": ["product_task", "product_task_details", "projects", "users"],
       "metrics": ["total_tasks", "completed_tasks", "pending_tasks", "task_hours", "review_count"],
       "filters": ["date_range", "project", "task_status", "assigned_user", "task_type"],
-      "templates": ["Project Summary Report", "Week Five Report"],
+      "templates": ["Project Summary Report", "Week Five Report", "Daily Report"],
       "strict_mode": false
     },
     {
@@ -56,7 +56,7 @@
       "allowed_tables": ["timelog_records", "timesheets", "tl_timelog_records", "tm_timelog_records", "edrawing_timelog_records", "bsl_timelog_records", "users", "projects", "work_types"],
       "preferred_tables": ["timelog_records", "timesheets", "users", "projects", "work_types"],
       "metrics": ["total_hours", "billable_hours", "non_billable_hours", "entry_count"],
-      "filters": ["date_range", "employee", "project", "work_type", "role_type"],
+      "filters": ["date_range", "employee", "project", "work_type", "user_type"],
       "templates": ["Team Timesheet Report"],
       "strict_mode": false
     },

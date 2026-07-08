@@ -9,6 +9,8 @@ def normalize_live_schema_sql(sql: str) -> tuple[str, list[str]]:
     """Repair common AI SQL drift against the live Devita schema."""
     warnings: list[str] = []
     normalized = sql
+    normalized = _normalize_attendance_sql(normalized, warnings)
+    normalized = _normalize_date_parameter_drift(normalized, warnings)
     
     timelog_aliases = {
         match.group("alias") or "timelog_records"
@@ -40,6 +42,16 @@ def normalize_live_schema_sql(sql: str) -> tuple[str, list[str]]:
             warnings.append(
                 "Rewrote timelog_records.time_spent to the live hours/minutes duration expression."
             )
+
+        before_role_type = normalized
+        normalized = re.sub(
+            rf"\b`?{re.escape(alias)}`?\.role_type\b",
+            f"{alias}.user_type",
+            normalized,
+            flags=re.IGNORECASE,
+        )
+        if normalized != before_role_type:
+            warnings.append("Rewrote timelog_records.role_type to timelog_records.user_type from the live schema.")
 
         before_deleted_filter = normalized
         normalized = re.sub(
@@ -76,6 +88,81 @@ def normalize_live_schema_sql(sql: str) -> tuple[str, list[str]]:
         warnings.append("Rewrote JSON_CONTAINS team_leader matching to MariaDB-compatible FIND_IN_SET logic.")
 
     return normalized, warnings
+
+
+def _normalize_date_parameter_drift(sql: str, warnings: list[str]) -> str:
+    normalized = sql
+    before = normalized
+    normalized = re.sub(r"(?<![:.`\w])start_date(?![`.\w])", "NULL", normalized, flags=re.IGNORECASE)
+    normalized = re.sub(r"(?<![:.`\w])end_date(?![`.\w])", "NULL", normalized, flags=re.IGNORECASE)
+    if normalized != before:
+        warnings.append(
+            "Rewrote bare start_date/end_date parameter names to NULL so they are not treated as database columns."
+        )
+    return normalized
+
+
+def _normalize_attendance_sql(sql: str, warnings: list[str]) -> str:
+    normalized = sql
+    attendance_aliases = {
+        match.group("alias") or "attendances"
+        for match in re.finditer(
+            r"\b(?:from|join)\s+`?attendances`?(?:\s+(?:as\s+)?`?(?P<alias>[A-Za-z_][\w]*)`?)?",
+            normalized,
+            re.IGNORECASE,
+        )
+    }
+    if re.search(r"\b(?:from|join)\s+`?attendances`?\b", normalized, re.IGNORECASE):
+        attendance_aliases.add("attendances")
+
+    for alias in attendance_aliases:
+        before = normalized
+        normalized = re.sub(
+            rf"\bTIMEDIFF\s*\(\s*`?{re.escape(alias)}`?\.check_out\s*,\s*`?{re.escape(alias)}`?\.check_in\s*\)",
+            f"{alias}.total_hours",
+            normalized,
+            flags=re.IGNORECASE,
+        )
+        normalized = re.sub(
+            rf"\bTIMESTAMPDIFF\s*\(\s*HOUR\s*,\s*`?{re.escape(alias)}`?\.check_in\s*,\s*`?{re.escape(alias)}`?\.check_out\s*\)",
+            f"{alias}.total_hours",
+            normalized,
+            flags=re.IGNORECASE,
+        )
+        if normalized != before:
+            warnings.append(
+                "Rewrote attendance check-in/check-out duration to attendances.total_hours from the live schema."
+            )
+
+        before_user_id = normalized
+        normalized = re.sub(
+            rf"\b`?{re.escape(alias)}`?\.user_id\b",
+            f"{alias}.employee_id",
+            normalized,
+            flags=re.IGNORECASE,
+        )
+        if normalized != before_user_id:
+            warnings.append("Rewrote attendances.user_id to attendances.employee_id from the live schema.")
+
+        before_punch_columns = normalized
+        normalized = re.sub(
+            rf"\b`?{re.escape(alias)}`?\.check_in\b",
+            "NULL",
+            normalized,
+            flags=re.IGNORECASE,
+        )
+        normalized = re.sub(
+            rf"\b`?{re.escape(alias)}`?\.check_out\b",
+            "NULL",
+            normalized,
+            flags=re.IGNORECASE,
+        )
+        if normalized != before_punch_columns:
+            warnings.append(
+                "Replaced unavailable attendance check_in/check_out columns with NULL because the live table exposes total_hours instead."
+            )
+
+    return normalized
 
 
 def validate_select_sql(sql: str) -> str:
