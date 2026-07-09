@@ -185,7 +185,7 @@ async def build_report(request: ReportRequest) -> GeneratedReport:
             status_code=403,
             attempt_id=attempt_id,
         ) from exc
-    resolved_dates = resolve_date_range(request.question, request.start_date, request.end_date)
+    resolved_dates = resolve_date_range(request.question, request.start_date, request.end_date, category_id)
     schema_snapshot = _safe_schema()
     provider, model = _model_tracking_context(request.sql_generation_provider)
     update_attempt(attempt_id, schema_snapshot=schema_snapshot, generation_provider=provider, generation_model=model)
@@ -525,7 +525,7 @@ async def build_report(request: ReportRequest) -> GeneratedReport:
         question=request.question,
         sql=sql,
         explanation=generated.get("explanation") or "",
-        assumptions=[],
+        assumptions=resolved_dates.assumptions,
         columns=columns,
         rows=rows,
         row_count=len(rows),
@@ -1429,7 +1429,7 @@ def _fallback_sql(request: ReportRequest, max_rows: int, warnings: list[str]) ->
     category_id = str(report_category.get("id") or "custom") if report_category else "custom"
     template = find_template(request.question, category_id) or find_template("project summary")
     warnings.append("Generated SQL did not match the live schema, so a safe built-in template was retried.")
-    resolved_dates = resolve_date_range(request.question, request.start_date, request.end_date)
+    resolved_dates = resolve_date_range(request.question, request.start_date, request.end_date, category_id)
     return _prepare_sql(template.sql, max_rows, warnings, resolved_dates.start_date, resolved_dates.end_date)
 
 
@@ -1441,8 +1441,9 @@ async def _repair_generated_sql(
     warnings: list[str],
     reference_report: dict[str, Any] | None = None,
 ) -> str | None:
-    resolved_dates = resolve_date_range(request.question, request.start_date, request.end_date)
     report_category = resolve_report_category(request.report_category, request.question)
+    category_id = str(report_category.get("id") or "custom") if report_category else "custom"
+    resolved_dates = resolve_date_range(request.question, request.start_date, request.end_date, category_id)
     repaired = await generate_sql_repair_with_ai(
         request.question,
         resolved_dates.start_date,

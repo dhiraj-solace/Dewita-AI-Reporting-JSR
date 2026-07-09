@@ -88,6 +88,7 @@ def build_sql_generation_payload_preview(
         "start_date": payload.get("start_date"),
         "end_date": payload.get("end_date"),
         "requirements_count": len(payload.get("requirements") or []),
+        "requirements_preview": (payload.get("requirements") or [])[-8:],
         "similar_examples_count": len(examples),
         "mistake_examples_count": len(mistakes),
         "report_category": payload.get("report_category"),
@@ -152,18 +153,31 @@ def _format_correct_examples(examples: list[dict[str, str]]) -> list[dict[str, s
 
 
 def _format_mistake_examples(examples: list[dict[str, str]]) -> list[dict[str, str]]:
-    return [
-        {
-            "label": "Past mistake to avoid",
-            "user_question": example.get("user_question", ""),
-            "wrong_sql": example.get("wrong_sql", ""),
-            "reason_it_was_wrong": example.get("reason", ""),
-            "correct_sql": example.get("correct_sql", ""),
-            "instruction": "Do not repeat this mistake. Use it only as warning/context.",
-        }
-        for example in examples[:3]
-        if example.get("reason") or example.get("correct_sql")
-    ]
+    formatted: list[dict[str, str]] = []
+    for example in examples:
+        correct_sql = str(example.get("correct_sql") or "").strip()
+        if not _looks_like_select_sql(correct_sql):
+            continue
+        wrong_sql = str(example.get("wrong_sql") or "").strip()
+        if wrong_sql.lower().startswith("clarification_needed"):
+            continue
+        formatted.append(
+            {
+                "label": "Past mistake to avoid",
+                "user_question": example.get("user_question", ""),
+                "wrong_sql": wrong_sql,
+                "reason_it_was_wrong": example.get("reason", ""),
+                "correct_sql": correct_sql,
+                "instruction": "Do not repeat this mistake. Use it only as warning/context.",
+            }
+        )
+        if len(formatted) >= 3:
+            break
+    return formatted
+
+
+def _looks_like_select_sql(sql: str) -> bool:
+    return sql.lower().startswith(("select", "with"))
 
 
 def _merge_reference_report(extra: dict[str, Any] | None, reference_report: dict[str, Any] | None) -> dict[str, Any] | None:
@@ -176,9 +190,18 @@ def _merge_reference_report(extra: dict[str, Any] | None, reference_report: dict
             "Use reference_report as an approved business-logic blueprint, not as final SQL.",
             "When reference_report.blueprint is present, preserve its layout contract, sections, required columns, totals, and color semantics.",
             "Customize the SQL to the current question, filters, category, dates, and schema catalog.",
+            "Infer row filters from concrete names or entities in the user question when the schema supports them, such as employee names through users.name.",
             "Do not copy reference_report.sql blindly unless it fully satisfies the current question.",
         ]
     )
+    if str(reference_report.get("title") or "").lower() == "daily report":
+        requirements.extend(
+            [
+                "For Daily Report requests, preserve CAD_CAM/BIM/E-Drawing segregation, team leader assignment analysis, primary/secondary leader classification, and daily plus weekly task metrics when possible.",
+                "Do not reduce a Daily Report to only project_name and task_count unless the user explicitly asks for that simplified output.",
+                "Use the supplied start_date/end_date as the daily reporting window; if they are equal, treat that as the selected report day.",
+            ]
+        )
     merged["requirements"] = requirements
     merged["reference_report"] = {
         "title": reference_report.get("title", ""),
@@ -204,6 +227,15 @@ def _merge_category_extra(extra: dict[str, Any] | None, report_category: dict[st
     )
     if strict_mode:
         requirements.append("Strict category mode is enabled: use only the allowed_tables listed in report_category.")
+    if str(report_category.get("id") or "").lower() == "timesheet":
+        requirements.extend(
+            [
+                "Timesheet reports are weekly/project allocation reports by default; use YEARWEEK(date, 1) when a weekly breakdown is requested or implied by the Team Timesheet reference.",
+                "When start_date and end_date are present for a timesheet request, use them as the selected reporting window even if the user did not type dates.",
+                "Never return clarification_needed only because a timesheet date range is missing; the app supplies a default reporting window.",
+                "If an employee name appears in the question, filter using users.name with LIKE; do not ask clarification only because a date range is missing.",
+            ]
+        )
     merged["requirements"] = requirements
     merged["report_category"] = {
         "id": report_category.get("id"),
@@ -269,6 +301,10 @@ def _build_sql_payload(
             "Prefer documented tables and columns.",
             "Do not invent soft-delete columns. Add is_deleted filters only on tables where the schema explicitly lists is_deleted.",
             "timelog_records does not have is_deleted; never use timelog_records.is_deleted or an alias.is_deleted filter for that table.",
+            "For Attendance Report queries, prefer the live attendances columns employee_id, name, date, day, status, total_hours, department, designation, and for_month. Do not use attendances.check_in, attendances.check_out, or attendances.user_id unless the current schema explicitly lists them.",
+            "For Team Timesheet or HR Timesheet reports using timelog_records, use hours/minutes for duration, user_type instead of role_type, and optional date filters. Do not require start_date/end_date unless the user explicitly asks for a fixed period.",
+            "For timesheet requests, if start_date and end_date are present in this payload, use them as the report window and do not ask the user to provide dates.",
+            "For non_billable_hours, sum the live duration expression when non_billable_reason is present; do not count rows as hours.",
             "Only SELECT or WITH queries are allowed.",
             "Never generate INSERT, UPDATE, DELETE, DROP, ALTER, TRUNCATE, CREATE, GRANT, EXEC, CALL, or multiple statements.",
             "If the question is unclear, return clarification_needed instead of SQL.",

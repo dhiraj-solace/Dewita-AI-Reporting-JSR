@@ -102,26 +102,79 @@ WEEK_FIVE_BLUEPRINT: dict[str, Any] = {
 }
 
 
+DAILY_REPORT_BLUEPRINT: dict[str, Any] = {
+    "layout": "daily_progress_matrix",
+    "purpose": "Daily progress report for active CAD_CAM, BIM, and E-Drawing project work.",
+    "contract": [
+        "Preserve project-level detail rows grouped by manufacturing/report section.",
+        "Segregate CAD_CAM, BIM, and E-Drawing work when those dimensions are available.",
+        "Include team leader assignment analysis with primary versus secondary/assigned leader classification.",
+        "Include daily task movement and weekly task count metrics; do not collapse the report into only project_name and task_count.",
+        "Filter active projects with projects.project_status != 'Completed' and projects.project_type_id IS NOT NULL.",
+        "Use product_task.is_deleted for task soft-delete filtering.",
+        "Customize filters from the user question, such as BIM-only, CAD_CAM-only, team leader, project, or date.",
+    ],
+    "schema_hints": {
+        "project_source": "Use projects for project status, manufacturing type, project type, primary team leader, priority, and E-Drawing applicability.",
+        "task_source": "Use product_task for project tasks, assigned team leader, assigned member, task_status, created_at, updated_at, and is_deleted.",
+        "task_detail_source": "Use product_task_details for uploaded_date and actual_hr when uploaded task/detail metrics are requested.",
+        "team_leader_source": "Use product_task.assign_team_leader for task-level team leader analysis and projects.primary_team_leader for primary leader classification.",
+        "edrawing_source": "Use projects.is_edrawing_applicable when the report asks for E-Drawing segregation and no dedicated E-Drawing task table is required.",
+    },
+    "sections": [
+        "CAD_CAM Projects",
+        "BIM Projects",
+        "E-Drawing Projects",
+    ],
+    "base_columns": [
+        "section",
+        "leader_type",
+        "team_leader",
+        "project_type",
+        "project_no",
+        "project_name",
+        "project_mfg_type",
+        "priority",
+        "project_status",
+        "total_tasks",
+        "completed_tasks",
+        "open_tasks",
+        "daily_created_tasks",
+        "daily_completed_tasks",
+        "daily_uploaded_task_details",
+        "weekly_created_tasks",
+    ],
+    "default_date_behavior": "If no date is supplied, use today as the daily reporting window.",
+    "summary_rows": [
+        "Team leader totals",
+        "Section totals",
+        "Grand Total",
+    ],
+}
+
+
 TEMPLATES: tuple[QueryTemplate, ...] = (
     QueryTemplate(
         title="Attendance Report",
         keywords=("attendance", "present", "absent", "check in", "check out", "hr"),
         sql="""
 SELECT
-  u.id AS user_id,
-  u.name AS employee_name,
+  a.employee_id,
+  COALESCE(u.name, a.name) AS employee_name,
+  a.department,
+  a.designation,
   a.date,
+  a.day,
   a.status,
-  a.check_in,
-  a.check_out,
-  TIMEDIFF(a.check_out, a.check_in) AS work_hours
+  a.total_hours AS work_hours,
+  a.for_month
 FROM attendances a
-LEFT JOIN users u ON u.id = a.user_id
+LEFT JOIN users u ON u.employee_id = a.employee_id
 WHERE (:start_date IS NULL OR a.date >= :start_date)
   AND (:end_date IS NULL OR a.date <= :end_date)
-ORDER BY a.date DESC, u.name
+ORDER BY a.date DESC, employee_name
         """.strip(),
-        explanation="Attendance with calculated work hours from check-in and check-out.",
+        explanation="Attendance rows using live attendance total hours and employee details.",
         categories=("attendance",),
     ),
     QueryTemplate(
@@ -131,21 +184,100 @@ ORDER BY a.date DESC, u.name
 SELECT
   u.id AS user_id,
   u.name AS employee_name,
+  u.employee_id,
+  YEARWEEK(tr.date, 1) AS week_key,
   p.project_name,
-  tr.date,
   tr.work_type,
-  tr.role_type,
-  tr.time_spent,
-  tr.description
+  tr.user_type,
+  SUM(COALESCE(tr.hours, 0) + (COALESCE(tr.minutes, 0) / 60)) AS total_hours,
+  SUM(
+    CASE
+      WHEN tr.non_billable_reason IS NOT NULL
+      THEN COALESCE(tr.hours, 0) + (COALESCE(tr.minutes, 0) / 60)
+      ELSE 0
+    END
+  ) AS non_billable_hours,
+  COUNT(*) AS entry_count
 FROM timelog_records tr
 LEFT JOIN users u ON u.id = tr.user_id
 LEFT JOIN projects p ON p.id = tr.project_id
 WHERE (:start_date IS NULL OR tr.date >= :start_date)
   AND (:end_date IS NULL OR tr.date <= :end_date)
-ORDER BY tr.date DESC, employee_name, p.project_name
+GROUP BY
+  u.id,
+  u.name,
+  u.employee_id,
+  YEARWEEK(tr.date, 1),
+  p.project_name,
+  tr.work_type,
+  tr.user_type
+ORDER BY week_key DESC, employee_name, p.project_name
         """.strip(),
-        explanation="Time entries joined to employee and project context.",
+        explanation="Weekly team timesheet hours by employee, project, work type, and user type using live hours/minutes.",
         categories=("timesheet",),
+    ),
+    QueryTemplate(
+        title="Daily Report",
+        keywords=("daily report", "daily progress", "daily task", "daily task completion", "daily imp", "daily-report"),
+        sql="""
+SELECT
+  CASE
+    WHEN p.project_mfg_type = 'CAD_CAM' THEN 'CAD_CAM Projects'
+    WHEN p.project_mfg_type = 'BIM' THEN 'BIM Projects'
+    WHEN COALESCE(p.is_edrawing_applicable, 0) = 1 THEN 'E-Drawing Projects'
+    ELSE COALESCE(p.project_mfg_type, 'Unassigned')
+  END AS section,
+  CASE
+    WHEN assigned_tl.id IS NULL THEN 'Unassigned'
+    WHEN CAST(assigned_tl.id AS CHAR) = CAST(p.primary_team_leader AS CHAR) THEN 'Primary Team Leader'
+    ELSE 'Secondary Team Leader'
+  END AS leader_type,
+  COALESCE(assigned_tl.name, primary_tl.name, 'Unassigned') AS team_leader,
+  COALESCE(ptype.name, 'Unassigned') AS project_type,
+  p.project_no,
+  p.project_name,
+  p.project_mfg_type,
+  p.priority,
+  p.project_status,
+  COUNT(DISTINCT pt.id) AS total_tasks,
+  COUNT(DISTINCT CASE WHEN pt.task_status = 'Completed' THEN pt.id END) AS completed_tasks,
+  COUNT(DISTINCT CASE WHEN pt.id IS NOT NULL AND COALESCE(pt.task_status, '') != 'Completed' THEN pt.id END) AS open_tasks,
+  COUNT(DISTINCT CASE WHEN DATE(pt.created_at) BETWEEN :start_date AND :end_date THEN pt.id END) AS daily_created_tasks,
+  COUNT(DISTINCT CASE WHEN pt.task_status = 'Completed' AND DATE(pt.updated_at) BETWEEN :start_date AND :end_date THEN pt.id END) AS daily_completed_tasks,
+  COUNT(DISTINCT CASE WHEN DATE(ptd.uploaded_date) BETWEEN :start_date AND :end_date THEN ptd.id END) AS daily_uploaded_task_details,
+  COUNT(DISTINCT
+    CASE
+      WHEN DATE(pt.created_at) BETWEEN DATE_SUB(:start_date, INTERVAL WEEKDAY(:start_date) DAY) AND DATE_ADD(DATE_SUB(:start_date, INTERVAL WEEKDAY(:start_date) DAY), INTERVAL 6 DAY)
+      THEN pt.id
+    END
+  ) AS weekly_created_tasks
+FROM projects p
+LEFT JOIN project_type ptype ON ptype.id = p.project_type_id
+LEFT JOIN users primary_tl ON CAST(primary_tl.id AS CHAR) = CAST(p.primary_team_leader AS CHAR)
+LEFT JOIN product_task pt ON pt.project_id = p.id AND COALESCE(pt.is_deleted, 0) = 0
+LEFT JOIN users assigned_tl ON assigned_tl.id = pt.assign_team_leader
+LEFT JOIN product_task_details ptd ON ptd.task_id = pt.id AND COALESCE(ptd.is_deleted, 0) = 0
+WHERE p.project_status != 'Completed'
+  AND p.project_type_id IS NOT NULL
+  AND (
+    p.project_mfg_type IN ('CAD_CAM', 'BIM')
+    OR COALESCE(p.is_edrawing_applicable, 0) = 1
+  )
+GROUP BY
+  section,
+  leader_type,
+  team_leader,
+  ptype.name,
+  p.project_no,
+  p.project_name,
+  p.project_mfg_type,
+  p.priority,
+  p.project_status
+ORDER BY section, team_leader, p.project_name
+        """.strip(),
+        explanation="Daily active project progress for CAD_CAM, BIM, and E-Drawing work with team leader classification and daily/weekly task metrics.",
+        categories=("task", "project"),
+        blueprint=DAILY_REPORT_BLUEPRINT,
     ),
     QueryTemplate(
         title="Week Five Report",

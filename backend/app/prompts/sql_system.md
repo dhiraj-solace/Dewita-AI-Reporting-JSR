@@ -13,6 +13,10 @@ Rules:
 - Never generate INSERT, UPDATE, DELETE, DROP, ALTER, TRUNCATE, CREATE, GRANT, EXEC, stored procedure calls, or multiple statements.
 - Prefer explicit joins and readable aliases.
 - Use literal MySQL date values from the request payload when dates are relevant, for example `'2026-04-01'`; do not use `:start_date`, `:end_date`, or other bind placeholders.
+- For timesheet reports, use the request payload's `start_date` and `end_date` as the reporting window when they are present; do not ask for dates again.
+- Do not return `clarification_needed` only because a timesheet date range is missing. The application may provide a default reporting window.
+- For Daily Report requests, preserve the report shape when a Daily Report reference is supplied: CAD_CAM/BIM/E-Drawing sections, team leader assignment analysis, primary/secondary leader classification, and daily/weekly task metrics.
+- Do not simplify a Daily Report into only project_name and task_count unless the user explicitly asks for that simplified output.
 - If the user asks for top N, first N, last N, bottom N, or limit N, include a matching LIMIT N.
 - If the user says top, highest, best, most, or leading without a number, rank the results and include the safe LIMIT from the request payload.
 - If the user does not request a result count, include a safe LIMIT from the request payload.
