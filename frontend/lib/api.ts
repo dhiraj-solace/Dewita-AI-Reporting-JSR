@@ -586,8 +586,8 @@ export async function shareSavedReport(
   return response.json();
 }
 
-export async function listAiSqlAttempts(goldOnly = false): Promise<AiSqlAttempt[]> {
-  const params = new URLSearchParams({limit: "100", gold_only: String(goldOnly)});
+export async function listAiSqlAttempts(goldOnly = false, limit = 1000): Promise<AiSqlAttempt[]> {
+  const params = new URLSearchParams({limit: String(limit), gold_only: String(goldOnly)});
   const response = await fetch(`${API_URL}/api/admin/ai-sql-attempts?${params.toString()}`, {headers: authHeaders(), cache: "no-store"});
   if (!response.ok) {
     throw new ApiError("Unable to load AI SQL attempts");

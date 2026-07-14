@@ -978,6 +978,65 @@
         "token:week"
       ]
     },
+    "4dee28bf66e793e5a94dd816bf16200c58a313394882c90f0a37c76c6be5430a": {
+      "cache_policy": {
+        "created_at": "2026-07-09T06:42:57.379021+00:00",
+        "expires_at": "2026-07-11T06:42:57.379021+00:00",
+        "ttl_days": 2
+      },
+      "intent": {
+        "canonical_tokens": [
+          "as",
+          "bim",
+          "its",
+          "leaders",
+          "not",
+          "or",
+          "project",
+          "team",
+          "type"
+        ],
+        "date_tokens": [],
+        "end_date": null,
+        "limit": 500,
+        "report_category": "project",
+        "start_date": null
+      },
+      "key": "4dee28bf66e793e5a94dd816bf16200c58a313394882c90f0a37c76c6be5430a",
+      "query": {
+        "normalized": "show me bim projects with team leaders and show its type as bim or not",
+        "original": "Show me BIM projects with team leaders and show its type as BIM or not "
+      },
+      "response": {
+        "explanation": "",
+        "sql": "SELECT\n  CASE\n    WHEN p.project_mfg_type = 'BIM' THEN 'BIM Projects'\n    ELSE 'Non-BIM Projects'\n  END AS project_type,\n  p.project_name,\n  u.name AS team_leader\nFROM projects p\nLEFT JOIN users u ON CAST(u.id AS CHAR) = CAST(p.team_leader AS CHAR)\nWHERE p.project_mfg_type = 'BIM'\nGROUP BY project_type, team_leader, project_name\nORDER BY project_type, team_leader, project_name\nLIMIT 100",
+        "title": "SQL Report"
+      },
+      "sources": {
+        "schema_version": "5f867db0c63f0152"
+      },
+      "stats": {
+        "hit_count": 0,
+        "invalidated_reason": null,
+        "last_hit_at": null,
+        "last_invalidated_at": null
+      },
+      "tags": [
+        "cache_key:4dee28bf66e793e5a94dd816bf16200c58a313394882c90f0a37c76c6be5430a",
+        "llm_sql",
+        "table:projects",
+        "table:users",
+        "token:as",
+        "token:bim",
+        "token:its",
+        "token:leaders",
+        "token:not",
+        "token:or",
+        "token:project",
+        "token:team",
+        "token:type"
+      ]
+    },
     "52822310166876f5317e5ad1ea1808561c8efbd1a7a5fed55d7ef7471dbfc47f": {
       "cache_policy": {
         "created_at": "2026-05-25T10:41:36.610295+00:00",
@@ -1739,6 +1798,55 @@
         "token:year"
       ]
     },
+    "98a30addf428b2011c91c3a42f8f43848da51f3b599dd97f7ad92ba8ace590f0": {
+      "cache_policy": {
+        "created_at": "2026-07-09T06:41:26.622877+00:00",
+        "expires_at": "2026-07-11T06:41:26.622877+00:00",
+        "ttl_days": 2
+      },
+      "intent": {
+        "canonical_tokens": [
+          "bmi",
+          "leaders",
+          "project",
+          "team"
+        ],
+        "date_tokens": [],
+        "end_date": null,
+        "limit": 500,
+        "report_category": "team_employee",
+        "start_date": null
+      },
+      "key": "98a30addf428b2011c91c3a42f8f43848da51f3b599dd97f7ad92ba8ace590f0",
+      "query": {
+        "normalized": "show me bmi projects with team leaders",
+        "original": "Show me BMI projects with team leaders"
+      },
+      "response": {
+        "explanation": "",
+        "sql": "SELECT \n    p.project_name,\n    p.project_leader,\n    p.team_leader,\n    p.primary_team_leader,\n    u.name AS team_leader_name\nFROM \n    projects p\nJOIN \n    users u ON p.team_leader = CAST(u.id AS CHAR) AND FIND_IN_SET(CAST(u.id AS CHAR), REPLACE(REPLACE(REPLACE(COALESCE(p.team_leader, ''), '[', ''), ']', ''), '\"', '')) > 0\nWHERE \n    p.project_type_id IS NOT NULL\nORDER BY \n    p.project_name\nLIMIT 100",
+        "title": "SQL Report"
+      },
+      "sources": {
+        "schema_version": "5f867db0c63f0152"
+      },
+      "stats": {
+        "hit_count": 0,
+        "invalidated_reason": null,
+        "last_hit_at": null,
+        "last_invalidated_at": null
+      },
+      "tags": [
+        "cache_key:98a30addf428b2011c91c3a42f8f43848da51f3b599dd97f7ad92ba8ace590f0",
+        "llm_sql",
+        "table:projects",
+        "table:users",
+        "token:bmi",
+        "token:leaders",
+        "token:project",
+        "token:team"
+      ]
+    },
     "98ef54ecb4ce633e9210e60f17f002dc6960b9ad00b6bfabca440b8cdcf3926e": {
       "cache_policy": {
         "created_at": "2026-05-25T11:56:05.006367+00:00",
@@ -1950,6 +2058,129 @@
         "token:revision",
         "token:summary",
         "token:team"
+      ]
+    },
+    "9ef9be27629ed06bbc04fd800a525602d79476ba7c7401867d008ad689223798": {
+      "cache_policy": {
+        "created_at": "2026-07-09T06:48:11.356900+00:00",
+        "expires_at": "2026-07-11T06:48:11.356900+00:00",
+        "ttl_days": 2
+      },
+      "intent": {
+        "canonical_tokens": [
+          "all",
+          "employees",
+          "g",
+          "name",
+          "only",
+          "project",
+          "start",
+          "timesheet",
+          "whose"
+        ],
+        "date_tokens": [],
+        "end_date": "2026-07-09",
+        "limit": 500,
+        "report_category": "timesheet",
+        "start_date": "2026-06-10"
+      },
+      "key": "9ef9be27629ed06bbc04fd800a525602d79476ba7c7401867d008ad689223798",
+      "query": {
+        "normalized": "all employees whose name start with g timesheet report only for project",
+        "original": "All employees whose name start with G timesheet report only for project "
+      },
+      "response": {
+        "explanation": "",
+        "sql": "SELECT\n  u.id AS user_id,\n  u.name AS employee_name,\n  u.employee_id,\n  YEARWEEK(tr.date, 1) AS week_key,\n  p.project_name,\n  tr.work_type,\n  tr.user_type,\n  SUM(COALESCE(tr.hours, 0) + (COALESCE(tr.minutes, 0) / 60)) AS total_hours,\n  SUM(\n    CASE\n      WHEN tr.non_billable_reason IS NOT NULL\n      THEN COALESCE(tr.hours, 0) + (COALESCE(tr.minutes, 0) / 60)\n      ELSE 0\n    END\n  ) AS non_billable_hours,\n  COUNT(*) AS entry_count\nFROM timelog_records tr\nLEFT JOIN users u ON u.id = tr.user_id\nLEFT JOIN projects p ON p.id = tr.project_id\nWHERE u.name LIKE 'G%' \n  AND tr.date >= '2026-06-10'\n  AND tr.date <= '2026-07-09'\nGROUP BY\n  u.id,\n  u.name,\n  u.employee_id,\n  YEARWEEK(tr.date, 1),\n  p.project_name,\n  tr.work_type,\n  tr.user_type\nORDER BY week_key DESC, employee_name, p.project_name\nLIMIT 100",
+        "title": "SQL Report"
+      },
+      "sources": {
+        "schema_version": "5f867db0c63f0152"
+      },
+      "stats": {
+        "hit_count": 0,
+        "invalidated_reason": null,
+        "last_hit_at": null,
+        "last_invalidated_at": null
+      },
+      "tags": [
+        "cache_key:9ef9be27629ed06bbc04fd800a525602d79476ba7c7401867d008ad689223798",
+        "end:2026-07-09",
+        "llm_sql",
+        "start:2026-06-10",
+        "table:projects",
+        "table:timelog_records",
+        "table:users",
+        "token:all",
+        "token:employees",
+        "token:g",
+        "token:name",
+        "token:only",
+        "token:project",
+        "token:start",
+        "token:timesheet",
+        "token:whose"
+      ]
+    },
+    "a1ed1db079a0f6f52f3df9a98e7aa10d1286b4147fdd59f0ce6864173637c3eb": {
+      "cache_policy": {
+        "created_at": "2026-07-09T06:44:19.752729+00:00",
+        "expires_at": "2026-07-11T06:44:19.752729+00:00",
+        "ttl_days": 2
+      },
+      "intent": {
+        "canonical_tokens": [
+          "as",
+          "bim",
+          "its",
+          "leader",
+          "name",
+          "not",
+          "or",
+          "project",
+          "team",
+          "type"
+        ],
+        "date_tokens": [],
+        "end_date": null,
+        "limit": 500,
+        "report_category": "project",
+        "start_date": null
+      },
+      "key": "a1ed1db079a0f6f52f3df9a98e7aa10d1286b4147fdd59f0ce6864173637c3eb",
+      "query": {
+        "normalized": "show me bim projects with team leader name and show its type as bim or not",
+        "original": "Show me BIM projects with team leader name  and show its type as BIM or not "
+      },
+      "response": {
+        "explanation": "",
+        "sql": "SELECT \n  p.project_name,\n  CASE \n    WHEN p.project_mfg_type = 'BIM' THEN 'BIM'\n    ELSE 'Not BIM'\n  END AS project_type,\n  u.name AS team_leader\nFROM projects p\nLEFT JOIN users u ON CAST(u.id AS CHAR) = CAST(p.team_leader AS CHAR)\nWHERE p.project_mfg_type = 'BIM'\nGROUP BY p.project_name, u.name",
+        "title": "SQL Report"
+      },
+      "sources": {
+        "schema_version": "5f867db0c63f0152"
+      },
+      "stats": {
+        "hit_count": 1,
+        "invalidated_reason": null,
+        "last_hit_at": "2026-07-09T06:44:46.409540+00:00",
+        "last_invalidated_at": null
+      },
+      "tags": [
+        "cache_key:a1ed1db079a0f6f52f3df9a98e7aa10d1286b4147fdd59f0ce6864173637c3eb",
+        "llm_sql",
+        "table:projects",
+        "table:users",
+        "token:as",
+        "token:bim",
+        "token:its",
+        "token:leader",
+        "token:name",
+        "token:not",
+        "token:or",
+        "token:project",
+        "token:team",
+        "token:type"
       ]
     },
     "a7aaf4e0def2b5e99b0b977af193aa795cd883333d0aecf0a196b9e640d3aeeb": {
@@ -2642,6 +2873,55 @@
         "token:team"
       ]
     },
+    "c913f0f23a7be70520a0ef99b0c1739b968eeec7410e9668433a93063839a78c": {
+      "cache_policy": {
+        "created_at": "2026-07-09T06:41:49.107589+00:00",
+        "expires_at": "2026-07-11T06:41:49.107589+00:00",
+        "ttl_days": 2
+      },
+      "intent": {
+        "canonical_tokens": [
+          "bim",
+          "leaders",
+          "project",
+          "team"
+        ],
+        "date_tokens": [],
+        "end_date": null,
+        "limit": 500,
+        "report_category": "team_employee",
+        "start_date": null
+      },
+      "key": "c913f0f23a7be70520a0ef99b0c1739b968eeec7410e9668433a93063839a78c",
+      "query": {
+        "normalized": "show me bim projects with team leaders",
+        "original": "Show me BIM projects with team leaders"
+      },
+      "response": {
+        "explanation": "",
+        "sql": "SELECT \n    p.project_name,\n    p.project_status,\n    p.team_leader,\n    u.name AS team_leader_name\nFROM \n    projects p\nJOIN \n    users u ON FIND_IN_SET(CAST(u.id AS CHAR), REPLACE(REPLACE(REPLACE(COALESCE(p.team_leader, ''), '[', ''), ']', ''), '\"', '')) > 0\nWHERE \n    p.project_type_id IS NOT NULL\nGROUP BY \n    p.project_name, p.project_status, p.team_leader, u.name\nLIMIT 100",
+        "title": "SQL Report"
+      },
+      "sources": {
+        "schema_version": "5f867db0c63f0152"
+      },
+      "stats": {
+        "hit_count": 0,
+        "invalidated_reason": null,
+        "last_hit_at": null,
+        "last_invalidated_at": null
+      },
+      "tags": [
+        "cache_key:c913f0f23a7be70520a0ef99b0c1739b968eeec7410e9668433a93063839a78c",
+        "llm_sql",
+        "table:projects",
+        "table:users",
+        "token:bim",
+        "token:leaders",
+        "token:project",
+        "token:team"
+      ]
+    },
     "cb768a01b7f0ef060b43a95b8510863796f4d0dc8c49dbfde13eedd06388a863": {
       "cache_policy": {
         "created_at": "2026-05-29T10:49:34.407585+00:00",
@@ -2695,6 +2975,56 @@
         "token:project",
         "token:revision",
         "token:summary"
+      ]
+    },
+    "cc627246f7d587e664035074cf8d69668c810b5eb0276a5ab00e8d50b507838b": {
+      "cache_policy": {
+        "created_at": "2026-07-09T06:45:28.558746+00:00",
+        "expires_at": "2026-07-11T06:45:28.558746+00:00",
+        "ttl_days": 2
+      },
+      "intent": {
+        "canonical_tokens": [
+          "bim",
+          "leader",
+          "project",
+          "team"
+        ],
+        "date_tokens": [],
+        "end_date": null,
+        "limit": 500,
+        "report_category": "team_employee",
+        "start_date": null
+      },
+      "key": "cc627246f7d587e664035074cf8d69668c810b5eb0276a5ab00e8d50b507838b",
+      "query": {
+        "normalized": "show me bim projects with team leader",
+        "original": "Show me BIM projects with team leader "
+      },
+      "response": {
+        "explanation": "",
+        "sql": "SELECT \n    p.project_name,\n    p.project_status,\n    p.team_leader,\n    COUNT(pt.id) AS project_count\nFROM \n    projects p\nJOIN \n    users u ON p.team_leader = u.id\nJOIN \n    product_task pt ON p.id = pt.project_id\nWHERE \n    p.project_type_id IS NOT NULL\n    AND p.is_deleted = 0\n    AND u.is_deleted = 0\nGROUP BY \n    p.project_name, p.project_status, p.team_leader\nORDER BY \n    project_count DESC\nLIMIT 10",
+        "title": "SQL Report"
+      },
+      "sources": {
+        "schema_version": "5f867db0c63f0152"
+      },
+      "stats": {
+        "hit_count": 0,
+        "invalidated_reason": null,
+        "last_hit_at": null,
+        "last_invalidated_at": null
+      },
+      "tags": [
+        "cache_key:cc627246f7d587e664035074cf8d69668c810b5eb0276a5ab00e8d50b507838b",
+        "llm_sql",
+        "table:product_task",
+        "table:projects",
+        "table:users",
+        "token:bim",
+        "token:leader",
+        "token:project",
+        "token:team"
       ]
     },
     "d62c7459ffee2c64159f5b1f5d00532d3df102e1cf72a23e6d583e94b889cadd": {
@@ -3010,6 +3340,68 @@
         "token:revision",
         "token:summary",
         "token:team"
+      ]
+    },
+    "db8f826caa86135c8a8e031eaf7fed0da13c66a075d5a48b3dad84be3a9f10a5": {
+      "cache_policy": {
+        "created_at": "2026-07-09T06:40:18.660562+00:00",
+        "expires_at": "2026-07-11T06:40:18.660562+00:00",
+        "ttl_days": 2
+      },
+      "intent": {
+        "canonical_tokens": [
+          "equivalent",
+          "leaders",
+          "new",
+          "team",
+          "this",
+          "tickets",
+          "top",
+          "year"
+        ],
+        "date_tokens": [
+          "this",
+          "year"
+        ],
+        "end_date": "2026-12-31",
+        "limit": 500,
+        "report_category": "team_employee",
+        "start_date": "2026-01-01"
+      },
+      "key": "db8f826caa86135c8a8e031eaf7fed0da13c66a075d5a48b3dad84be3a9f10a5",
+      "query": {
+        "normalized": "top team leaders by equivalent new tickets this year",
+        "original": "Top team leaders by equivalent new tickets this year"
+      },
+      "response": {
+        "explanation": "",
+        "sql": "SELECT u.id, u.name AS team_leader_name, COUNT(DISTINCT pt.id) AS ticket_count \nFROM users u \nLEFT JOIN product_task pt ON u.id = pt.assign_team_leader AND pt.is_deleted = 0 AND pt.created_at BETWEEN '2026-01-01' AND '2026-12-31' \nWHERE u.is_deleted = 0 \nGROUP BY u.id, u.name \nORDER BY ticket_count DESC \nLIMIT 10",
+        "title": "SQL Report"
+      },
+      "sources": {
+        "schema_version": "5f867db0c63f0152"
+      },
+      "stats": {
+        "hit_count": 0,
+        "invalidated_reason": null,
+        "last_hit_at": null,
+        "last_invalidated_at": null
+      },
+      "tags": [
+        "cache_key:db8f826caa86135c8a8e031eaf7fed0da13c66a075d5a48b3dad84be3a9f10a5",
+        "end:2026-12-31",
+        "llm_sql",
+        "start:2026-01-01",
+        "table:product_task",
+        "table:users",
+        "token:equivalent",
+        "token:leaders",
+        "token:new",
+        "token:team",
+        "token:this",
+        "token:tickets",
+        "token:top",
+        "token:year"
       ]
     },
     "de6a36b9035cbf4206b6493b448d6260db6e27a5bb914092043360d1d6eaba34": {
@@ -3517,6 +3909,7 @@
     "222711ab6d6633d1de5a14b4585de3ef2ba11f150d6e7c63e24642cbd5dcdd70": "a7aaf4e0def2b5e99b0b977af193aa795cd883333d0aecf0a196b9e640d3aeeb",
     "23e3f5945382b91d86625232301493a71f22765c842bce6e50450c3b7597a87f": "6034c448384a20e7f1d3b5b8e48ff3485b8a53c1e1323a5bf96a8e7617c67b98",
     "27ff334fbffd9829dcba7a70fde25981f3822e53e7a817c77b5287f66e16e883": "5da7c4011ebe1f9416a000b6efa72666319bdeeea1520ca7c459300d67eccfdb",
+    "2d46bcd898ee2766059612c4eefc6d25d63765d18f62f6380f439ed47fe1a3e7": "cc627246f7d587e664035074cf8d69668c810b5eb0276a5ab00e8d50b507838b",
     "2e884a9e48c61d686b116b5f57953dcf673d2a6de08c753c8603271d58111886": "b505ddb004273ef0b1ce38b2f805efc711bf9ca9ea5233a1a7f254214c22fba9",
     "38e555cff309eacf2cd0e06610434eae46f0a4fc0445039947e86e2292f9d074": "265ef3a6f3b60948829c8485ac1b747165d2a81c22be35d507f1bd7a20d5726b",
     "3a3f837a8d5f0650378faf4c38392b6e1aa3c3a37bf9d53c219366916e34e180": "4545b7cc15e13e25666bd3cd2892963fc214f46c0c7b1fd391212ac4877f4991",
@@ -3533,18 +3926,22 @@
     "7262b6fad40df06cfdf1dad126983af46c332a5c5380bb49cdd704cfa9f014b0": "f3aa13a195eb1e26928fc27df3a8e1d99117bf03f2869e51163c7867ed0121d0",
     "78a52f066769c25f7bd87bfea4ea6051c060ddbb10524ff637e095de452fbffb": "c68cbec7c9a0507c388eb4362298d4791948815d45481084780a3fe5750f1cb8",
     "7904fea47bd099b90fe2b85a805c14b699b36661825e0c9164eb3e604d59beb1": "5353cdf537199d7a65f5d17de325d828315b428e922c906c3bb4545ce95326c5",
+    "7c64d94f7a03857d25d38a0039806f0191b10ef3408982baa52594e728b18f00": "db8f826caa86135c8a8e031eaf7fed0da13c66a075d5a48b3dad84be3a9f10a5",
     "7e53935072512a0b4aa40e6df6209ca4cb2db57c473d5f0f02ef9a295f332a4a": "fad9a713fb5b1fe17529dadcb503abef3650bd3632bd3a147510a1350b979a1c",
     "81faec0803dcb17d125c52388163f951ca2dbc359603baff654d4700ca968487": "f24e015e0003cc866749623ef76012317febbd9518eb5ff1a9032515702c0031",
     "8502e6a571fd0590d9212eb020be13b569d451c9ac4e923f02c45919c431f083": "a845eb9aa91870ef0130f7b771029548770eb441299b7d34b873a733c2b0a6dd",
     "8af8e2fe4de5def3473f82e865bc9cffe1b3a486020fd2d31a293ed105c3b9b7": "d62c7459ffee2c64159f5b1f5d00532d3df102e1cf72a23e6d583e94b889cadd",
+    "8bcbedca74e158142c1dd30d6bb9512af935ef51c4b54bba3980bfc64f76ce5b": "c913f0f23a7be70520a0ef99b0c1739b968eeec7410e9668433a93063839a78c",
     "8e02e176eff62d8f8f6ba2203c427a460af0d39533a084b24288b1d0e0bec10e": "19d1726bbd094f0c7ad6a9daeb61731946c7542eea12197f579a06a76c7c57fd",
     "91d8384b80b972531acbe700e6b33e3fa32a84bf15ec40028e50e95a9bc0fabf": "c4e7024ffa4ed5a89741a2b7625e29985a6c7704024124cc793c83955d64782d",
     "93c79e69a3c1f08b8fbf862bdb8ff8bb63264acfa04cb165cac253869ad29c52": "01db824d4f523451e46534053daf537c44f1d5c5516b68596eb189227c104fc8",
+    "940458f9ecfdfaddec75532abb61eea8b0cc22e51ffcea940cecf5d309825da8": "a1ed1db079a0f6f52f3df9a98e7aa10d1286b4147fdd59f0ce6864173637c3eb",
     "9577eeec2bd2c7d3ebde901f8a5fc374cb70dc7928a600877014e21163ef29a2": "0d87a2c11a381ebb3915d5a2250c5787541d8137918ba1a16b75db8bc2e1a61f",
     "9b17e820a66d0739206ecffb0431a5acb988ce74d7b7f65625388704cfe80354": "79bf415072b12d78f0cf062d3ad5f4b816af65b8890118d5469a0d13cd66b51a",
     "a3255bf744bc1f3a0218298ae95b12a1d49a7acd836a5dbbe95940cead275563": "7f9b2d198d577071c5587cf9807f1a813be92675349a534ea21d33d7a3d658ed",
     "a38f95c0e39422422d6be204a4252b39a45400648e27a83bf5b3474c0946e484": "9be00873507a1c945adadf8cf9746a787a2ba656f14d2e7313bb71c5e4271c4c",
     "a4933ae46f794e949e6fd7d1b5a5f4416e8dbf6552483e76885775ec92152856": "52822310166876f5317e5ad1ea1808561c8efbd1a7a5fed55d7ef7471dbfc47f",
+    "a5f4950b9d17d96a5c69bb0ba0dc0c210049046672155f88e5a47ec28bb2438e": "9ef9be27629ed06bbc04fd800a525602d79476ba7c7401867d008ad689223798",
     "a68b72e260565c91ef958d65f6ed70b411812a224b183b5e06e946e28b2913da": "213882a30cf17b4c8f5b22756af9177cbd8cef8c9f8d6aeebaf37534e8e9f58f",
     "a9941f4fa3b44e6ab75004c71f22b1acd646d7655538a15001f9e9e822b14441": "345a89fdb6a0dd5756d050324480299860d2e21ab7e50da64d2833084e2c5ba6",
     "aa60f503c9f29edf214a29d038a9f158535e42b29edc9b4ead95fa9a5925e1dc": "c0820996fa64be12b883444f05850fd8e697c9a03b30c8b810c0917f8043948e",
@@ -3562,10 +3959,12 @@
     "d8c35df3f0cd9cb52140eb700ed761c317f59b387a4b299b0b83c7363e8515d8": "d84c46ad295b92c42e9b874c1e6761f273c1dfd573598f95d7787227665b6fb2",
     "dfd0bf5c06a1897144afd3762944de0a08550fefed6d04716661c87978d33683": "26703197cd4617298721a1d1883de43e1c7ab7aabfcc80e6de8c6da8a36dc17b",
     "e04d2161661eec73279d0d395974a5f5cf93f60d4c46ccd7ef4ac8be868c7af9": "da85a99415bd39b61dfc85a6ea1cb956a96667bd23a9b163d9144e881a49e162",
+    "e1118509f3f5816bb94b04cd9e5d709796f71ff517851902d01f92dadf0ae53c": "98a30addf428b2011c91c3a42f8f43848da51f3b599dd97f7ad92ba8ace590f0",
     "e2270fcd6e22920c852d1939ed9733ad879ef15cd04bf22e5c3cafcc4a2a3434": "177501a5074ceb624159a3e8e99763e0472920e48a0ec26c943d83063a1c163f",
     "ee80d2c7796a4085d39fed8c16a526d72ddb1aa2fd7dfd600990dfdf838a9901": "fad1b8128b52878ef646052cbe5cb080089c58435cde22a8beb494b2e6bd485c",
     "f0649ab0d8fe785ad2c687ce020e284fd631bf5a149e177bdec973184a3f1350": "2c20f9dda846e1583372be8ced50ae618b9391a1ba040fbdfcdaa2e3f06131e3",
     "f95493a9729b27530098728e992c87885209983498e8a206c78de2f229ca97bf": "bace7cd3b6a6fe6f3d59938762a4c2a0afcf1c9d3abbdacb6677f8fe2be53110",
+    "fd00dba6adb4936c8e78f26a1738cd49e23ceafbcad6a56ce276381d0777a01e": "4dee28bf66e793e5a94dd816bf16200c58a313394882c90f0a37c76c6be5430a",
     "ff1d24b51b93c435ab0357ddda342a73338438b029a460e8e570135b96ea2088": "f74ae52948d87a59d9a34111b7a9a305d377e16b0ae3c289db2f5a81adc29e70",
     "ff7b72f7ccdebd428fea7701187b5a9f6725519264e4fb2d2ad963b773518e26": "c31a76c1fb466e34a3202d4327b683b27caacecfdc80c450de3230d07ea8b452"
   },
@@ -3587,6 +3986,7 @@
     "3cfc9080f9a12fc77359aa25dd4a42f422a93bb2000467c7ee6a9f57d3fa8c5d": "3cfc9080f9a12fc77359aa25dd4a42f422a93bb2000467c7ee6a9f57d3fa8c5d",
     "4545b7cc15e13e25666bd3cd2892963fc214f46c0c7b1fd391212ac4877f4991": "4545b7cc15e13e25666bd3cd2892963fc214f46c0c7b1fd391212ac4877f4991",
     "4cb796a95ad6102e12fa4f2ba382644c7d161b01a57109fe5380c8d08051ce69": "4cb796a95ad6102e12fa4f2ba382644c7d161b01a57109fe5380c8d08051ce69",
+    "4dee28bf66e793e5a94dd816bf16200c58a313394882c90f0a37c76c6be5430a": "4dee28bf66e793e5a94dd816bf16200c58a313394882c90f0a37c76c6be5430a",
     "52822310166876f5317e5ad1ea1808561c8efbd1a7a5fed55d7ef7471dbfc47f": "52822310166876f5317e5ad1ea1808561c8efbd1a7a5fed55d7ef7471dbfc47f",
     "5353cdf537199d7a65f5d17de325d828315b428e922c906c3bb4545ce95326c5": "5353cdf537199d7a65f5d17de325d828315b428e922c906c3bb4545ce95326c5",
     "5da7c4011ebe1f9416a000b6efa72666319bdeeea1520ca7c459300d67eccfdb": "5da7c4011ebe1f9416a000b6efa72666319bdeeea1520ca7c459300d67eccfdb",
@@ -3600,10 +4000,13 @@
     "7e465d59dcf4970f0f4660729af677bb1685ce6e098423884cb5e4b593c58865": "7e465d59dcf4970f0f4660729af677bb1685ce6e098423884cb5e4b593c58865",
     "7f9b2d198d577071c5587cf9807f1a813be92675349a534ea21d33d7a3d658ed": "7f9b2d198d577071c5587cf9807f1a813be92675349a534ea21d33d7a3d658ed",
     "8ddb990f8fd3e11896c98f7073c7d344230b17140693770bf826f744c9d06bec": "8ddb990f8fd3e11896c98f7073c7d344230b17140693770bf826f744c9d06bec",
+    "98a30addf428b2011c91c3a42f8f43848da51f3b599dd97f7ad92ba8ace590f0": "98a30addf428b2011c91c3a42f8f43848da51f3b599dd97f7ad92ba8ace590f0",
     "98ef54ecb4ce633e9210e60f17f002dc6960b9ad00b6bfabca440b8cdcf3926e": "98ef54ecb4ce633e9210e60f17f002dc6960b9ad00b6bfabca440b8cdcf3926e",
     "99a492319f5867ef231917cf221a4a1f1451856c82ba84c5cd5da43f3cc642ea": "99a492319f5867ef231917cf221a4a1f1451856c82ba84c5cd5da43f3cc642ea",
     "9a29ec417a0d94b0b66001f65e13864266e80f56e27005aeec9b407e7009d6a1": "9a29ec417a0d94b0b66001f65e13864266e80f56e27005aeec9b407e7009d6a1",
     "9be00873507a1c945adadf8cf9746a787a2ba656f14d2e7313bb71c5e4271c4c": "9be00873507a1c945adadf8cf9746a787a2ba656f14d2e7313bb71c5e4271c4c",
+    "9ef9be27629ed06bbc04fd800a525602d79476ba7c7401867d008ad689223798": "9ef9be27629ed06bbc04fd800a525602d79476ba7c7401867d008ad689223798",
+    "a1ed1db079a0f6f52f3df9a98e7aa10d1286b4147fdd59f0ce6864173637c3eb": "a1ed1db079a0f6f52f3df9a98e7aa10d1286b4147fdd59f0ce6864173637c3eb",
     "a7aaf4e0def2b5e99b0b977af193aa795cd883333d0aecf0a196b9e640d3aeeb": "a7aaf4e0def2b5e99b0b977af193aa795cd883333d0aecf0a196b9e640d3aeeb",
     "a7dd7b5e6db347d71ae844f96ee3d85e3deb4ea76c1221c332608c43888f246a": "a7dd7b5e6db347d71ae844f96ee3d85e3deb4ea76c1221c332608c43888f246a",
     "a845eb9aa91870ef0130f7b771029548770eb441299b7d34b873a733c2b0a6dd": "a845eb9aa91870ef0130f7b771029548770eb441299b7d34b873a733c2b0a6dd",
@@ -3616,12 +4019,15 @@
     "c31a76c1fb466e34a3202d4327b683b27caacecfdc80c450de3230d07ea8b452": "c31a76c1fb466e34a3202d4327b683b27caacecfdc80c450de3230d07ea8b452",
     "c4e7024ffa4ed5a89741a2b7625e29985a6c7704024124cc793c83955d64782d": "c4e7024ffa4ed5a89741a2b7625e29985a6c7704024124cc793c83955d64782d",
     "c68cbec7c9a0507c388eb4362298d4791948815d45481084780a3fe5750f1cb8": "c68cbec7c9a0507c388eb4362298d4791948815d45481084780a3fe5750f1cb8",
+    "c913f0f23a7be70520a0ef99b0c1739b968eeec7410e9668433a93063839a78c": "c913f0f23a7be70520a0ef99b0c1739b968eeec7410e9668433a93063839a78c",
     "cb768a01b7f0ef060b43a95b8510863796f4d0dc8c49dbfde13eedd06388a863": "cb768a01b7f0ef060b43a95b8510863796f4d0dc8c49dbfde13eedd06388a863",
+    "cc627246f7d587e664035074cf8d69668c810b5eb0276a5ab00e8d50b507838b": "cc627246f7d587e664035074cf8d69668c810b5eb0276a5ab00e8d50b507838b",
     "d62c7459ffee2c64159f5b1f5d00532d3df102e1cf72a23e6d583e94b889cadd": "d62c7459ffee2c64159f5b1f5d00532d3df102e1cf72a23e6d583e94b889cadd",
     "d7cabb8a481febc2882ab57ca0059d36241aebf73bd1a4cbdf97ec8eb93279d0": "d7cabb8a481febc2882ab57ca0059d36241aebf73bd1a4cbdf97ec8eb93279d0",
     "d84c46ad295b92c42e9b874c1e6761f273c1dfd573598f95d7787227665b6fb2": "d84c46ad295b92c42e9b874c1e6761f273c1dfd573598f95d7787227665b6fb2",
     "d99c434dabeb40afb92b82052ae4c26f1b2d37e806446d9b66d5b19da2862532": "d99c434dabeb40afb92b82052ae4c26f1b2d37e806446d9b66d5b19da2862532",
     "da85a99415bd39b61dfc85a6ea1cb956a96667bd23a9b163d9144e881a49e162": "da85a99415bd39b61dfc85a6ea1cb956a96667bd23a9b163d9144e881a49e162",
+    "db8f826caa86135c8a8e031eaf7fed0da13c66a075d5a48b3dad84be3a9f10a5": "db8f826caa86135c8a8e031eaf7fed0da13c66a075d5a48b3dad84be3a9f10a5",
     "de6a36b9035cbf4206b6493b448d6260db6e27a5bb914092043360d1d6eaba34": "de6a36b9035cbf4206b6493b448d6260db6e27a5bb914092043360d1d6eaba34",
     "f24e015e0003cc866749623ef76012317febbd9518eb5ff1a9032515702c0031": "f24e015e0003cc866749623ef76012317febbd9518eb5ff1a9032515702c0031",
     "f37bddf3e86dd0fd8b9d023cd0f71ef38f84e8e6ee9ae2a4e19c89295b57b2c0": "f37bddf3e86dd0fd8b9d023cd0f71ef38f84e8e6ee9ae2a4e19c89295b57b2c0",

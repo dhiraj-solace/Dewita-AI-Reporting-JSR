@@ -559,7 +559,7 @@ def share_saved_report(
 
 @app.get("/api/admin/ai-sql-attempts", response_model=list[AiSqlAttempt])
 def admin_ai_sql_attempts(
-    limit: int = Query(default=50, ge=1, le=200),
+    limit: int = Query(default=1000, ge=1, le=5000),
     gold_only: bool = False,
     authorization: str | None = Header(default=None),
 ) -> list[AiSqlAttempt]:
